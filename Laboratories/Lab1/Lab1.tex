@@ -1,0 +1,168 @@
+\documentclass[12pt,a4paper]{article}
+
+% ---------- Idioma y codificación ----------
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{mathpazo} 
+% Si tu distribución no tiene instalado el idioma español, esta línea evita
+% que la compilación falle (instalá "babel-spanish" para tenerlo completo).
+\IfFileExists{spanish.ldf}
+  {\usepackage[spanish,es-nodecimaldot]{babel}}
+  {\usepackage[english]{babel}}
+
+% ---------- Página ----------
+\usepackage[a4paper,top=3cm,bottom=2.5cm,left=2.5cm,right=2.5cm,headheight=1.75cm,headsep=0.8cm]{geometry}
+
+% ---------- Utilidades ----------
+\usepackage{graphicx}
+\usepackage{fancyhdr}
+\usepackage{xcolor}
+\usepackage{enumitem}
+\usepackage{tikz}          % solo para los logos de reemplazo
+\usepackage[hidelinks]{hyperref}
+\usepackage{titlesec}
+\usepackage{float}
+\usepackage{booktabs}
+\usepackage[numbers]{natbib}
+\bibliographystyle{unsrtnat}
+\newcommand{\sectionbreak}{\clearpage}
+
+% ============================================================
+%  >>>>>>>>>>  DATOS DEL TRABAJO: EDITAR ACÁ  <<<<<<<<<<
+% ============================================================
+\newcommand{\Titulo}{Trabajo Practico N°1: ALU}  % título del trabajo
+\newcommand{\Subtitulo}{}       % dejar vacío {} si no aplica
+\newcommand{\Materia}{Arquitectura de Computadoras}
+\newcommand{\Institucion}{Facultad de Ciencias Exactas, Físicas y Naturales - Universidad Nacional de Córdoba}
+\newcommand{\Carrera}{Ingenieria en Computación}
+%\newcommand{\Fecha}{\today}
+
+% Integrantes: una línea \persona{...} por cada uno
+\newcommand{\Integrantes}{%
+  \persona{Brigido, Tomas Andres}{Legajo 12345678}%
+  \persona{Tosolini, Agustin}{Legajo 42332698}%
+}
+
+% Docentes
+\newcommand{\Docentes}{%
+  \persona{primer, docente}{}%
+}
+
+% Repositorio: dejar vacío {} para que NO aparezca en la carátula
+\newcommand{\Repositorio}{}
+
+% Logos del encabezado (cambiar por los archivos reales, ej: logo-uni.png)
+\newcommand{\LogoIzquierdo}{./logos/unc.png}
+\newcommand{\LogoDerecho}{./logos/fcefyn.png}
+\newcommand{\AlturaLogo}{3.0cm}   % alto de los logos del encabezado
+% ============================================================
+
+
+% ---------- Maquinaria interna (no hace falta tocar) ----------
+% Inserta un logo; si el archivo no existe dibuja un recuadro gris de muestra
+\newcommand{\ponerlogo}[1]{%
+  \IfFileExists{#1}{%
+    \includegraphics[height=\AlturaLogo,keepaspectratio]{#1}%
+  }{%
+    \begin{tikzpicture}
+      \node[draw=gray!60,dashed,fill=gray!10,rounded corners,
+            minimum height=\AlturaLogo,minimum width=2.6cm,
+            font=\scriptsize\color{gray}] {logo};
+    \end{tikzpicture}%
+  }%
+}
+
+% Encabezado y pie de todas las páginas
+\fancypagestyle{caratula}{%
+  \fancyhf{}
+  \fancyhead[L]{\ponerlogo{\LogoIzquierdo}}
+  \fancyhead[R]{\ponerlogo{\LogoDerecho}}
+  \renewcommand{\headrulewidth}{0.4pt}
+  \renewcommand{\footrulewidth}{0pt}
+}
+
+% Que las páginas de tipo "plain" (inicio de capítulo, etc.) usen el mismo estilo
+\fancypagestyle{plain}{%
+  \fancyhf{}
+  \fancyhead[L]{\ponerlogo{\LogoIzquierdo}}
+  \fancyhead[R]{\ponerlogo{\LogoDerecho}}
+  \fancyfoot[C]{\small Página \thepage\ de \pageref{LastPage}}
+  \renewcommand{\headrulewidth}{0.4pt}
+}
+
+% Formato de cada persona en la carátula
+\newcommand{\persona}[2]{%
+  \textbf{#1}%
+  \ifx\relax#2\relax\else{\ \small(#2)}\fi\\[0.25em]
+}
+
+\setlength{\parskip}{0.6em}
+\setlength{\parindent}{0pt}
+
+
+% ============================================================
+\begin{document}
+
+% ------------------------- CARÁTULA -------------------------
+\thispagestyle{caratula}
+\begin{center}
+  \vspace*{1cm}
+
+  {\large \Institucion \par}
+  {\normalsize \Carrera \par}
+
+  \vspace{1.5cm}
+  \rule{\textwidth}{1.2pt}\\[0.6cm]
+  {\Huge\bfseries \Titulo \par}
+  \vspace{0.4cm}
+  \ifx\Subtitulo\empty\else{\Large \Subtitulo \par}\vspace{0.3cm}\fi
+  \rule{\textwidth}{1.2pt}
+
+  \vspace{0.8cm}
+  {\large \textit{\Materia} \par}
+
+  \vspace{2cm}
+  {\large\bfseries Integrantes\par}
+  \vspace{0.4cm}
+  \Integrantes
+
+  \vspace{1.2cm}
+  {\large\bfseries Docente\par}
+  \vspace{0.4cm}
+  \Docentes
+
+  \vfill
+
+  %{\large \Fecha \par}
+  \vspace{1cm}
+\end{center}
+
+\newpage
+
+% --------------------- ÍNDICE (opcional) ---------------------
+\tableofcontents
+\newpage
+
+% --------------------- CONTENIDO ----------------------------
+\section{Introducción}
+
+\section{Desarrollo}
+
+\subsection{Primera parte}
+Texto de ejemplo.
+
+\subsection{Segunda parte}
+Texto de ejemplo.
+
+\section{Conclusiones}
+Texto de ejemplo.
+
+\begin{thebibliography}{1}
+
+\bibitem{ejemploLibro2024}
+Ejemplo de cita.
+\emph{Esto es una cita de ejemplo}, Referencia de ejemplo, 2024.
+
+\end{thebibliography}
+
+\end{document}
