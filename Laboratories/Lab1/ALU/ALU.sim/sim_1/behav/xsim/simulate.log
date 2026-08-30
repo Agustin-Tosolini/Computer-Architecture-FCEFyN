@@ -1,0 +1,180 @@
+Time resolution is 1 ps
+
+==================================================================
+ TESTBENCH ALU - inicio
+ Semilla aleatoria: 2092026  (anotarla para reproducir la corrida)
+==================================================================
+
+--- TEST 1: estado inicial (sin cargar nada) ---
+[INFO] t=20000 Salida indefinida (X): los registros no tienen reset.
+
+--- TEST 2: carga de registros ---
+[ OK ] t=47000 carga A=0x1234 B=0x0001 ADD | leds=0x1235
+[ OK ] t=56000 recarga A=0xFFFF (ADD) | leds=0x0000
+[ OK ] t=65000 recarga B=0x0002 (ADD) | leds=0x0001
+
+--- TEST 3: retencion de valor (latch) ---
+[ OK ] t=92000 A=0x00F0 B=0x000F OR | leds=0x00ff
+[ OK ] t=102000 switch cambia sin botones -> sin efecto | leds=0x00ff
+[ OK ] t=112000 switch en 0 sin botones -> sin efecto | leds=0x00ff
+[FAIL] t=122000 atch transparente (gana el ultimo valor) | op=100101 (OR) A=0x1111 B=0x000f | esperado=0x111f obtenido=0x222f
+
+--- TEST 4: prioridad entre botones ---
+[ OK ] t=149000 base A=0x1111 B=0x2222 ADD | leds=0x3333
+[ OK ] t=158000 btn1+btn2 -> solo carga A | leds=0xcccc
+[ OK ] t=167000 btn2+btn3 -> solo carga B | leds=0xaaab
+[ OK ] t=176000 btn1+btn2+btn3 -> solo carga A | leds=0x0003
+
+--- TEST 5: truncamiento de opt (16 switches -> 6 bits) ---
+[ OK ] t=203000 switch=0xFFE2 -> opt=100010 (SUB) | leds=0x0002
+
+--- TEST 6: barrido de los 64 opcodes con A=0x00F0 B=0x000F ---
+[ OK ] t=230000 barrido | op=000000 (INVALID) A=0x00f0 B=0x000f | leds=0x0000 (0 dec, 0 signed)
+[ OK ] t=239000 barrido | op=000001 (INVALID) A=0x00f0 B=0x000f | leds=0x0000 (0 dec, 0 signed)
+[ OK ] t=248000 barrido | op=000010 (SRL) A=0x00f0 B=0x000f | leds=0x0000 (0 dec, 0 signed)
+[ OK ] t=257000 barrido | op=000011 (SRA) A=0x00f0 B=0x000f | leds=0x0000 (0 dec, 0 signed)
+[ OK ] t=266000 barrido | op=000100 (INVALID) A=0x00f0 B=0x000f | leds=0x0000 (0 dec, 0 signed)
+[ OK ] t=275000 barrido | op=000101 (INVALID) A=0x00f0 B=0x000f | leds=0x0000 (0 dec, 0 signed)
+[ OK ] t=284000 barrido | op=000110 (INVALID) A=0x00f0 B=0x000f | leds=0x0000 (0 dec, 0 signed)
+[ OK ] t=293000 barrido | op=000111 (INVALID) A=0x00f0 B=0x000f | leds=0x0000 (0 dec, 0 signed)
+[ OK ] t=302000 barrido | op=001000 (INVALID) A=0x00f0 B=0x000f | leds=0x0000 (0 dec, 0 signed)
+[ OK ] t=311000 barrido | op=001001 (INVALID) A=0x00f0 B=0x000f | leds=0x0000 (0 dec, 0 signed)
+[ OK ] t=320000 barrido | op=001010 (INVALID) A=0x00f0 B=0x000f | leds=0x0000 (0 dec, 0 signed)
+[ OK ] t=329000 barrido | op=001011 (INVALID) A=0x00f0 B=0x000f | leds=0x0000 (0 dec, 0 signed)
+[ OK ] t=338000 barrido | op=001100 (INVALID) A=0x00f0 B=0x000f | leds=0x0000 (0 dec, 0 signed)
+[ OK ] t=347000 barrido | op=001101 (INVALID) A=0x00f0 B=0x000f | leds=0x0000 (0 dec, 0 signed)
+[ OK ] t=356000 barrido | op=001110 (INVALID) A=0x00f0 B=0x000f | leds=0x0000 (0 dec, 0 signed)
+[ OK ] t=365000 barrido | op=001111 (INVALID) A=0x00f0 B=0x000f | leds=0x0000 (0 dec, 0 signed)
+[ OK ] t=374000 barrido | op=010000 (INVALID) A=0x00f0 B=0x000f | leds=0x0000 (0 dec, 0 signed)
+[ OK ] t=383000 barrido | op=010001 (INVALID) A=0x00f0 B=0x000f | leds=0x0000 (0 dec, 0 signed)
+[ OK ] t=392000 barrido | op=010010 (INVALID) A=0x00f0 B=0x000f | leds=0x0000 (0 dec, 0 signed)
+[ OK ] t=401000 barrido | op=010011 (INVALID) A=0x00f0 B=0x000f | leds=0x0000 (0 dec, 0 signed)
+[ OK ] t=410000 barrido | op=010100 (INVALID) A=0x00f0 B=0x000f | leds=0x0000 (0 dec, 0 signed)
+[ OK ] t=419000 barrido | op=010101 (INVALID) A=0x00f0 B=0x000f | leds=0x0000 (0 dec, 0 signed)
+[ OK ] t=428000 barrido | op=010110 (INVALID) A=0x00f0 B=0x000f | leds=0x0000 (0 dec, 0 signed)
+[ OK ] t=437000 barrido | op=010111 (INVALID) A=0x00f0 B=0x000f | leds=0x0000 (0 dec, 0 signed)
+[ OK ] t=446000 barrido | op=011000 (INVALID) A=0x00f0 B=0x000f | leds=0x0000 (0 dec, 0 signed)
+[ OK ] t=455000 barrido | op=011001 (INVALID) A=0x00f0 B=0x000f | leds=0x0000 (0 dec, 0 signed)
+[ OK ] t=464000 barrido | op=011010 (INVALID) A=0x00f0 B=0x000f | leds=0x0000 (0 dec, 0 signed)
+[ OK ] t=473000 barrido | op=011011 (INVALID) A=0x00f0 B=0x000f | leds=0x0000 (0 dec, 0 signed)
+[ OK ] t=482000 barrido | op=011100 (INVALID) A=0x00f0 B=0x000f | leds=0x0000 (0 dec, 0 signed)
+[ OK ] t=491000 barrido | op=011101 (INVALID) A=0x00f0 B=0x000f | leds=0x0000 (0 dec, 0 signed)
+[ OK ] t=500000 barrido | op=011110 (INVALID) A=0x00f0 B=0x000f | leds=0x0000 (0 dec, 0 signed)
+[ OK ] t=509000 barrido | op=011111 (INVALID) A=0x00f0 B=0x000f | leds=0x0000 (0 dec, 0 signed)
+[ OK ] t=518000 barrido | op=100000 (ADD) A=0x00f0 B=0x000f | leds=0x00ff (255 dec, 255 signed)
+[ OK ] t=527000 barrido | op=100001 (INVALID) A=0x00f0 B=0x000f | leds=0x0000 (0 dec, 0 signed)
+[ OK ] t=536000 barrido | op=100010 (SUB) A=0x00f0 B=0x000f | leds=0x00e1 (225 dec, 225 signed)
+[ OK ] t=545000 barrido | op=100011 (INVALID) A=0x00f0 B=0x000f | leds=0x0000 (0 dec, 0 signed)
+[ OK ] t=554000 barrido | op=100100 (AND) A=0x00f0 B=0x000f | leds=0x0000 (0 dec, 0 signed)
+[ OK ] t=563000 barrido | op=100101 (OR) A=0x00f0 B=0x000f | leds=0x00ff (255 dec, 255 signed)
+[ OK ] t=572000 barrido | op=100110 (XOR) A=0x00f0 B=0x000f | leds=0x00ff (255 dec, 255 signed)
+[ OK ] t=581000 barrido | op=100111 (NOR) A=0x00f0 B=0x000f | leds=0xff00 (65280 dec, -256 signed)
+[ OK ] t=590000 barrido | op=101000 (INVALID) A=0x00f0 B=0x000f | leds=0x0000 (0 dec, 0 signed)
+[ OK ] t=599000 barrido | op=101001 (INVALID) A=0x00f0 B=0x000f | leds=0x0000 (0 dec, 0 signed)
+[ OK ] t=608000 barrido | op=101010 (INVALID) A=0x00f0 B=0x000f | leds=0x0000 (0 dec, 0 signed)
+[ OK ] t=617000 barrido | op=101011 (INVALID) A=0x00f0 B=0x000f | leds=0x0000 (0 dec, 0 signed)
+[ OK ] t=626000 barrido | op=101100 (INVALID) A=0x00f0 B=0x000f | leds=0x0000 (0 dec, 0 signed)
+[ OK ] t=635000 barrido | op=101101 (INVALID) A=0x00f0 B=0x000f | leds=0x0000 (0 dec, 0 signed)
+[ OK ] t=644000 barrido | op=101110 (INVALID) A=0x00f0 B=0x000f | leds=0x0000 (0 dec, 0 signed)
+[ OK ] t=653000 barrido | op=101111 (INVALID) A=0x00f0 B=0x000f | leds=0x0000 (0 dec, 0 signed)
+[ OK ] t=662000 barrido | op=110000 (INVALID) A=0x00f0 B=0x000f | leds=0x0000 (0 dec, 0 signed)
+[ OK ] t=671000 barrido | op=110001 (INVALID) A=0x00f0 B=0x000f | leds=0x0000 (0 dec, 0 signed)
+[ OK ] t=680000 barrido | op=110010 (INVALID) A=0x00f0 B=0x000f | leds=0x0000 (0 dec, 0 signed)
+[ OK ] t=689000 barrido | op=110011 (INVALID) A=0x00f0 B=0x000f | leds=0x0000 (0 dec, 0 signed)
+[ OK ] t=698000 barrido | op=110100 (INVALID) A=0x00f0 B=0x000f | leds=0x0000 (0 dec, 0 signed)
+[ OK ] t=707000 barrido | op=110101 (INVALID) A=0x00f0 B=0x000f | leds=0x0000 (0 dec, 0 signed)
+[ OK ] t=716000 barrido | op=110110 (INVALID) A=0x00f0 B=0x000f | leds=0x0000 (0 dec, 0 signed)
+[ OK ] t=725000 barrido | op=110111 (INVALID) A=0x00f0 B=0x000f | leds=0x0000 (0 dec, 0 signed)
+[ OK ] t=734000 barrido | op=111000 (INVALID) A=0x00f0 B=0x000f | leds=0x0000 (0 dec, 0 signed)
+[ OK ] t=743000 barrido | op=111001 (INVALID) A=0x00f0 B=0x000f | leds=0x0000 (0 dec, 0 signed)
+[ OK ] t=752000 barrido | op=111010 (INVALID) A=0x00f0 B=0x000f | leds=0x0000 (0 dec, 0 signed)
+[ OK ] t=761000 barrido | op=111011 (INVALID) A=0x00f0 B=0x000f | leds=0x0000 (0 dec, 0 signed)
+[ OK ] t=770000 barrido | op=111100 (INVALID) A=0x00f0 B=0x000f | leds=0x0000 (0 dec, 0 signed)
+[ OK ] t=779000 barrido | op=111101 (INVALID) A=0x00f0 B=0x000f | leds=0x0000 (0 dec, 0 signed)
+[ OK ] t=788000 barrido | op=111110 (INVALID) A=0x00f0 B=0x000f | leds=0x0000 (0 dec, 0 signed)
+[ OK ] t=797000 barrido | op=111111 (INVALID) A=0x00f0 B=0x000f | leds=0x0000 (0 dec, 0 signed)
+
+--- TEST 7: ADD ---
+[ OK ] t=824000 op | op=100000 (ADD) A=0x0000 B=0x0000 | leds=0x0000 (0 dec, 0 signed)
+[ OK ] t=851000 op | op=100000 (ADD) A=0x0001 B=0x0001 | leds=0x0002 (2 dec, 2 signed)
+[ OK ] t=878000 op | op=100000 (ADD) A=0xffff B=0x0001 | leds=0x0000 (0 dec, 0 signed)
+[ OK ] t=905000 op | op=100000 (ADD) A=0xffff B=0xffff | leds=0xfffe (65534 dec, -2 signed)
+[ OK ] t=932000 op | op=100000 (ADD) A=0x7fff B=0x0001 | leds=0x8000 (32768 dec, -32768 signed)
+[ OK ] t=959000 op | op=100000 (ADD) A=0x8000 B=0x8000 | leds=0x0000 (0 dec, 0 signed)
+[ OK ] t=986000 op | op=100000 (ADD) A=0xaaaa B=0x5555 | leds=0xffff (65535 dec, -1 signed)
+
+--- TEST 7: SUB ---
+[ OK ] t=1013000 op | op=100010 (SUB) A=0x0000 B=0x0000 | leds=0x0000 (0 dec, 0 signed)
+[ OK ] t=1040000 op | op=100010 (SUB) A=0x0005 B=0x0003 | leds=0x0002 (2 dec, 2 signed)
+[ OK ] t=1067000 op | op=100010 (SUB) A=0x0003 B=0x0005 | leds=0xfffe (65534 dec, -2 signed)
+[ OK ] t=1094000 op | op=100010 (SUB) A=0x0000 B=0x0001 | leds=0xffff (65535 dec, -1 signed)
+[ OK ] t=1121000 op | op=100010 (SUB) A=0x8000 B=0x0001 | leds=0x7fff (32767 dec, 32767 signed)
+[ OK ] t=1148000 op | op=100010 (SUB) A=0xffff B=0xffff | leds=0x0000 (0 dec, 0 signed)
+
+--- TEST 7: AND ---
+[ OK ] t=1175000 op | op=100100 (AND) A=0xffff B=0xffff | leds=0xffff (65535 dec, -1 signed)
+[ OK ] t=1202000 op | op=100100 (AND) A=0xffff B=0x0000 | leds=0x0000 (0 dec, 0 signed)
+[ OK ] t=1229000 op | op=100100 (AND) A=0xaaaa B=0x5555 | leds=0x0000 (0 dec, 0 signed)
+[ OK ] t=1256000 op | op=100100 (AND) A=0xf0f0 B=0xff00 | leds=0xf000 (61440 dec, -4096 signed)
+
+--- TEST 7: OR ---
+[ OK ] t=1283000 op | op=100101 (OR) A=0x0000 B=0x0000 | leds=0x0000 (0 dec, 0 signed)
+[ OK ] t=1310000 op | op=100101 (OR) A=0xaaaa B=0x5555 | leds=0xffff (65535 dec, -1 signed)
+[ OK ] t=1337000 op | op=100101 (OR) A=0xf0f0 B=0x0f0f | leds=0xffff (65535 dec, -1 signed)
+[ OK ] t=1364000 op | op=100101 (OR) A=0x1234 B=0x0000 | leds=0x1234 (4660 dec, 4660 signed)
+
+--- TEST 7: XOR ---
+[ OK ] t=1391000 op | op=100110 (XOR) A=0xffff B=0xffff | leds=0x0000 (0 dec, 0 signed)
+[ OK ] t=1418000 op | op=100110 (XOR) A=0xaaaa B=0x5555 | leds=0xffff (65535 dec, -1 signed)
+[ OK ] t=1445000 op | op=100110 (XOR) A=0x1234 B=0x0000 | leds=0x1234 (4660 dec, 4660 signed)
+[ OK ] t=1472000 op | op=100110 (XOR) A=0xf0f0 B=0xff00 | leds=0x0ff0 (4080 dec, 4080 signed)
+
+--- TEST 7: NOR ---
+[ OK ] t=1499000 op | op=100111 (NOR) A=0x0000 B=0x0000 | leds=0xffff (65535 dec, -1 signed)
+[ OK ] t=1526000 op | op=100111 (NOR) A=0xffff B=0x0000 | leds=0x0000 (0 dec, 0 signed)
+[ OK ] t=1553000 op | op=100111 (NOR) A=0xaaaa B=0x5555 | leds=0x0000 (0 dec, 0 signed)
+[ OK ] t=1580000 op | op=100111 (NOR) A=0xf0f0 B=0x0f00 | leds=0x000f (15 dec, 15 signed)
+
+--- TEST 7: SRL (desplazamiento logico a derecha) ---
+[ OK ] t=1607000 op | op=000010 (SRL) A=0xf000 B=0x0002 | leds=0x3c00 (15360 dec, 15360 signed)
+[ OK ] t=1634000 op | op=000010 (SRL) A=0x8000 B=0x000f | leds=0x0001 (1 dec, 1 signed)
+[ OK ] t=1661000 op | op=000010 (SRL) A=0xffff B=0x0000 | leds=0xffff (65535 dec, -1 signed)
+[ OK ] t=1688000 op | op=000010 (SRL) A=0x0001 B=0x0001 | leds=0x0000 (0 dec, 0 signed)
+[ OK ] t=1715000 op | op=000010 (SRL) A=0xabcd B=0x0004 | leds=0x0abc (2748 dec, 2748 signed)
+
+--- TEST 7: SRA (desplazamiento aritmetico a derecha) ---
+[ OK ] t=1742000 op | op=000011 (SRA) A=0xf000 B=0x0002 | leds=0xfc00 (64512 dec, -1024 signed)
+[ OK ] t=1769000 op | op=000011 (SRA) A=0x8000 B=0x000f | leds=0xffff (65535 dec, -1 signed)
+[ OK ] t=1796000 op | op=000011 (SRA) A=0x7fff B=0x0001 | leds=0x3fff (16383 dec, 16383 signed)
+[ OK ] t=1823000 op | op=000011 (SRA) A=0xffff B=0x0000 | leds=0xffff (65535 dec, -1 signed)
+[ OK ] t=1850000 op | op=000011 (SRA) A=0x8000 B=0x0001 | leds=0xc000 (49152 dec, -16384 signed)
+
+--- TEST 7: opcodes invalidos (deben dar 0x0000) ---
+[ OK ] t=1877000 op | op=000000 (INVALID) A=0x1234 B=0x5678 | leds=0x0000 (0 dec, 0 signed)
+[ OK ] t=1904000 op | op=111111 (INVALID) A=0x1234 B=0x5678 | leds=0x0000 (0 dec, 0 signed)
+[ OK ] t=1931000 op | op=100001 (INVALID) A=0x1234 B=0x5678 | leds=0x0000 (0 dec, 0 signed)
+[ OK ] t=1958000 op | op=101010 (INVALID) A=0x1234 B=0x5678 | leds=0x0000 (0 dec, 0 signed)
+[ OK ] t=1985000 op | op=101011 (INVALID) A=0x1234 B=0x5678 | leds=0x0000 (0 dec, 0 signed)
+
+--- TEST 8: 500 vectores aleatorios (85% con opcode valido) ---
+Test aleatorio terminado.
+
+--- COBERTURA de opcodes validos ---
+   ADD (100000) : 61 veces
+   SUB (100010) : 62 veces
+   AND (100100) : 57 veces
+   OR (100101) : 61 veces
+   XOR (100110) : 61 veces
+   NOR (100111) : 61 veces
+   SRA (000011) : 59 veces
+   SRL (000010) : 67 veces
+
+==================================================================
+ RESUMEN
+   Semilla        : 20260830
+   Verificaciones : 620
+   Errores        : 1
+   RESULTADO      : *** 1 TESTS FALLARON ***
+==================================================================
+
+$finish called at time : 17031 ns : File "/home/gus/Materias/Arqui/proyectos-vivado/Laboratories/Lab1/ALU/ALU.srcs/sim_1/new/ALU_dut.v" Line 532

@@ -6,9 +6,6 @@ module ALU#
     parameter LENGTH_OPT = 6
 )
 (
-    //input wire [4:0] i_dato_A,
-    //input wire [4:0] i_dato_B,
-    //input wire [5:0] i_opt,
     output wire [LENGTH_BITS-1 : 0] o_leds,
     
     input wire [LENGTH_BITS-1:0] i_switch,
@@ -21,6 +18,7 @@ module ALU#
     reg [LENGTH_BITS-1 : 0] dato_A;
     reg [LENGTH_BITS-1 : 0] dato_B;
     reg [LENGTH_OPT-1 : 0] opt;
+    reg error_signal = 0;
     //----------------------------------------------Parametros locales
     localparam [5:0] ADD  = 6'b100000,
                      SUB  = 6'b100010,
@@ -29,23 +27,10 @@ module ALU#
                      XOR_ = 6'b100110,
                      NOR_ = 6'b100111,
                      SRA  = 6'b000011,
-                     SRL  = 6'b000010,
-                     SLT  = 6'b101010;
+                     SRL  = 6'b000010;
                      
-     /*
-     always @(*) begin
-        case (i_opt)
-            ADD:  result = i_dato_A + i_dato_B;
-            SUB:  result = i_dato_A - i_dato_B;
-            AND_: result = i_dato_A & i_dato_B;
-            OR_:  result = i_dato_A | i_dato_B;
-            XOR_: result = i_dato_A ^ i_dato_B;
-            NOR_: result = ~(i_dato_A | i_dato_B);
-            SLT:  result = ($signed(i_dato_A) < $signed(i_dato_B)) ? 7'd1 : 7'd0;
-            default: result = 7'd0;
-        endcase
-    end
-    */
+    localparam SHAMT_BITS = $clog2(LENGTH_BITS);
+                     
     always @(*) begin
         if(i_button_1) dato_A = i_switch;
         else if (i_button_2) dato_B = i_switch;
@@ -60,7 +45,8 @@ module ALU#
             OR_:  result = dato_A | dato_B;
             XOR_: result = dato_A ^ dato_B;
             NOR_: result = ~(dato_A | dato_B);
-            SLT:  result = ($signed(dato_A) < $signed(dato_B)) ? 16'd1 : 16'd0;
+            SRA:  result = $signed(dato_A) >>> dato_B[SHAMT_BITS-1:0];
+            SRL:  result = dato_A >> dato_B[SHAMT_BITS-1:0];
             default: result = 16'd0;
         endcase
     end
