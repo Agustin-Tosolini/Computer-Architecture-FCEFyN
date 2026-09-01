@@ -6,7 +6,7 @@ Time resolution is 1 ps
 ==================================================================
 
 --- TEST 1: estado inicial (sin cargar nada) ---
-[INFO] t=20000 Salida indefinida (X): los registros no tienen reset.
+[INFO] t=20000 Salida = 0x0000 sin haber cargado nada (default del case).
 
 --- TEST 2: carga de registros ---
 [ OK ] t=47000 carga A=0x1234 B=0x0001 ADD | leds=0x1235
@@ -17,7 +17,7 @@ Time resolution is 1 ps
 [ OK ] t=92000 A=0x00F0 B=0x000F OR | leds=0x00ff
 [ OK ] t=102000 switch cambia sin botones -> sin efecto | leds=0x00ff
 [ OK ] t=112000 switch en 0 sin botones -> sin efecto | leds=0x00ff
-[FAIL] t=122000 atch transparente (gana el ultimo valor) | op=100101 (OR) A=0x1111 B=0x000f | esperado=0x111f obtenido=0x222f
+[ OK ] t=122000 atch transparente (gana el ultimo valor) | op=100101 (OR) A=0x2222 B=0x000f | leds=0x222f (8751 dec, 8751 signed)
 
 --- TEST 4: prioridad entre botones ---
 [ OK ] t=149000 base A=0x1111 B=0x2222 ADD | leds=0x3333
@@ -173,9 +173,8 @@ Test aleatorio terminado.
  RESUMEN
    Semilla        : 20260830
    Verificaciones : 620
-   Errores        : 1
-   RESULTADO      : *** 1 TESTS FALLARON ***
+   Errores        : 0
+   RESULTADO      : *** TODOS LOS TESTS PASARON ***
 ==================================================================
 
-$finish called at time : 17031 ns : File "/home/gus/Materias/Arqui/proyectos-vivado/Laboratories/Lab1/ALU/ALU.srcs/sim_1/new/ALU_dut.v" Line 532
-INFO: xsimkernel Simulation Memory Usage: 357220 KB (Peak: 422756 KB), Simulation CPU Usage: 3630 ms
+$finish called at time : 17031 ns : File "C:/Users/tomi_/OneDrive/Documents/comDatos/Computer_Architecture_FCEFyN/Laboratories/Lab1/ALU/ALU.srcs/sim_1/new/ALU_dut.v" Line 532
