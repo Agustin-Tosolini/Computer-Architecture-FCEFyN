@@ -178,3 +178,4 @@ Test aleatorio terminado.
 ==================================================================
 
 $finish called at time : 17031 ns : File "/home/gus/Materias/Arqui/proyectos-vivado/Laboratories/Lab1/ALU/ALU.srcs/sim_1/new/ALU_dut.v" Line 532
+INFO: xsimkernel Simulation Memory Usage: 357220 KB (Peak: 422756 KB), Simulation CPU Usage: 3630 ms

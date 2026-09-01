@@ -9,16 +9,16 @@ module ALU#
     output wire [LENGTH_BITS-1 : 0] o_leds,
     
     input wire [LENGTH_BITS-1:0] i_switch,
-    input wire i_button_1,
-    input wire i_button_2,
-    input wire i_button_3
+    (* clock_buffer_type = "none" *) input wire i_button_1,
+    (* clock_buffer_type = "none" *) input wire i_button_2,
+    (* clock_buffer_type = "none" *) input wire i_button_3
     );
     
     reg [LENGTH_BITS-1 : 0] result;
-    reg [LENGTH_BITS-1 : 0] dato_A;
-    reg [LENGTH_BITS-1 : 0] dato_B;
-    reg [LENGTH_OPT-1 : 0] opt;
-    reg error_signal = 0;
+    reg [LENGTH_BITS-1 : 0] dato_A = 16'b0;
+    reg [LENGTH_BITS-1 : 0] dato_B = 16'b0;
+    reg [LENGTH_OPT-1 : 0] opt = 6'b0;
+    reg error_signal = 1'b0;
     //----------------------------------------------Parametros locales
     localparam [5:0] ADD  = 6'b100000,
                      SUB  = 6'b100010,
