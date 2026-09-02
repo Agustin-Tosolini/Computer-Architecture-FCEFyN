@@ -1,8 +1,8 @@
 Copyright 1986-2022 Xilinx, Inc. All Rights Reserved. Copyright 2022-2026 Advanced Micro Devices, Inc. All Rights Reserved.
 ---------------------------------------------------------------------------------------------------------------------------------------------
-| Tool Version : Vivado v.2026.1 (lin64) Build 6511674 Tue Jun 16 11:01:26 MDT 2026
-| Date         : Mon Aug 31 11:46:55 2026
-| Host         : gus-MAX-L5 running 64-bit Linux Mint 22.3
+| Tool Version : Vivado v.2026.1 (win64) Build 6511674 Tue Jun 16 11:02:23 MDT 2026
+| Date         : Tue Sep  1 22:59:33 2026
+| Host         : DESKTOP-F73U595 running 64-bit major release  (build 9200)
 | Command      : report_control_sets -verbose -file ALU_control_sets_placed.rpt
 | Design       : ALU
 | Device       : xc7a35ti
@@ -74,8 +74,8 @@ Table of Contents
 |       Clock Signal      | Enable Signal | Set/Reset Signal | Slice Load Count | Bel Load Count | Bels / Slice |
 +-------------------------+---------------+------------------+------------------+----------------+--------------+
 |  opt_reg[5]_i_1_n_0     |               |                  |                2 |              6 |         3.00 |
-|  i_button_1_IBUF        |               |                  |                9 |             16 |         1.78 |
 |  dato_B_reg[15]_i_1_n_0 |               |                  |                8 |             16 |         2.00 |
+|  i_button_1_IBUF        |               |                  |                9 |             16 |         1.78 |
 +-------------------------+---------------+------------------+------------------+----------------+--------------+
 
 

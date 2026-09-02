@@ -1,4 +1,4 @@
-set_property SRC_FILE_INFO {cfile:/home/gus/Materias/Arqui/proyectos-vivado/Laboratories/Lab1/ALU/ALU.srcs/constrs_1/new/synth-ALU.xdc rfile:../../../ALU.srcs/constrs_1/new/synth-ALU.xdc id:1} [current_design]
+set_property SRC_FILE_INFO {cfile:C:/Users/tomi_/OneDrive/Documents/comDatos/Computer_Architecture_FCEFyN/Laboratories/Lab1/ALU/ALU.srcs/constrs_1/new/synth-ALU.xdc rfile:../../../ALU.srcs/constrs_1/new/synth-ALU.xdc id:1} [current_design]
 set_property src_info {type:XDC file:1 line:1 export:INPUT save:INPUT read:READ} [current_design]
 set_property PACKAGE_PIN V17 [get_ports {i_switch[0]}]
 set_property src_info {type:XDC file:1 line:2 export:INPUT save:INPUT read:READ} [current_design]

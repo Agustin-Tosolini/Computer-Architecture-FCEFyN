@@ -1546,17 +1546,29 @@ Se simula el RTL directamente, sin retardos. Verifica exclusivamente la
 corrección lógica del diseño. Es la etapa en la que se depura el
 \texttt{case}, la lógica de prioridad y el modelo de referencia.
 
-\begin{quote}\itshape
-[Insertar aquí la captura de la consola de Vivado con el resumen final del
-testbench: cantidad de verificaciones, errores y tabla de cobertura.]
-\end{quote}
+\begin{figure}[H]
+  \centering
+  \includegraphics[with=0.9\textwidth]{./img/coverage.png}
+  \caption{Resumen final del testbench.}
+\end{figure}
 
-\begin{quote}\itshape
-[Insertar aquí la captura de las formas de onda mostrando: (a) una carga
-completa de A, B y opt; (b) el TEST 3, donde se ve el latch reteniendo el valor
-mientras \texttt{i\_switch} cambia; (c) el TEST 4, donde se ve que con dos
-botones activos sólo cambia \texttt{dato\_A}.]
-\end{quote}
+\begin{figure}[H]
+  \centering
+  \includegraphics[with=0.9\textwidth]{./img/loadValues.png}
+  \caption{Carga completa de A, B y opt.}
+\end{figure}
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[with=0.9\textwidth]{./img/checkLatch.png}
+  \caption{TEST 3: Retencion del valor con un latch.}
+\end{figure}
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[with=0.9\textwidth]{./img/twoButtonOneChange.png}
+  \caption{TEST 4: Prioridad de botones.}
+\end{figure}
 
 \subsection{Simulación post-implementación y análisis de tiempo}
 
@@ -1588,36 +1600,17 @@ reportar son:
   \label{tab:timing}
 \end{table}
 
-\begin{quote}\itshape
-[Insertar aquí el reporte de utilización de recursos y el reporte de timing
-(\texttt{report\_timing\_\allowbreak summary}) obtenidos de Vivado.]
-\end{quote}
+\begin{figure}[H]
+  \centering
+  \includegraphics[with=0.9\textwidth]{./img/reportTimingSummary.png}
+  \caption{Reporte de utilizacion de recursos y de timing.}
+\end{figure}
 
 Una consideración específica de este diseño: los caminos que atraviesan latches
 transparentes son analizados por la herramienta mediante \emph{time borrowing},
 un mecanismo por el cual una etapa lógica puede ``tomar prestado'' tiempo de la
 ventana de transparencia del latch. Esto hace que los reportes sean menos
 directos de interpretar que en un diseño síncrono convencional.
-
-\subsection{Resultados obtenidos}
-
-\begin{quote}\itshape
-[Completar con el resultado real de la corrida. Formato esperado del resumen:]
-\end{quote}
-
-\begin{lstlisting}[numbers=none,basicstyle=\ttfamily\scriptsize]
-==================================================================
- RESUMEN
-   Semilla        : 2092026
-   Verificaciones : ...
-   Errores        : 0
-   RESULTADO      : *** TODOS LOS TESTS PASARON ***
-==================================================================
-\end{lstlisting}
-
-La cantidad total de verificaciones se descompone así: 3 (TEST 2) $+$ 4
-(TEST 3) $+$ 4 (TEST 4) $+$ 1 (TEST 5) $+$ 64 (TEST 6) $+$ 44 (TEST 7) $+$ 500
-(TEST 8) $= 620$. El TEST 1 no incrementa el contador porque es informativo.
 
 % ============================================================
 \section{Conclusiones}
