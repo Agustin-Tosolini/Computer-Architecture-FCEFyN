@@ -2,3 +2,6 @@ Running: xsim.dir/ALU_dut_behav/xsimk.exe -simmode gui -wdb ALU_dut_behav.wdb -s
 Design successfully loaded
 Design Loading Memory Usage: 19156 KB (Peak: 19156 KB)
 Design Loading CPU Usage: 202 ms
+Simulation completed
+Simulation Memory Usage: 20208 KB (Peak: 20208 KB)
+Simulation CPU Usage: 468 ms

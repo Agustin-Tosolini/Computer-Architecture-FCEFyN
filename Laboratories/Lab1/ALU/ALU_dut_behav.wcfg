@@ -1,0 +1,157 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<wave_config>
+   <wave_state>
+   </wave_state>
+   <db_ref_list>
+      <db_ref path="ALU_dut_behav.wdb" id="1">
+         <top_modules>
+            <top_module name="ALU_dut" />
+            <top_module name="glbl" />
+         </top_modules>
+      </db_ref>
+   </db_ref_list>
+   <zoom_setting>
+      <ZoomStartTime time="61.989 ns"></ZoomStartTime>
+      <ZoomEndTime time="147.180 ns"></ZoomEndTime>
+      <Cursor1Time time="135.788 ns"></Cursor1Time>
+   </zoom_setting>
+   <column_width_setting>
+      <NameColumnWidth column_width="179"></NameColumnWidth>
+      <ValueColumnWidth column_width="79"></ValueColumnWidth>
+   </column_width_setting>
+   <WVObjectSize size="33" />
+   <wvobject fp_name="/ALU_dut/i_switch" type="array">
+      <obj_property name="ElementShortName">i_switch[15:0]</obj_property>
+      <obj_property name="ObjectShortName">i_switch[15:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/ALU_dut/i_button_1" type="logic">
+      <obj_property name="ElementShortName">i_button_1</obj_property>
+      <obj_property name="ObjectShortName">i_button_1</obj_property>
+   </wvobject>
+   <wvobject fp_name="/ALU_dut/m_A" type="array">
+      <obj_property name="ElementShortName">m_A[15:0]</obj_property>
+      <obj_property name="ObjectShortName">m_A[15:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/ALU_dut/i_button_2" type="logic">
+      <obj_property name="ElementShortName">i_button_2</obj_property>
+      <obj_property name="ObjectShortName">i_button_2</obj_property>
+   </wvobject>
+   <wvobject fp_name="/ALU_dut/m_B" type="array">
+      <obj_property name="ElementShortName">m_B[15:0]</obj_property>
+      <obj_property name="ObjectShortName">m_B[15:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/ALU_dut/i_button_3" type="logic">
+      <obj_property name="ElementShortName">i_button_3</obj_property>
+      <obj_property name="ObjectShortName">i_button_3</obj_property>
+   </wvobject>
+   <wvobject fp_name="/ALU_dut/m_opt" type="array">
+      <obj_property name="ElementShortName">m_opt[5:0]</obj_property>
+      <obj_property name="ObjectShortName">m_opt[5:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/ALU_dut/o_leds" type="array">
+      <obj_property name="ElementShortName">o_leds[15:0]</obj_property>
+      <obj_property name="ObjectShortName">o_leds[15:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/ALU_dut/errors" type="array">
+      <obj_property name="ElementShortName">errors[31:0]</obj_property>
+      <obj_property name="ObjectShortName">errors[31:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/ALU_dut/checks" type="array">
+      <obj_property name="ElementShortName">checks[31:0]</obj_property>
+      <obj_property name="ObjectShortName">checks[31:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/ALU_dut/i" type="array">
+      <obj_property name="ElementShortName">i[31:0]</obj_property>
+      <obj_property name="ObjectShortName">i[31:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/ALU_dut/seed" type="array">
+      <obj_property name="ElementShortName">seed[31:0]</obj_property>
+      <obj_property name="ObjectShortName">seed[31:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/ALU_dut/verbose" type="logic">
+      <obj_property name="ElementShortName">verbose</obj_property>
+      <obj_property name="ObjectShortName">verbose</obj_property>
+   </wvobject>
+   <wvobject fp_name="/ALU_dut/ops" type="array">
+      <obj_property name="ElementShortName">ops[0:7][5:0]</obj_property>
+      <obj_property name="ObjectShortName">ops[0:7][5:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/ALU_dut/cov" type="array">
+      <obj_property name="ElementShortName">cov[0:63][31:0]</obj_property>
+      <obj_property name="ObjectShortName">cov[0:63][31:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/ALU_dut/cov_faltantes" type="array">
+      <obj_property name="ElementShortName">cov_faltantes[31:0]</obj_property>
+      <obj_property name="ObjectShortName">cov_faltantes[31:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/ALU_dut/LENGTH_BITS" type="array">
+      <obj_property name="ElementShortName">LENGTH_BITS[31:0]</obj_property>
+      <obj_property name="ObjectShortName">LENGTH_BITS[31:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/ALU_dut/LENGTH_OPT" type="array">
+      <obj_property name="ElementShortName">LENGTH_OPT[31:0]</obj_property>
+      <obj_property name="ObjectShortName">LENGTH_OPT[31:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/ALU_dut/SHAMT_BITS" type="array">
+      <obj_property name="ElementShortName">SHAMT_BITS[31:0]</obj_property>
+      <obj_property name="ObjectShortName">SHAMT_BITS[31:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/ALU_dut/N_RANDOM" type="array">
+      <obj_property name="ElementShortName">N_RANDOM[31:0]</obj_property>
+      <obj_property name="ObjectShortName">N_RANDOM[31:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/ALU_dut/PCT_OP_VALIDO" type="array">
+      <obj_property name="ElementShortName">PCT_OP_VALIDO[31:0]</obj_property>
+      <obj_property name="ObjectShortName">PCT_OP_VALIDO[31:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/ALU_dut/TSETUP" type="array">
+      <obj_property name="ElementShortName">TSETUP[31:0]</obj_property>
+      <obj_property name="ObjectShortName">TSETUP[31:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/ALU_dut/TPRESS" type="array">
+      <obj_property name="ElementShortName">TPRESS[31:0]</obj_property>
+      <obj_property name="ObjectShortName">TPRESS[31:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/ALU_dut/THOLD" type="array">
+      <obj_property name="ElementShortName">THOLD[31:0]</obj_property>
+      <obj_property name="ObjectShortName">THOLD[31:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/ALU_dut/ADD" type="array">
+      <obj_property name="ElementShortName">ADD[5:0]</obj_property>
+      <obj_property name="ObjectShortName">ADD[5:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/ALU_dut/SUB" type="array">
+      <obj_property name="ElementShortName">SUB[5:0]</obj_property>
+      <obj_property name="ObjectShortName">SUB[5:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/ALU_dut/AND_" type="array">
+      <obj_property name="ElementShortName">AND_[5:0]</obj_property>
+      <obj_property name="ObjectShortName">AND_[5:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/ALU_dut/OR_" type="array">
+      <obj_property name="ElementShortName">OR_[5:0]</obj_property>
+      <obj_property name="ObjectShortName">OR_[5:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/ALU_dut/XOR_" type="array">
+      <obj_property name="ElementShortName">XOR_[5:0]</obj_property>
+      <obj_property name="ObjectShortName">XOR_[5:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/ALU_dut/NOR_" type="array">
+      <obj_property name="ElementShortName">NOR_[5:0]</obj_property>
+      <obj_property name="ObjectShortName">NOR_[5:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/ALU_dut/SRA" type="array">
+      <obj_property name="ElementShortName">SRA[5:0]</obj_property>
+      <obj_property name="ObjectShortName">SRA[5:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/ALU_dut/SRL" type="array">
+      <obj_property name="ElementShortName">SRL[5:0]</obj_property>
+      <obj_property name="ObjectShortName">SRL[5:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/ALU_dut/N_OPS" type="array">
+      <obj_property name="ElementShortName">N_OPS[31:0]</obj_property>
+      <obj_property name="ObjectShortName">N_OPS[31:0]</obj_property>
+   </wvobject>
+</wave_config>
