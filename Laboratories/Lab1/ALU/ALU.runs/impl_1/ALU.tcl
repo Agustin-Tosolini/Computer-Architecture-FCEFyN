@@ -1,5 +1,5 @@
 namespace eval ::optrace {
-  variable script "C:/Users/tomi_/OneDrive/Documents/comDatos/Computer_Architecture_FCEFyN/Laboratories/Lab1/ALU/ALU.runs/impl_1/ALU.tcl"
+  variable script "/home/gus/Materias/Arqui/proyectos-vivado/Computer_Architecture_FCEFyN/Laboratories/Lab1/ALU/ALU.runs/impl_1/ALU.tcl"
   variable category "vivado_impl"
 }
 
@@ -107,25 +107,25 @@ set ACTIVE_STEP init_design
 set rc [catch {
   create_msg_db init_design.pb
   set_param checkpoint.writeSynthRtdsInDcp 1
+  set_param chipscope.maxJobs 2
+  set_param synth.incrementalSynthesisCache ./.Xil/Vivado-15554-gus-MAX-L5/incrSyn
   set_param general.usePosixSpawnForFork 1
-  set_param chipscope.maxJobs 4
-  set_param synth.incrementalSynthesisCache C:/Users/tomi_/AppData/Roaming/Xilinx/Vivado/.Xil/Vivado-4892-DESKTOP-F73U595/incrSyn
-  set_param runs.launchOptions { -jobs 8  }
+  set_param runs.launchOptions { -jobs 4  }
 OPTRACE "create in-memory project" START { }
   create_project -in_memory -part xc7a35ticpg236-1L
   set_property design_mode GateLvl [current_fileset]
   set_param project.singleFileAddWarning.threshold 0
 OPTRACE "create in-memory project" END { }
 OPTRACE "set parameters" START { }
-  set_property webtalk.parent_dir C:/Users/tomi_/OneDrive/Documents/comDatos/Computer_Architecture_FCEFyN/Laboratories/Lab1/ALU/ALU.cache/wt [current_project]
-  set_property parent.project_path C:/Users/tomi_/OneDrive/Documents/comDatos/Computer_Architecture_FCEFyN/Laboratories/Lab1/ALU/ALU.xpr [current_project]
-  set_property ip_output_repo C:/Users/tomi_/OneDrive/Documents/comDatos/Computer_Architecture_FCEFyN/Laboratories/Lab1/ALU/ALU.cache/ip [current_project]
+  set_property webtalk.parent_dir /home/gus/Materias/Arqui/proyectos-vivado/Computer_Architecture_FCEFyN/Laboratories/Lab1/ALU/ALU.cache/wt [current_project]
+  set_property parent.project_path /home/gus/Materias/Arqui/proyectos-vivado/Computer_Architecture_FCEFyN/Laboratories/Lab1/ALU/ALU.xpr [current_project]
+  set_property ip_output_repo /home/gus/Materias/Arqui/proyectos-vivado/Computer_Architecture_FCEFyN/Laboratories/Lab1/ALU/ALU.cache/ip [current_project]
   set_property ip_cache_permissions {read write} [current_project]
 OPTRACE "set parameters" END { }
 OPTRACE "add files" START { }
-  add_files -quiet C:/Users/tomi_/OneDrive/Documents/comDatos/Computer_Architecture_FCEFyN/Laboratories/Lab1/ALU/ALU.runs/synth_1/ALU.dcp
+  add_files -quiet /home/gus/Materias/Arqui/proyectos-vivado/Computer_Architecture_FCEFyN/Laboratories/Lab1/ALU/ALU.runs/synth_1/ALU.dcp
 OPTRACE "read constraints: implementation" START { }
-  read_xdc C:/Users/tomi_/OneDrive/Documents/comDatos/Computer_Architecture_FCEFyN/Laboratories/Lab1/ALU/ALU.srcs/constrs_1/new/synth-ALU.xdc
+  read_xdc /home/gus/Materias/Arqui/proyectos-vivado/Computer_Architecture_FCEFyN/Laboratories/Lab1/ALU/ALU.srcs/constrs_1/new/synth-ALU.xdc
 OPTRACE "read constraints: implementation" END { }
 OPTRACE "read constraints: implementation_pre" START { }
 OPTRACE "read constraints: implementation_pre" END { }
