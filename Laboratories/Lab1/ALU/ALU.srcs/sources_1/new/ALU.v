@@ -39,22 +39,18 @@ module ALU#
 
     localparam SHAMT_BITS = $clog2(LENGTH_BITS);
 
-    // Lógica secuencial: carga de operandos y opcode con reset síncrono
     always @(posedge i_clk) begin
         if (i_reset) begin
             dato_A <= {LENGTH_BITS{1'b0}};
             dato_B <= {LENGTH_BITS{1'b0}};
             opt    <= {LENGTH_OPT{1'b0}};
-        end else begin
-            if      (i_button_1) dato_A <= i_switch;
+        end else if      (i_button_1) dato_A <= i_switch;
             else if (i_button_2) dato_B <= i_switch;
             else if (i_button_3) opt    <= i_switch[LENGTH_OPT-1:0];
-        end
+        
     end
 
-    // ALU combinacional + cálculo de flags
     always @(*) begin
-        // Defaults para evitar latches
         result   = {LENGTH_BITS{1'b0}};
         carry    = 1'b0;
         overflow = 1'b0;

@@ -1,7 +1,7 @@
 Copyright 1986-2022 Xilinx, Inc. All Rights Reserved. Copyright 2022-2026 Advanced Micro Devices, Inc. All Rights Reserved.
 -----------------------------------------------------------------------------------------------------------------------------------------------
 | Tool Version : Vivado v.2026.1 (lin64) Build 6511674 Tue Jun 16 11:01:26 MDT 2026
-| Date         : Wed Sep  9 16:12:08 2026
+| Date         : Wed Sep  9 18:05:32 2026
 | Host         : gus-MAX-L5 running 64-bit Linux Mint 22.3
 | Command      : report_methodology -file ALU_methodology_drc_routed.rpt -pb ALU_methodology_drc_routed.pb -rpx ALU_methodology_drc_routed.rpx
 | Design       : ALU
@@ -23,123 +23,128 @@ Table of Contents
           Floorplan: design_1
       Design limits: <entire design considered>
              Max checks: <unlimited>
-             Checks found: 22
-+-----------+------------------+-----------------------------+--------+
-| Rule      | Severity         | Description                 | Checks |
-+-----------+------------------+-----------------------------+--------+
-| TIMING-17 | Critical Warning | Non-clocked sequential cell | 22     |
-+-----------+------------------+-----------------------------+--------+
+             Checks found: 23
++-----------+----------+-------------------------------+--------+
+| Rule      | Severity | Description                   | Checks |
++-----------+----------+-------------------------------+--------+
+| TIMING-18 | Warning  | Missing input or output delay | 23     |
++-----------+----------+-------------------------------+--------+
 
 2. REPORT DETAILS
 -----------------
-TIMING-17#1 Critical Warning
-Non-clocked sequential cell  
-The clock pin dato_A_reg[0]/C is not reached by a timing clock
+TIMING-18#1 Warning
+Missing input or output delay  
+An input delay is missing on i_button_1 relative to the rising and/or falling clock edge(s) of sys_clk_pin.
 Related violations: <none>
 
-TIMING-17#2 Critical Warning
-Non-clocked sequential cell  
-The clock pin dato_A_reg[1]/C is not reached by a timing clock
+TIMING-18#2 Warning
+Missing input or output delay  
+An input delay is missing on i_button_2 relative to the rising and/or falling clock edge(s) of sys_clk_pin.
 Related violations: <none>
 
-TIMING-17#3 Critical Warning
-Non-clocked sequential cell  
-The clock pin dato_A_reg[2]/C is not reached by a timing clock
+TIMING-18#3 Warning
+Missing input or output delay  
+An input delay is missing on i_button_3 relative to the rising and/or falling clock edge(s) of sys_clk_pin.
 Related violations: <none>
 
-TIMING-17#4 Critical Warning
-Non-clocked sequential cell  
-The clock pin dato_A_reg[3]/C is not reached by a timing clock
+TIMING-18#4 Warning
+Missing input or output delay  
+An input delay is missing on i_reset relative to the rising and/or falling clock edge(s) of sys_clk_pin.
 Related violations: <none>
 
-TIMING-17#5 Critical Warning
-Non-clocked sequential cell  
-The clock pin dato_A_reg[4]/C is not reached by a timing clock
+TIMING-18#5 Warning
+Missing input or output delay  
+An input delay is missing on i_switch[0] relative to the rising and/or falling clock edge(s) of sys_clk_pin.
 Related violations: <none>
 
-TIMING-17#6 Critical Warning
-Non-clocked sequential cell  
-The clock pin dato_A_reg[5]/C is not reached by a timing clock
+TIMING-18#6 Warning
+Missing input or output delay  
+An input delay is missing on i_switch[1] relative to the rising and/or falling clock edge(s) of sys_clk_pin.
 Related violations: <none>
 
-TIMING-17#7 Critical Warning
-Non-clocked sequential cell  
-The clock pin dato_A_reg[6]/C is not reached by a timing clock
+TIMING-18#7 Warning
+Missing input or output delay  
+An input delay is missing on i_switch[2] relative to the rising and/or falling clock edge(s) of sys_clk_pin.
 Related violations: <none>
 
-TIMING-17#8 Critical Warning
-Non-clocked sequential cell  
-The clock pin dato_A_reg[7]/C is not reached by a timing clock
+TIMING-18#8 Warning
+Missing input or output delay  
+An input delay is missing on i_switch[3] relative to the rising and/or falling clock edge(s) of sys_clk_pin.
 Related violations: <none>
 
-TIMING-17#9 Critical Warning
-Non-clocked sequential cell  
-The clock pin dato_B_reg[0]/C is not reached by a timing clock
+TIMING-18#9 Warning
+Missing input or output delay  
+An input delay is missing on i_switch[4] relative to the rising and/or falling clock edge(s) of sys_clk_pin.
 Related violations: <none>
 
-TIMING-17#10 Critical Warning
-Non-clocked sequential cell  
-The clock pin dato_B_reg[1]/C is not reached by a timing clock
+TIMING-18#10 Warning
+Missing input or output delay  
+An input delay is missing on i_switch[5] relative to the rising and/or falling clock edge(s) of sys_clk_pin.
 Related violations: <none>
 
-TIMING-17#11 Critical Warning
-Non-clocked sequential cell  
-The clock pin dato_B_reg[2]/C is not reached by a timing clock
+TIMING-18#11 Warning
+Missing input or output delay  
+An input delay is missing on i_switch[6] relative to the rising and/or falling clock edge(s) of sys_clk_pin.
 Related violations: <none>
 
-TIMING-17#12 Critical Warning
-Non-clocked sequential cell  
-The clock pin dato_B_reg[3]/C is not reached by a timing clock
+TIMING-18#12 Warning
+Missing input or output delay  
+An input delay is missing on i_switch[7] relative to the rising and/or falling clock edge(s) of sys_clk_pin.
 Related violations: <none>
 
-TIMING-17#13 Critical Warning
-Non-clocked sequential cell  
-The clock pin dato_B_reg[4]/C is not reached by a timing clock
+TIMING-18#13 Warning
+Missing input or output delay  
+An output delay is missing on o_carry relative to the rising and/or falling clock edge(s) of sys_clk_pin.
 Related violations: <none>
 
-TIMING-17#14 Critical Warning
-Non-clocked sequential cell  
-The clock pin dato_B_reg[5]/C is not reached by a timing clock
+TIMING-18#14 Warning
+Missing input or output delay  
+An output delay is missing on o_leds[0] relative to the rising and/or falling clock edge(s) of sys_clk_pin.
 Related violations: <none>
 
-TIMING-17#15 Critical Warning
-Non-clocked sequential cell  
-The clock pin dato_B_reg[6]/C is not reached by a timing clock
+TIMING-18#15 Warning
+Missing input or output delay  
+An output delay is missing on o_leds[1] relative to the rising and/or falling clock edge(s) of sys_clk_pin.
 Related violations: <none>
 
-TIMING-17#16 Critical Warning
-Non-clocked sequential cell  
-The clock pin dato_B_reg[7]/C is not reached by a timing clock
+TIMING-18#16 Warning
+Missing input or output delay  
+An output delay is missing on o_leds[2] relative to the rising and/or falling clock edge(s) of sys_clk_pin.
 Related violations: <none>
 
-TIMING-17#17 Critical Warning
-Non-clocked sequential cell  
-The clock pin opt_reg[0]/C is not reached by a timing clock
+TIMING-18#17 Warning
+Missing input or output delay  
+An output delay is missing on o_leds[3] relative to the rising and/or falling clock edge(s) of sys_clk_pin.
 Related violations: <none>
 
-TIMING-17#18 Critical Warning
-Non-clocked sequential cell  
-The clock pin opt_reg[1]/C is not reached by a timing clock
+TIMING-18#18 Warning
+Missing input or output delay  
+An output delay is missing on o_leds[4] relative to the rising and/or falling clock edge(s) of sys_clk_pin.
 Related violations: <none>
 
-TIMING-17#19 Critical Warning
-Non-clocked sequential cell  
-The clock pin opt_reg[2]/C is not reached by a timing clock
+TIMING-18#19 Warning
+Missing input or output delay  
+An output delay is missing on o_leds[5] relative to the rising and/or falling clock edge(s) of sys_clk_pin.
 Related violations: <none>
 
-TIMING-17#20 Critical Warning
-Non-clocked sequential cell  
-The clock pin opt_reg[3]/C is not reached by a timing clock
+TIMING-18#20 Warning
+Missing input or output delay  
+An output delay is missing on o_leds[6] relative to the rising and/or falling clock edge(s) of sys_clk_pin.
 Related violations: <none>
 
-TIMING-17#21 Critical Warning
-Non-clocked sequential cell  
-The clock pin opt_reg[4]/C is not reached by a timing clock
+TIMING-18#21 Warning
+Missing input or output delay  
+An output delay is missing on o_leds[7] relative to the rising and/or falling clock edge(s) of sys_clk_pin.
 Related violations: <none>
 
-TIMING-17#22 Critical Warning
-Non-clocked sequential cell  
-The clock pin opt_reg[5]/C is not reached by a timing clock
+TIMING-18#22 Warning
+Missing input or output delay  
+An output delay is missing on o_overflow relative to the rising and/or falling clock edge(s) of sys_clk_pin.
+Related violations: <none>
+
+TIMING-18#23 Warning
+Missing input or output delay  
+An output delay is missing on o_zero relative to the rising and/or falling clock edge(s) of sys_clk_pin.
 Related violations: <none>
 
 

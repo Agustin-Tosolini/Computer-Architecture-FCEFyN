@@ -1,7 +1,7 @@
 Copyright 1986-2022 Xilinx, Inc. All Rights Reserved. Copyright 2022-2026 Advanced Micro Devices, Inc. All Rights Reserved.
 ---------------------------------------------------------------------------------------------------------------------------------------------
 | Tool Version : Vivado v.2026.1 (lin64) Build 6511674 Tue Jun 16 11:01:26 MDT 2026
-| Date         : Wed Sep  9 16:11:35 2026
+| Date         : Wed Sep  9 18:04:58 2026
 | Host         : gus-MAX-L5 running 64-bit Linux Mint 22.3
 | Command      : report_control_sets -verbose -file ALU_control_sets_placed.rpt
 | Design       : ALU
@@ -63,7 +63,7 @@ Table of Contents
 | No           | Yes                   | No                     |               0 |            0 |
 | Yes          | No                    | No                     |               0 |            0 |
 | Yes          | No                    | Yes                    |               0 |            0 |
-| Yes          | Yes                   | No                     |              22 |            7 |
+| Yes          | Yes                   | No                     |              22 |            8 |
 +--------------+-----------------------+------------------------+-----------------+--------------+
 
 
@@ -75,7 +75,7 @@ Table of Contents
 +------------------+-------------------+------------------+------------------+----------------+--------------+
 |  i_clk_IBUF_BUFG | opt[5]_i_1_n_0    | i_reset_IBUF     |                2 |              6 |         3.00 |
 |  i_clk_IBUF_BUFG | i_button_1_IBUF   | i_reset_IBUF     |                3 |              8 |         2.67 |
-|  i_clk_IBUF_BUFG | dato_B[7]_i_1_n_0 | i_reset_IBUF     |                2 |              8 |         4.00 |
+|  i_clk_IBUF_BUFG | dato_B[7]_i_1_n_0 | i_reset_IBUF     |                3 |              8 |         2.67 |
 +------------------+-------------------+------------------+------------------+----------------+--------------+
 
 
