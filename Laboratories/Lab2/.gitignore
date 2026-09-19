@@ -1,5 +1,6 @@
 # Ignore the files used to build the pdf
 /output/*
+!/output/placeholder.txt
 
 # Archivos auxiliares generados por LaTeX
 *.aux
