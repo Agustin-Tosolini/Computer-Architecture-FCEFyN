@@ -1,0 +1,202 @@
+\documentclass[12pt,a4paper]{article}
+
+% ---------- Idioma y codificación ----------
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{mathpazo}
+% Si tu distribución no tiene instalado el idioma español, esta línea evita
+% que la compilación falle (instalá "babel-spanish" para tenerlo completo).
+\IfFileExists{spanish.ldf}
+  {\usepackage[spanish,es-nodecimaldot,es-noshorthands]{babel}}
+  {\usepackage[english]{babel}}
+% Nota: la opción es-noshorthands (arriba) desactiva los shorthands "<" y ">"
+% de babel-spanish, que de otro modo rompen la sintaxis de flechas de TikZ
+% (">={...}").
+
+% ---------- Página ----------
+\usepackage[a4paper,top=3cm,bottom=2.5cm,left=2.5cm,right=2.5cm,headheight=1.5cm,headsep=0.8cm]{geometry}
+
+% ---------- Utilidades ----------
+\usepackage{graphicx}
+\usepackage{fancyhdr}
+\usepackage{lastpage}          % necesario para \pageref{LastPage}
+\usepackage{xcolor}
+\usepackage{enumitem}
+\usepackage{tikz}
+\usetikzlibrary{positioning,shapes.geometric,arrows.meta,calc,fit,backgrounds}
+\usepackage[hidelinks]{hyperref}
+\usepackage{titlesec}
+\usepackage{float}
+\usepackage{booktabs}
+\usepackage{longtable}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{listings}
+\usepackage[numbers]{natbib}
+\bibliographystyle{unsrtnat}
+\newcommand{\sectionbreak}{\clearpage}
+
+% ---------- Estilo para código Verilog ----------
+\definecolor{codegray}{gray}{0.96}
+\definecolor{codekw}{RGB}{0,90,160}
+\definecolor{codecom}{RGB}{100,120,100}
+\definecolor{codestr}{RGB}{160,60,60}
+\definecolor{codenum}{gray}{0.45}
+
+\lstdefinestyle{verilog}{
+  language=Verilog,
+  backgroundcolor=\color{codegray},
+  basicstyle=\ttfamily\scriptsize,
+  keywordstyle=\color{codekw}\bfseries,
+  commentstyle=\color{codecom}\itshape,
+  stringstyle=\color{codestr},
+  numbers=left,
+  numberstyle=\tiny\color{codenum},
+  numbersep=8pt,
+  showstringspaces=false,
+  breaklines=true,
+  breakatwhitespace=true,
+  frame=single,
+  rulecolor=\color{gray!40},
+  framesep=4pt,
+  xleftmargin=16pt,
+  tabsize=4,
+  captionpos=b,
+  columns=fullflexible,
+  morekeywords={always,posedge,negedge,localparam,parameter,logic,endcase,
+                signed,unsigned,task,endtask,function,endfunction,initial,
+                integer,timescale,display,finish,random,time,clog2,signed}
+}
+\lstset{style=verilog}
+\renewcommand{\lstlistingname}{Código}
+
+% ============================================================
+%  >>>>>>>>>>  DATOS DEL TRABAJO: EDITAR ACÁ  <<<<<<<<<<
+% ============================================================
+\newcommand{\Titulo}{Trabajo Práctico N°2: UART}
+\newcommand{\Subtitulo}{Maquinas de Estado Finitas: UART}
+\newcommand{\Materia}{Arquitectura de Computadoras}
+\newcommand{\Institucion}{Facultad de Ciencias Exactas, Físicas y Naturales - Universidad Nacional de Córdoba}
+\newcommand{\Carrera}{Ingeniería en Computación}
+%\newcommand{\Fecha}{\today}
+
+% Integrantes: una línea \persona{...} por cada uno
+\newcommand{\Integrantes}{%
+  \persona{Brigido, Tomás Andrés}{Legajo 38481096}%
+  \persona{Tosolini, Agustín}{Legajo 42332698}%
+}
+
+% Docentes
+\newcommand{\Docentes}{%
+  \persona{Pereyra, Martin}{}%
+}
+
+% Repositorio: dejar vacío {} para que NO aparezca en la carátula
+\newcommand{\Repositorio}{https://github.com/Agustin-Tosolini/Computer-Architecture-FCEFyN/tree/main/Laboratories/Lab2}
+
+% Logos del encabezado
+\newcommand{\LogoIzquierdo}{./logos/unc.png}
+\newcommand{\LogoDerecho}{./logos/fcefyn.png}
+\newcommand{\AlturaLogo}{3.0cm}
+% ============================================================
+
+
+% ---------- Maquinaria interna (no hace falta tocar) ----------
+\newcommand{\ponerlogo}[1]{%
+  \IfFileExists{#1}{%
+    \includegraphics[height=\AlturaLogo,keepaspectratio]{#1}%
+  }{%
+    \begin{tikzpicture}
+      \node[draw=gray!60,dashed,fill=gray!10,rounded corners,
+            minimum height=\AlturaLogo,minimum width=2.6cm,
+            font=\scriptsize\color{gray}] {logo};
+    \end{tikzpicture}%
+  }%
+}
+
+% Estilo de la carátula: sin encabezado (los logos van dentro de la página)
+\fancypagestyle{caratula}{%
+  \fancyhf{}
+  \renewcommand{\headrulewidth}{0pt}
+  \renewcommand{\footrulewidth}{0pt}
+}
+
+% Resto del documento: sólo el número de página al pie, SIN logos
+\fancypagestyle{plain}{%
+  \fancyhf{}
+  \fancyfoot[C]{\small Página \thepage\ de \pageref{LastPage}}
+  \renewcommand{\headrulewidth}{0pt}
+  \renewcommand{\footrulewidth}{0pt}
+}
+\pagestyle{plain}
+
+\newcommand{\persona}[2]{%
+  \textbf{#1}%
+  \ifx\relax#2\relax\else{\ \small(#2)}\fi\\[0.25em]
+}
+
+\setlength{\emergencystretch}{3em}
+\hyphenpenalty=1000
+\setlength{\parskip}{0.6em}
+\setlength{\parindent}{0pt}
+
+
+% ============================================================
+\begin{document}
+
+% ------------------------- CARÁTULA -------------------------
+\thispagestyle{caratula}
+\begin{center}
+  % --- Logos: aparecen únicamente en esta página
+  \noindent\makebox[\textwidth]{%
+    \ponerlogo{\LogoIzquierdo}\hfill\ponerlogo{\LogoDerecho}%
+  }\\[0.35cm]
+  \rule{\textwidth}{0.4pt}
+
+  \vspace{0.5cm}
+
+  {\large \Institucion \par}
+  {\normalsize \Carrera \par}
+
+  \vspace{0.5cm}
+  \rule{\textwidth}{1.2pt}\\[0.6cm]
+  {\Huge\bfseries \Titulo \par}
+  \vspace{0.3cm}
+  \ifx\Subtitulo\empty\else{\Large \Subtitulo \par}\vspace{0.3cm}\fi
+  \rule{\textwidth}{1.2pt}
+
+  \vspace{0.7cm}
+  {\large \textit{\Materia} \par}
+
+  \vspace{0.75cm}
+  {\large\bfseries Integrantes\par}
+  \vspace{0.4cm}
+  \Integrantes
+
+  \vspace{1cm}
+  {\large\bfseries Docente\par}
+  \vspace{0.4cm}
+  \Docentes
+
+  \vspace{1cm}
+  {\large\bfseries Repositorio\par}
+  \vspace{0.4cm}
+  \Repositorio
+
+  \vfill
+
+  %{\large \Fecha \par}
+  \vspace{1cm}
+\end{center}
+
+\newpage
+
+% --------------------- ÍNDICE ---------------------
+\tableofcontents
+\newpage
+
+% ============================================================
+\section{Introducción}
+% ============================================================
+
+\end{document}

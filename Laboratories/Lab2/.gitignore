@@ -1,0 +1,40 @@
+# Ignore the files used to build the pdf
+/output/*
+
+# Archivos auxiliares generados por LaTeX
+*.aux
+*.bbl
+*.bcf
+*.blg
+*.fdb_latexmk
+*.fls
+*.log
+*.out
+*.run.xml
+*.synctex.gz
+*.toc
+*.lof
+*.lot
+*.nav
+*.snm
+*.vrb
+*.idx
+*.ilg
+*.ind
+*.acn
+*.acr
+*.alg
+*.glg
+*.glo
+*.gls
+*.ist
+*.pdf
+
+# Archivos temporales
+*.tmp
+*.bak
+*.backup
+*~
+
+# Mantener los fuentes y PDFs
+!*.tex
