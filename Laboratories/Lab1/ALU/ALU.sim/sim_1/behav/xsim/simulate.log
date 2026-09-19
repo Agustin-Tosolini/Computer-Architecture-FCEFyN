@@ -160,4 +160,3 @@ Time resolution is 1 ps
 [ OK ] t=4686000 op | op=101011 (INVALID) A=0x12 B=0x34 | leds=0x00 Z=1 C=0 V=0
 
 --- TEST 9: 500 vectores aleatorios (85% con opcode valido) ---
-INFO: xsimkernel Simulation Memory Usage: 357336 KB (Peak: 422872 KB), Simulation CPU Usage: 4030 ms

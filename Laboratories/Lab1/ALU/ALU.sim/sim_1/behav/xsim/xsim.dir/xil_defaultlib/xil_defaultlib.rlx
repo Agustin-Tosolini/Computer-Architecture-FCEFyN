@@ -1,8 +1,7 @@
 0.7
 2020.2
 Jun 16 2026
-11:12:08
-/home/gus/Materias/Arqui/proyectos-vivado/Computer_Architecture_FCEFyN/Laboratories/Lab1/ALU/ALU.sim/sim_1/behav/xsim/glbl.v,1788274280,verilog,,,,glbl,,,,,,,,
-/home/gus/Materias/Arqui/proyectos-vivado/Computer_Architecture_FCEFyN/Laboratories/Lab1/ALU/ALU.srcs/sim_1/new/ALU_dut.v,1788982040,verilog,,,,ALU_dut,,,../../../../../../../../../../../../../opt/Xilinx/2026.1/data/rsb/busdef,,,,,
-/home/gus/Materias/Arqui/proyectos-vivado/Computer_Architecture_FCEFyN/Laboratories/Lab1/ALU/ALU.srcs/sim_1/new/ALU_tb.v,1788982116,verilog,,,,ALU_tb,,,../../../../../../../../../../../../../opt/Xilinx/2026.1/data/rsb/busdef,,,,,
-/home/gus/Materias/Arqui/proyectos-vivado/Computer_Architecture_FCEFyN/Laboratories/Lab1/ALU/ALU.srcs/sources_1/new/ALU.v,1788980097,verilog,,/home/gus/Materias/Arqui/proyectos-vivado/Computer_Architecture_FCEFyN/Laboratories/Lab1/ALU/ALU.srcs/sim_1/new/ALU_tb.v,,ALU,,,../../../../../../../../../../../../../opt/Xilinx/2026.1/data/rsb/busdef,,,,,
+11:10:11
+C:/Users/tomi_/OneDrive/Documents/comDatos/Computer_Architecture_FCEFyN/Laboratories/Lab1/ALU/ALU.sim/sim_1/behav/xsim/glbl.v,1788309403,verilog,,,,glbl,,,,,,,,
+C:/Users/tomi_/OneDrive/Documents/comDatos/Computer_Architecture_FCEFyN/Laboratories/Lab1/ALU/ALU.srcs/sim_1/new/ALU_tb.v,1789852140,verilog,,,,ALU_tb,,,../../../../../../../../../../../../../AMDDesignTools/2026.1/Vivado/data/rsb/busdef,,,,,
+C:/Users/tomi_/OneDrive/Documents/comDatos/Computer_Architecture_FCEFyN/Laboratories/Lab1/ALU/ALU.srcs/sources_1/new/ALU.v,1789852140,verilog,,C:/Users/tomi_/OneDrive/Documents/comDatos/Computer_Architecture_FCEFyN/Laboratories/Lab1/ALU/ALU.srcs/sim_1/new/ALU_tb.v,,ALU,,,../../../../../../../../../../../../../AMDDesignTools/2026.1/Vivado/data/rsb/busdef,,,,,
