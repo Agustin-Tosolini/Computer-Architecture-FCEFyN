@@ -1,5 +1,5 @@
 namespace eval ::optrace {
-  variable script "C:/Users/tomi_/OneDrive/Documents/comDatos/Computer_Architecture_FCEFyN/Laboratories/Lab1/ALU/ALU.runs/impl_1/ALU.tcl"
+  variable script "/home/gus/Materias/Arqui/proyectos-vivado/Computer_Architecture_FCEFyN/Laboratories/Lab1/ALU/ALU.runs/impl_1/ALU.tcl"
   variable category "vivado_impl"
 }
 
@@ -97,190 +97,42 @@ proc step_failed { step } {
 OPTRACE "impl_1" END { }
 }
 
-set_msg_config -id {Synth 8-256} -limit 10000
-set_msg_config -id {Synth 8-638} -limit 10000
 
 OPTRACE "impl_1" START { ROLLUP_1 }
-OPTRACE "Phase: Init Design" START { ROLLUP_AUTO }
-start_step init_design
-set ACTIVE_STEP init_design
+OPTRACE "Phase: Write Bitstream" START { ROLLUP_AUTO }
+OPTRACE "write_bitstream setup" START { }
+start_step write_bitstream
+set ACTIVE_STEP write_bitstream
 set rc [catch {
-  create_msg_db init_design.pb
-  set_param checkpoint.writeSynthRtdsInDcp 1
+  create_msg_db write_bitstream.pb
+  set_param chipscope.maxJobs 2
   set_param general.usePosixSpawnForFork 1
-  set_param chipscope.maxJobs 4
-  set_param synth.incrementalSynthesisCache C:/Users/tomi_/AppData/Roaming/Xilinx/Vivado/.Xil/Vivado-4892-DESKTOP-F73U595/incrSyn
-  set_param runs.launchOptions { -jobs 8  }
-OPTRACE "create in-memory project" START { }
-  create_project -in_memory -part xc7a35ticpg236-1L
-  set_property design_mode GateLvl [current_fileset]
-  set_param project.singleFileAddWarning.threshold 0
-OPTRACE "create in-memory project" END { }
-OPTRACE "set parameters" START { }
-  set_property webtalk.parent_dir C:/Users/tomi_/OneDrive/Documents/comDatos/Computer_Architecture_FCEFyN/Laboratories/Lab1/ALU/ALU.cache/wt [current_project]
-  set_property parent.project_path C:/Users/tomi_/OneDrive/Documents/comDatos/Computer_Architecture_FCEFyN/Laboratories/Lab1/ALU/ALU.xpr [current_project]
-  set_property ip_output_repo C:/Users/tomi_/OneDrive/Documents/comDatos/Computer_Architecture_FCEFyN/Laboratories/Lab1/ALU/ALU.cache/ip [current_project]
-  set_property ip_cache_permissions {read write} [current_project]
-OPTRACE "set parameters" END { }
-OPTRACE "add files" START { }
-  add_files -quiet C:/Users/tomi_/OneDrive/Documents/comDatos/Computer_Architecture_FCEFyN/Laboratories/Lab1/ALU/ALU.runs/synth_1/ALU.dcp
-OPTRACE "read constraints: implementation" START { }
-  read_xdc C:/Users/tomi_/OneDrive/Documents/comDatos/Computer_Architecture_FCEFyN/Laboratories/Lab1/ALU/ALU.srcs/constrs_1/new/synth-ALU.xdc
-OPTRACE "read constraints: implementation" END { }
-OPTRACE "read constraints: implementation_pre" START { }
-OPTRACE "read constraints: implementation_pre" END { }
-OPTRACE "add files" END { }
-OPTRACE "link_design" START { }
-  link_design -top ALU -part xc7a35ticpg236-1L 
-OPTRACE "link_design" END { }
-OPTRACE "gray box cells" START { }
-OPTRACE "gray box cells" END { }
-OPTRACE "init_design_reports" START { REPORT }
-OPTRACE "init_design_reports" END { }
-OPTRACE "init_design_write_hwdef" START { }
-OPTRACE "init_design_write_hwdef" END { }
-  close_msg_db -file init_design.pb
+  set_param runs.launchOptions { -jobs 4  }
+  open_checkpoint ALU_routed.dcp
+  set_property webtalk.parent_dir /home/gus/Materias/Arqui/proyectos-vivado/Computer_Architecture_FCEFyN/Laboratories/Lab1/ALU/ALU.cache/wt [current_project]
+set_property TOP ALU [current_fileset]
+OPTRACE "read constraints: write_bitstream" START { }
+OPTRACE "read constraints: write_bitstream" END { }
+  catch { write_mem_info -force -no_partial_mmi ALU.mmi }
+OPTRACE "write_bitstream setup" END { }
+OPTRACE "write_bitstream" START { }
+  write_bitstream -force ALU.bit 
+OPTRACE "write_bitstream" END { }
+OPTRACE "write_bitstream misc" START { }
+OPTRACE "read constraints: write_bitstream_post" START { }
+OPTRACE "read constraints: write_bitstream_post" END { }
+  catch {write_debug_probes -quiet -force ALU}
+  catch {file copy -force ALU.ltx debug_nets.ltx}
+  close_msg_db -file write_bitstream.pb
 } RESULT]
 if {$rc} {
-  step_failed init_design
+  step_failed write_bitstream
   return -code error $RESULT
 } else {
-  end_step init_design
+  end_step write_bitstream
   unset ACTIVE_STEP 
 }
 
-OPTRACE "Phase: Init Design" END { }
-OPTRACE "Phase: Opt Design" START { ROLLUP_AUTO }
-start_step opt_design
-set ACTIVE_STEP opt_design
-set rc [catch {
-  create_msg_db opt_design.pb
-OPTRACE "read constraints: opt_design" START { }
-OPTRACE "read constraints: opt_design" END { }
-OPTRACE "opt_design" START { }
-  opt_design 
-OPTRACE "opt_design" END { }
-OPTRACE "read constraints: opt_design_post" START { }
-OPTRACE "read constraints: opt_design_post" END { }
-OPTRACE "opt_design reports" START { REPORT }
-  set_param project.isImplRun true
-  generate_parallel_reports -reports { "report_drc -file ALU_drc_opted.rpt -pb ALU_drc_opted.pb -rpx ALU_drc_opted.rpx"  }
-  set_param project.isImplRun false
-OPTRACE "opt_design reports" END { }
-OPTRACE "Opt Design: write_checkpoint" START { CHECKPOINT }
-  write_checkpoint -force ALU_opt.dcp
-OPTRACE "Opt Design: write_checkpoint" END { }
-  close_msg_db -file opt_design.pb
-} RESULT]
-if {$rc} {
-  step_failed opt_design
-  return -code error $RESULT
-} else {
-  end_step opt_design
-  unset ACTIVE_STEP 
-}
-
-OPTRACE "Phase: Opt Design" END { }
-OPTRACE "Phase: Place Design" START { ROLLUP_AUTO }
-start_step place_design
-set ACTIVE_STEP place_design
-set rc [catch {
-  create_msg_db place_design.pb
-OPTRACE "read constraints: place_design" START { }
-OPTRACE "read constraints: place_design" END { }
-  if { [llength [get_debug_cores -quiet] ] > 0 }  { 
-OPTRACE "implement_debug_core" START { }
-    implement_debug_core 
-OPTRACE "implement_debug_core" END { }
-  } 
-OPTRACE "place_design" START { }
-  set_param project.isImplRun true
-  place_design 
-  set_param project.isImplRun false
-OPTRACE "place_design" END { }
-OPTRACE "read constraints: place_design_post" START { }
-OPTRACE "read constraints: place_design_post" END { }
-OPTRACE "place_design reports" START { REPORT }
-  set_param project.isImplRun true
-  generate_parallel_reports -reports { "report_io -file ALU_io_placed.rpt" "report_utilization -file ALU_utilization_placed.rpt -pb ALU_utilization_placed.pb" "report_control_sets -verbose -file ALU_control_sets_placed.rpt"  }
-  set_param project.isImplRun false
-OPTRACE "place_design reports" END { }
-OPTRACE "Place Design: write_checkpoint" START { CHECKPOINT }
-  write_checkpoint -force ALU_placed.dcp
-OPTRACE "Place Design: write_checkpoint" END { }
-  close_msg_db -file place_design.pb
-} RESULT]
-if {$rc} {
-  step_failed place_design
-  return -code error $RESULT
-} else {
-  end_step place_design
-  unset ACTIVE_STEP 
-}
-
-OPTRACE "Phase: Place Design" END { }
-OPTRACE "Phase: Physical Opt Design" START { ROLLUP_AUTO }
-start_step phys_opt_design
-set ACTIVE_STEP phys_opt_design
-set rc [catch {
-  create_msg_db phys_opt_design.pb
-OPTRACE "read constraints: phys_opt_design" START { }
-OPTRACE "read constraints: phys_opt_design" END { }
-OPTRACE "phys_opt_design" START { }
-  phys_opt_design 
-OPTRACE "phys_opt_design" END { }
-OPTRACE "read constraints: phys_opt_design_post" START { }
-OPTRACE "read constraints: phys_opt_design_post" END { }
-OPTRACE "phys_opt_design report" START { REPORT }
-OPTRACE "phys_opt_design report" END { }
-OPTRACE "Post-Place Phys Opt Design: write_checkpoint" START { CHECKPOINT }
-  write_checkpoint -force ALU_physopt.dcp
-OPTRACE "Post-Place Phys Opt Design: write_checkpoint" END { }
-  close_msg_db -file phys_opt_design.pb
-} RESULT]
-if {$rc} {
-  step_failed phys_opt_design
-  return -code error $RESULT
-} else {
-  end_step phys_opt_design
-  unset ACTIVE_STEP 
-}
-
-OPTRACE "Phase: Physical Opt Design" END { }
-OPTRACE "Phase: Route Design" START { ROLLUP_AUTO }
-start_step route_design
-set ACTIVE_STEP route_design
-set rc [catch {
-  create_msg_db route_design.pb
-OPTRACE "read constraints: route_design" START { }
-OPTRACE "read constraints: route_design" END { }
-OPTRACE "route_design" START { }
-  route_design 
-OPTRACE "route_design" END { }
-OPTRACE "read constraints: route_design_post" START { }
-OPTRACE "read constraints: route_design_post" END { }
-OPTRACE "route_design reports" START { REPORT }
-  set_param project.isImplRun true
-  generate_parallel_reports -reports { "report_drc -file ALU_drc_routed.rpt -pb ALU_drc_routed.pb -rpx ALU_drc_routed.rpx" "report_methodology -file ALU_methodology_drc_routed.rpt -pb ALU_methodology_drc_routed.pb -rpx ALU_methodology_drc_routed.rpx" "report_power -file ALU_power_routed.rpt -pb ALU_power_summary_routed.pb -rpx ALU_power_routed.rpx" "report_route_status -file ALU_route_status.rpt -pb ALU_route_status.pb" "report_timing_summary -max_paths 10 -routable_nets -report_unconstrained -file ALU_timing_summary_routed.rpt -pb ALU_timing_summary_routed.pb -rpx ALU_timing_summary_routed.rpx -warn_on_violation " "report_incremental_reuse -file ALU_incremental_reuse_routed.rpt" "report_clock_utilization -file ALU_clock_utilization_routed.rpt" "report_bus_skew -warn_on_violation -file ALU_bus_skew_routed.rpt -pb ALU_bus_skew_routed.pb -rpx ALU_bus_skew_routed.rpx"  }
-  set_param project.isImplRun false
-OPTRACE "route_design reports" END { }
-OPTRACE "Route Design: write_checkpoint" START { CHECKPOINT }
-  write_checkpoint -force ALU_routed.dcp
-OPTRACE "Route Design: write_checkpoint" END { }
-OPTRACE "route_design misc" START { }
-  close_msg_db -file route_design.pb
-} RESULT]
-if {$rc} {
-OPTRACE "route_design write_checkpoint" START { CHECKPOINT }
-OPTRACE "route_design write_checkpoint" END { }
-  write_checkpoint -force ALU_routed_error.dcp
-  step_failed route_design
-  return -code error $RESULT
-} else {
-  end_step route_design
-  unset ACTIVE_STEP 
-}
-
-OPTRACE "route_design misc" END { }
-OPTRACE "Phase: Route Design" END { }
+OPTRACE "write_bitstream misc" END { }
+OPTRACE "Phase: Write Bitstream" END { }
 OPTRACE "impl_1" END { }

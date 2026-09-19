@@ -1,0 +1,684 @@
+\documentclass[12pt,a4paper]{article}
+
+% ---------- Idioma y codificación ----------
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{mathpazo}
+% Si tu distribución no tiene instalado el idioma español, esta línea evita
+% que la compilación falle (instalá "babel-spanish" para tenerlo completo).
+\IfFileExists{spanish.ldf}
+  {\usepackage[spanish,es-nodecimaldot,es-noshorthands]{babel}}
+  {\usepackage[english]{babel}}
+% Nota: la opción es-noshorthands (arriba) desactiva los shorthands "<" y ">"
+% de babel-spanish, que de otro modo rompen la sintaxis de flechas de TikZ
+% (">={...}").
+
+% ---------- Página ----------
+\usepackage[a4paper,top=3cm,bottom=2.5cm,left=2.5cm,right=2.5cm,headheight=1.5cm,headsep=0.8cm]{geometry}
+
+% ---------- Utilidades ----------
+\usepackage{graphicx}
+\usepackage{fancyhdr}
+\usepackage{lastpage}          % necesario para \pageref{LastPage}
+\usepackage{xcolor}
+\usepackage{enumitem}
+\usepackage{tikz}
+\usetikzlibrary{positioning,shapes.geometric,arrows.meta,calc,fit,backgrounds}
+\usepackage[hidelinks]{hyperref}
+\usepackage{titlesec}
+\usepackage{float}
+\usepackage{booktabs}
+\usepackage{longtable}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{listings}
+\newcommand{\sectionbreak}{\clearpage}
+
+% ---------- Estilo para código Verilog ----------
+\definecolor{codegray}{gray}{0.96}
+\definecolor{codekw}{RGB}{0,90,160}
+\definecolor{codecom}{RGB}{100,120,100}
+\definecolor{codestr}{RGB}{160,60,60}
+\definecolor{codenum}{gray}{0.45}
+
+\lstdefinestyle{verilog}{
+  language=Verilog,
+  backgroundcolor=\color{codegray},
+  basicstyle=\ttfamily\scriptsize,
+  keywordstyle=\color{codekw}\bfseries,
+  commentstyle=\color{codecom}\itshape,
+  stringstyle=\color{codestr},
+  numbers=left,
+  numberstyle=\tiny\color{codenum},
+  numbersep=8pt,
+  showstringspaces=false,
+  breaklines=true,
+  breakatwhitespace=true,
+  frame=single,
+  rulecolor=\color{gray!40},
+  framesep=4pt,
+  xleftmargin=16pt,
+  tabsize=4,
+  captionpos=b,
+  columns=fullflexible,
+  morekeywords={always,posedge,negedge,localparam,parameter,logic,endcase,
+                signed,unsigned,task,endtask,function,endfunction,initial,
+                integer,timescale,display,finish,random,time,clog2,signed}
+}
+\lstset{style=verilog}
+\renewcommand{\lstlistingname}{Código}
+
+% ============================================================
+%  >>>>>>>>>>  DATOS DEL TRABAJO: EDITAR ACÁ  <<<<<<<<<<
+% ============================================================
+\newcommand{\Titulo}{Trabajo Práctico N°1: ALU}
+\newcommand{\Subtitulo}{Diseño, implementación y verificación de una ALU parametrizable en FPGA}
+\newcommand{\Materia}{Arquitectura de Computadoras}
+\newcommand{\Institucion}{Facultad de Ciencias Exactas, Físicas y Naturales - Universidad Nacional de Córdoba}
+\newcommand{\Carrera}{Ingeniería en Computación}
+%\newcommand{\Fecha}{\today}
+
+% Integrantes: una línea \persona{...} por cada uno
+\newcommand{\Integrantes}{%
+  \persona{Brigido, Tomás Andrés}{Legajo 38481096}%
+  \persona{Tosolini, Agustín}{Legajo 42332698}%
+}
+
+% Docentes
+\newcommand{\Docentes}{%
+  \persona{Pereyra, Martin}{}%
+}
+
+% Repositorio: dejar vacío {} para que NO aparezca en la carátula
+\newcommand{\Repositorio}{https://github.com/Agustin-Tosolini/Computer-Architecture-FCEFyN/tree/main/Laboratories/Lab1}
+
+% Logos del encabezado
+\newcommand{\LogoIzquierdo}{./logos/unc.png}
+\newcommand{\LogoDerecho}{./logos/fcefyn.png}
+\newcommand{\AlturaLogo}{3.0cm}
+% ============================================================
+
+
+% ---------- Maquinaria interna (no hace falta tocar) ----------
+\newcommand{\ponerlogo}[1]{%
+  \IfFileExists{#1}{%
+    \includegraphics[height=\AlturaLogo,keepaspectratio]{#1}%
+  }{%
+    \begin{tikzpicture}
+      \node[draw=gray!60,dashed,fill=gray!10,rounded corners,
+            minimum height=\AlturaLogo,minimum width=2.6cm,
+            font=\scriptsize\color{gray}] {logo};
+    \end{tikzpicture}%
+  }%
+}
+
+% Estilo de la carátula: sin encabezado (los logos van dentro de la página)
+\fancypagestyle{caratula}{%
+  \fancyhf{}
+  \renewcommand{\headrulewidth}{0pt}
+  \renewcommand{\footrulewidth}{0pt}
+}
+
+% Resto del documento: sólo el número de página al pie, SIN logos
+\fancypagestyle{plain}{%
+  \fancyhf{}
+  \fancyfoot[C]{\small Página \thepage\ de \pageref{LastPage}}
+  \renewcommand{\headrulewidth}{0pt}
+  \renewcommand{\footrulewidth}{0pt}
+}
+\pagestyle{plain}
+
+\newcommand{\persona}[2]{%
+  \textbf{#1}%
+  \ifx\relax#2\relax\else{\ \small(#2)}\fi\\[0.25em]
+}
+
+\setlength{\emergencystretch}{3em}
+\hyphenpenalty=1000
+\setlength{\parskip}{0.6em}
+\setlength{\parindent}{0pt}
+
+
+% ============================================================
+\begin{document}
+
+% ------------------------- CARÁTULA -------------------------
+\thispagestyle{caratula}
+\begin{center}
+  % --- Logos: aparecen únicamente en esta página
+  \noindent\makebox[\textwidth]{%
+    \ponerlogo{\LogoIzquierdo}\hfill\ponerlogo{\LogoDerecho}%
+  }\\[0.35cm]
+  \rule{\textwidth}{0.4pt}
+
+  \vspace{0.5cm}
+
+  {\large \Institucion \par}
+  {\normalsize \Carrera \par}
+
+  \vspace{0.5cm}
+  \rule{\textwidth}{1.2pt}\\[0.6cm]
+  {\Huge\bfseries \Titulo \par}
+  \vspace{0.3cm}
+  \ifx\Subtitulo\empty\else{\Large \Subtitulo \par}\vspace{0.3cm}\fi
+  \rule{\textwidth}{1.2pt}
+
+  \vspace{0.7cm}
+  {\large \textit{\Materia} \par}
+
+  \vspace{0.75cm}
+  {\large\bfseries Integrantes\par}
+  \vspace{0.4cm}
+  \Integrantes
+
+  \vspace{1cm}
+  {\large\bfseries Docente\par}
+  \vspace{0.4cm}
+  \Docentes
+
+  \vspace{1cm}
+  {\large\bfseries Repositorio\par}
+  \vspace{0.4cm}
+  \Repositorio
+
+  \vfill
+
+  %{\large \Fecha \par}
+  \vspace{1cm}
+\end{center}
+
+\newpage
+
+% --------------------- ÍNDICE ---------------------
+\tableofcontents
+\newpage
+
+% ============================================================
+\section{Introducción}
+% ============================================================
+
+La \emph{Unidad Aritmético-Lógica} (ALU, por \textit{Arithmetic Logic Unit}) es el bloque
+de cómputo del camino de datos de un procesador: recibe dos operandos y un código de
+operación, y devuelve un resultado junto con algunas \emph{banderas de estado} que
+describen propiedades de ese resultado. Prácticamente todo lo que hace una CPU con valores
+enteros ---sumar dos registros, comparar para decidir un salto, calcular una dirección de
+memoria, aplicar una máscara de bits--- termina pasando por ella.
+
+El objetivo de este trabajo práctico es diseñar, describir en Verilog, verificar por
+simulación e implementar sobre FPGA una ALU parametrizable de 8 bits con las ocho
+operaciones que se listan en la Sección~\ref{sec:spec}. La operación se selecciona
+mediante un código de 6 bits.
+
+La placa ofrece un único bus de entrada de datos ---los interruptores--- que debe alcanzar
+para cargar dos operandos y un código de operación. La solución es multiplexarlo en el
+tiempo: el usuario coloca un valor en los interruptores y pulsa el botón correspondiente
+para guardarlo en un registro interno. Por eso el diseño no es puramente combinacional,
+sino un pequeño sistema sincrónico con reloj, reset y registros de carga. El sistema se
+implementó sobre una placa \textbf{Digilent Basys 3} (FPGA Xilinx \textbf{Artix-7
+XC7A35T}), con el reloj de 100\,MHz que provee la placa, usando Xilinx Vivado para la
+síntesis, la implementación y la simulación.
+
+% ============================================================
+\section{Especificación}
+\label{sec:spec}
+% ============================================================
+
+\subsection{Repertorio de operaciones}
+
+La Tabla~\ref{tab:ops} reproduce el conjunto de operaciones exigido por el enunciado, junto con el código de 6 bits que selecciona cada una.
+
+\begin{table}[H]
+  \centering
+  \begin{tabular}{llll}
+    \toprule
+    \textbf{Operación} & \textbf{Código} & \textbf{Expresión} & \textbf{Tipo} \\
+    \midrule
+    ADD & \texttt{100000} & $A + B$                     & Aritmética \\
+    SUB & \texttt{100010} & $A - B$                     & Aritmética \\
+    AND & \texttt{100100} & $A \;\&\; B$                & Lógica bit a bit \\
+    OR  & \texttt{100101} & $A \;|\; B$                 & Lógica bit a bit \\
+    XOR & \texttt{100110} & $A \oplus B$                & Lógica bit a bit \\
+    NOR & \texttt{100111} & $\sim(A \;|\; B)$           & Lógica bit a bit \\
+    SRA & \texttt{000011} & $A \ggg B[2{:}0]$           & Desplazamiento \\
+    SRL & \texttt{000010} & $A \gg B[2{:}0]$            & Desplazamiento \\
+    \midrule
+    \multicolumn{2}{l}{\textit{cualquier otro código}} & $0$ & Caso por defecto \\
+    \bottomrule
+  \end{tabular}
+  \caption{Operaciones implementadas y su codificación.}
+  \label{tab:ops}
+\end{table}
+
+Sobre esta tabla conviene hacer tres aclaraciones que se retoman más adelante:
+
+\begin{itemize}[leftmargin=1.4em]
+  \item El \textbf{campo de desplazamiento} (\textit{shift amount} o \texttt{shamt}) se toma
+        de los bits bajos del operando $B$. La cantidad de bits usados es
+        $\lceil \log_2 N \rceil$, donde $N$ es el ancho de palabra: con $N=8$ resultan
+        3 bits, es decir $B[2{:}0]$, que cubren exactamente los desplazamientos de 0 a 7
+        posiciones.
+  \item El \textbf{caso por defecto} no es un detalle opcional. Los 6 bits de selección
+        admiten $2^6 = 64$ combinaciones y sólo 8 están definidas; las 56 restantes deben
+        producir un valor determinado ---aquí, cero con todas las banderas bajas--- para
+        que el circuito sea completamente especificado y no queden inferidas memorias
+        implícitas (\textit{latches}).
+  \item Todas las operaciones son de \textbf{ancho fijo}: el resultado tiene los mismos $N$
+        bits que los operandos. La información que se pierde por ese truncamiento es
+        justamente la que reportan las banderas.
+\end{itemize}
+
+\subsection{Interfaz con la placa}
+
+La Tabla~\ref{tab:io} resume los puertos del módulo y el recurso físico de la Basys~3 al
+que se asocia cada uno mediante el archivo de restricciones \texttt{synth-ALU.xdc}. En
+total son 24 puertos de entrada/salida: 13 entradas (8 interruptores, 3 pulsadores, reloj y
+reset) y 11 salidas (8 LEDs de resultado y 3 LEDs de bandera).
+
+\begin{table}[H]
+  \centering
+  \small
+  \begin{tabular}{llll}
+    \toprule
+    \textbf{Puerto} & \textbf{Dir.} & \textbf{Recurso físico} & \textbf{Función} \\
+    \midrule
+    \texttt{i\_clk}        & in  & Oscilador 100\,MHz (\texttt{W5})  & Reloj del sistema \\
+    \texttt{i\_reset}      & in  & Interruptor \texttt{U17}                & Reset sincrónico activo en alto \\
+    \texttt{i\_switch[7:0]}& in  & Interruptores \texttt{V17}\dots\texttt{W13} & Bus de datos compartido \\
+    \texttt{i\_button\_1}  & in  & Pulsador \texttt{W19}                   & Carga el registro $A$ \\
+    \texttt{i\_button\_2}  & in  & Pulsador \texttt{T18}                   & Carga el registro $B$ \\
+    \texttt{i\_button\_3}  & in  & Pulsador \texttt{T17}                   & Carga el registro de operación \\
+    \midrule
+    \texttt{o\_leds[7:0]}  & out & LEDs \texttt{U16}\dots\texttt{V14}      & Resultado de la operación \\
+    \texttt{o\_zero}       & out & LED \texttt{L1}                         & Bandera $Z$ \\
+    \texttt{o\_carry}      & out & LED \texttt{N3}                         & Bandera $C$ \\
+    \texttt{o\_overflow}   & out & LED \texttt{P1}                         & Bandera $V$ \\
+    \bottomrule
+  \end{tabular}
+  \caption{Puertos del módulo y su asignación de pines en la Basys 3. Todos los bancos se
+           declaran con estándar de tensión \texttt{LVCMOS33}.}
+  \label{tab:io}
+\end{table}
+
+\subsection{Banderas de estado}
+
+Las tres banderas se definen sobre la operación en curso y son puramente combinacionales:
+cambian en cuanto cambia cualquiera de los registros internos, sin esperar un flanco de
+reloj.
+
+\begin{description}[leftmargin=2.2em,style=nextline]
+  \item[\texttt{o\_zero} ($Z$)] Vale 1 cuando el resultado de $N$ bits es idénticamente
+        cero. Se calcula para \emph{todas} las operaciones, no sólo las aritméticas.
+        Nótese que es una bandera sobre el resultado \emph{truncado}: si una suma produce
+        \texttt{0x100}, los 8 bits visibles valen cero y $Z=1$, aunque el valor matemático
+        no lo sea. Esa aparente contradicción es precisamente lo que reporta $C$.
+  \item[\texttt{o\_carry} ($C$)] Es el acarreo de salida de la operación aritmética
+        interpretada \textbf{sin signo}. En ADD indica que la suma excedió el rango
+        $[0,\,2^N-1]$; en SUB actúa como \textit{borrow}, es decir, vale 1 cuando
+        $A < B$ en aritmética sin signo. Para las operaciones lógicas y de desplazamiento
+        la bandera no tiene sentido y se fuerza a 0.
+  \item[\texttt{o\_overflow} ($V$)] Señala desbordamiento en la interpretación
+        \textbf{con signo} (complemento a dos), es decir, que el resultado verdadero cae
+        fuera del rango $[-2^{N-1},\,2^{N-1}-1]$. Sólo se calcula para ADD y SUB.
+\end{description}
+
+La distinción entre $C$ y $V$ es uno de los puntos conceptuales centrales del práctico: el
+mismo circuito sumador produce los dos indicadores, pero cada uno responde a una
+\emph{interpretación} distinta del mismo patrón de bits. El hardware no sabe si los
+operandos son con o sin signo; calcula ambas banderas y deja que el software decida cuál
+mirar.
+
+% ============================================================
+\section{Implementación de la ALU}
+\label{sec:impl}
+% ============================================================
+
+El diseño completo reside en un único archivo, \texttt{ALU.v}, que describe el módulo
+\texttt{ALU}. Su estructura interna responde a un patrón muy habitual en diseño digital y
+conviene identificarlo antes de leer el código:
+
+\begin{enumerate}[leftmargin=1.6em]
+  \item una \textbf{lista de puertos y parámetros} que define la interfaz;
+  \item un \textbf{bloque secuencial} (\texttt{always @(posedge i\_clk)}) que captura las
+        entradas en tres registros internos: \texttt{dato\_A}, \texttt{dato\_B} y
+        \texttt{opt};
+  \item un \textbf{bloque combinacional} (\texttt{always @(*)}) que calcula el resultado y
+        las banderas a partir de esos registros;
+  \item un conjunto de \textbf{asignaciones continuas} (\texttt{assign}) que conectan las
+        señales internas a los puertos de salida.
+\end{enumerate}
+
+Esta separación estricta entre lógica secuencial y lógica combinacional no es una
+convención estilística: es lo que permite que la herramienta de síntesis infiera exactamente
+los biestables que el diseñador pretende y ni uno más.
+
+\subsection{Puertos y parámetros}
+
+\begin{lstlisting}[caption={Declaración del módulo: parámetros y puertos.},label={lst:ports}]
+module ALU#
+(
+    parameter LENGTH_BITS = 8,
+    parameter LENGTH_OPT  = 6
+)
+(
+    output wire [LENGTH_BITS-1 : 0] o_leds,
+    output wire                     o_zero,
+    output wire                     o_carry,
+    output wire                     o_overflow,
+
+    input wire                       i_clk,
+    input wire                       i_reset,
+    input wire [LENGTH_BITS-1:0]     i_switch,
+    input wire                       i_button_1,
+    input wire                       i_button_2,
+    input wire                       i_button_3
+);
+\end{lstlisting}
+
+El módulo se declara con \textbf{parámetros}: \texttt{LENGTH\_BITS} fija el ancho de palabra
+(8 bits) y \texttt{LENGTH\_OPT} el ancho del código de operación (6 bits). Un
+\texttt{parameter} es una constante de \emph{tiempo de elaboración}: la herramienta la
+resuelve antes de generar hardware, de modo que expresiones como
+\texttt{[LENGTH\_BITS-1:0]} se convierten en rangos fijos durante la síntesis. No hay coste
+en área por parametrizar; lo que se obtiene es un módulo reutilizable con otro ancho sin
+tocar una línea del cuerpo.
+
+Todos los puertos se declaran \texttt{wire}, lo cual es coherente con el hecho de que las
+salidas se manejan con asignaciones continuas. El estado interno se declara aparte:
+
+\begin{lstlisting}[caption={Señales internas y codificación de las operaciones.},label={lst:regs}]
+    reg [LENGTH_BITS-1 : 0] result;
+    reg                     carry;
+    reg                     overflow;
+
+    reg [LENGTH_BITS-1 : 0] dato_A = {LENGTH_BITS{1'b0}};
+    reg [LENGTH_BITS-1 : 0] dato_B = {LENGTH_BITS{1'b0}};
+    reg [LENGTH_OPT-1  : 0] opt    = {LENGTH_OPT{1'b0}};
+
+    localparam [5:0] ADD  = 6'b100000,
+                     SUB  = 6'b100010,
+                     AND_ = 6'b100100,
+                     OR_  = 6'b100101,
+                     XOR_ = 6'b100110,
+                     NOR_ = 6'b100111,
+                     SRA  = 6'b000011,
+                     SRL  = 6'b000010;
+
+    localparam SHAMT_BITS = $clog2(LENGTH_BITS);
+\end{lstlisting}
+
+\subsection{Bloque secuencial: captura de los operandos}
+
+\begin{lstlisting}[caption={Registros de entrada con reset sincrónico y carga por prioridad.},label={lst:seq}]
+    always @(posedge i_clk) begin
+        if (i_reset) begin
+            dato_A <= {LENGTH_BITS{1'b0}};
+            dato_B <= {LENGTH_BITS{1'b0}};
+            opt    <= {LENGTH_OPT{1'b0}};
+        end else if (i_button_1) dato_A <= i_switch;
+            else if (i_button_2) dato_B <= i_switch;
+            else if (i_button_3) opt    <= i_switch[LENGTH_OPT-1:0];
+    end
+\end{lstlisting}
+
+Este bloque es el corazón secuencial del diseño y concentra cuatro decisiones importantes.
+
+\paragraph{Sensibilidad sólo al flanco de reloj.} La lista de sensibilidad es
+\texttt{@(posedge i\_clk)} y nada más. Como \texttt{i\_reset} no aparece en ella, el reset
+es \textbf{sincrónico}: su efecto se materializa recién en el siguiente flanco ascendente.
+En las FPGA de la serie 7 esta es la opción preferida, porque el biestable primitivo
+\texttt{FDRE} posee una entrada de reset sincrónico dedicada; un reset asíncrono obligaría
+a usar la primitiva \texttt{FDCE} y, además, introduce el riesgo de violar el tiempo de
+recuperación (\textit{recovery time}) al liberarse en un instante arbitrario.
+
+\paragraph{Asignaciones no bloqueantes.} Dentro de un bloque sincrónico se usa
+\texttt{<=}. La semántica es que \emph{todas} las lecturas del lado derecho se evalúan con
+los valores previos al flanco y las escrituras se aplican al final del paso de simulación.
+Esto modela fielmente lo que hace un conjunto de biestables que conmutan simultáneamente y
+evita las condiciones de carrera que aparecerían con \texttt{=} si un registro alimentara a
+otro.
+
+\paragraph{Cadena \texttt{if / else if}: prioridad, no paralelismo.} La estructura
+condicional encadenada establece un orden estricto de prioridad:
+$$\texttt{i\_reset} \;>\; \texttt{i\_button\_1} \;>\; \texttt{i\_button\_2} \;>\; \texttt{i\_button\_3}$$
+Si se presionan dos botones a la vez, sólo se atiende el de mayor prioridad. Esta
+descripción no genera un multiplexor gigante: como cada rama escribe un registro distinto y
+las ramas no cubren todos los casos, la herramienta infiere una \textbf{habilitación de
+reloj} (\textit{clock enable}) por registro. Concretamente, \texttt{dato\_B} se carga si y
+sólo si \texttt{\textasciitilde i\_reset \& \textasciitilde i\_button\_1 \& i\_button\_2}.
+El coste es prácticamente nulo, porque cada biestable de un \textit{slice} Artix-7 ya trae
+un pin \texttt{CE} disponible. En el esquemático esto se ve como los bloques
+\texttt{RTL\_REG\_SYNC} con pines \texttt{CE} y \texttt{RST}, alimentados por unos pocos
+\texttt{RTL\_MUX} de dos entradas.
+
+\paragraph{No hay \texttt{else} final.} Cuando ninguna condición se cumple, ningún registro
+cambia: retienen su valor. En un bloque sincrónico eso es exactamente lo deseado (un
+biestable que no recibe habilitación conserva su estado) y no genera hardware indeseado. Es
+importante notar que esta regla \emph{no} se aplica a los bloques combinacionales, donde la
+ausencia de una rama sí produce un \textit{latch}.
+
+\paragraph{Truncamiento del código de operación.} La expresión
+\texttt{i\_switch[LENGTH\_OPT-1:0]} toma sólo los 6 bits bajos de los 8 interruptores. Los
+2 bits superiores se descartan de forma deliberada, lo que implica que los patrones
+\texttt{0x22} y \texttt{0xE2}, por ejemplo, seleccionan la misma operación (SUB). El banco
+de pruebas verifica explícitamente este comportamiento.
+
+\subsection{Bloque combinacional: el selector de operación}
+
+\begin{lstlisting}[caption={Núcleo combinacional de la ALU.},label={lst:comb}]
+    always @(*) begin
+        result   = {LENGTH_BITS{1'b0}};
+        carry    = 1'b0;
+        overflow = 1'b0;
+
+        case (opt)
+            ADD: begin
+                {carry, result} = {1'b0, dato_A} + {1'b0, dato_B};
+                overflow = (dato_A[LENGTH_BITS-1] == dato_B[LENGTH_BITS-1]) &&
+                           (result[LENGTH_BITS-1] != dato_A[LENGTH_BITS-1]);
+            end
+            SUB: begin
+                {carry, result} = {1'b0, dato_A} - {1'b0, dato_B};
+                overflow = (dato_A[LENGTH_BITS-1] != dato_B[LENGTH_BITS-1]) &&
+                           (result[LENGTH_BITS-1] != dato_A[LENGTH_BITS-1]);
+            end
+            AND_: result = dato_A & dato_B;
+            OR_:  result = dato_A | dato_B;
+            XOR_: result = dato_A ^ dato_B;
+            NOR_: result = ~(dato_A | dato_B);
+            SRA:  result = $signed(dato_A) >>> dato_B[SHAMT_BITS-1:0];
+            SRL:  result = dato_A         >>  dato_B[SHAMT_BITS-1:0];
+            default: result = {LENGTH_BITS{1'b0}};
+        endcase
+    end
+\end{lstlisting}
+
+\paragraph{La lista de sensibilidad implícita.} \texttt{always @(*)} le indica a la
+herramienta que construya automáticamente la lista con todas las señales leídas dentro del
+bloque (\texttt{opt}, \texttt{dato\_A}, \texttt{dato\_B}). Escribirla a mano es una fuente
+clásica de errores: si se omite una señal, el simulador no reevalúa el bloque cuando esa
+señal cambia y aparece una discrepancia entre simulación y hardware sintetizado.
+
+\paragraph{Asignaciones por defecto: la defensa contra los \textit{latches}.} Las tres
+primeras líneas asignan un valor a \texttt{result}, \texttt{carry} y \texttt{overflow}
+\emph{antes} de entrar al \texttt{case}. Esto garantiza que, sea cual sea el camino
+recorrido, las tres señales reciben un valor en toda ejecución del bloque. Si no fuera así
+---por ejemplo, si \texttt{carry} sólo se asignara en las ramas ADD y SUB--- Verilog
+exigiría que la señal \emph{recuerde} su valor anterior en las demás ramas, y la síntesis
+inferiría un \textit{latch} transparente. Un \textit{latch} en una FPGA es casi siempre un
+error: introduce caminos sensibles al nivel, complica el análisis de temporización y puede
+generar realimentaciones combinacionales. La regla práctica es: \textbf{en todo bloque
+combinacional, asignar valores por defecto al inicio}.
+
+\paragraph{Asignaciones bloqueantes.} Aquí se usa \texttt{=}, que ejecuta de forma
+inmediata y secuencial, como en un lenguaje de programación. Esto no es opcional: la línea
+que calcula \texttt{overflow} \emph{lee} \texttt{result}, y necesita ver el valor recién
+calculado por la suma. Con asignaciones no bloqueantes, \texttt{result} todavía tendría el
+valor por defecto (cero) y la bandera saldría mal. La regla general ---\texttt{<=} en
+bloques sincrónicos, \texttt{=} en bloques combinacionales--- se respeta estrictamente en
+este diseño.
+
+\paragraph{El \texttt{case} es un multiplexor, no un salto.} Este es probablemente el
+concepto más importante del práctico. Al leer el código uno tiende a imaginar que sólo se
+«ejecuta» la rama seleccionada, pero el hardware no funciona así: el sintetizador
+instancia \textbf{todos} los operadores simultáneamente y coloca un multiplexor a la
+salida, gobernado por \texttt{opt}. En todo momento el sumador está sumando, el restador
+está restando y los desplazadores están desplazando; lo único que decide \texttt{opt} es
+cuál de esos resultados llega a \texttt{result}. De ahí que el área del circuito sea la
+\emph{suma} de todas las operaciones y que el retardo crítico sea el de la rama más lenta
+más el del multiplexor. Esto se aprecia con toda claridad en el esquemático de la
+Figura~\ref{fig:schematic}.
+
+\paragraph{El caso por defecto.} La rama \texttt{default} cubre las 56 combinaciones no
+asignadas y devuelve cero con las banderas bajas. Además de dar un comportamiento definido,
+su presencia le confirma a la herramienta que el \texttt{case} es completo, lo que evita
+recurrir a directivas como \texttt{full\_case}.
+
+\subsection{Aritmética: cómo se obtienen el acarreo y el desbordamiento}
+
+\paragraph{Extracción del acarreo.} La construcción
+\begin{center}
+\texttt{\{carry, result\} = \{1'b0, dato\_A\} + \{1'b0, dato\_B\};}
+\end{center}
+es un modismo estándar. Ambos operandos se extienden con un cero a la izquierda hasta
+$N+1 = 9$ bits, la suma se realiza con ese ancho y el resultado se reparte por
+concatenación: los 8 bits bajos van a \texttt{result} y el noveno, que es precisamente el
+acarreo de salida, va a \texttt{carry}. La extensión con cero (y no con el bit de signo)
+indica que la operación se interpreta \textbf{sin signo}, que es lo que corresponde a la
+bandera $C$.
+
+Vale aclarar que en Verilog-2001 el ancho de la operación del lado derecho también queda
+determinado por el contexto de la asignación, de modo que escribir
+\texttt{\{carry, result\} = dato\_A + dato\_B} daría el mismo resultado. Se prefiere la
+forma explícita porque documenta la intención y no depende de las reglas ---bastante
+sutiles--- de propagación de anchos del lenguaje.
+
+En SUB, el mismo mecanismo aplicado a una resta de 9 bits hace que \texttt{carry} funcione
+como \textbf{indicador de préstamo} (\textit{borrow}): si $A \geq B$ el resultado de 9 bits
+es positivo y el bit 8 vale 0; si $A < B$ el resultado es negativo en complemento a dos y
+el bit 8 vale 1.
+
+\paragraph{Detección del desbordamiento con signo.} El desbordamiento no puede leerse de un
+solo bit: se deduce comparando los signos de los operandos con el signo del resultado.
+
+Para la \textbf{suma}, dos números de signos opuestos nunca pueden desbordar (el resultado
+queda acotado entre ambos). El desbordamiento sólo es posible cuando ambos tienen el mismo
+signo, y se confirma si el resultado cambia de signo:
+$$V_{\text{ADD}} = (A_{N-1} = B_{N-1}) \;\wedge\; (R_{N-1} \neq A_{N-1})$$
+Por ejemplo, con 8 bits: $\texttt{0x7F} + \texttt{0x01} = \texttt{0x80}$, es decir
+$127 + 1 = -128$. Ambos operandos son positivos y el resultado es negativo: $V=1$. Nótese
+que en ese caso $C=0$, lo que ilustra que las dos banderas son independientes.
+
+Para la \textbf{resta}, el razonamiento se invierte: $A-B$ sólo puede desbordar si $A$ y
+$B$ tienen signos distintos, y se confirma si el resultado no conserva el signo de $A$:
+$$V_{\text{SUB}} = (A_{N-1} \neq B_{N-1}) \;\wedge\; (R_{N-1} \neq A_{N-1})$$
+
+Ambas expresiones son paramétricas: al usar el índice \texttt{LENGTH\_BITS-1} para
+referirse al bit de signo, siguen siendo válidas si se cambia el ancho de palabra.
+
+\subsection{Desplazamientos: SRL frente a SRA}
+
+\begin{center}
+\texttt{SRA:  result = \$signed(dato\_A) >>> dato\_B[SHAMT\_BITS-1:0];}\\
+\texttt{SRL:  result = dato\_A          >>\ \ dato\_B[SHAMT\_BITS-1:0];}
+\end{center}
+
+La diferencia entre ambos es el relleno que entra por la izquierda:
+
+\begin{itemize}[leftmargin=1.4em]
+  \item \texttt{>>} es el \textbf{desplazamiento lógico}: introduce ceros. Corresponde a
+        una división entera sin signo por $2^k$.
+  \item \texttt{>>>} es el \textbf{desplazamiento aritmético}: replica el bit de signo,
+        preservando el valor con signo. Corresponde a una división con signo por $2^k$
+        (con redondeo hacia $-\infty$).
+\end{itemize}
+
+\subsection{Salidas}
+
+\begin{lstlisting}[caption={Asignaciones continuas de salida.},label={lst:out}]
+    assign o_leds     = result;
+    assign o_zero     = (result == {LENGTH_BITS{1'b0}});
+    assign o_carry    = carry;
+    assign o_overflow = overflow;
+\end{lstlisting}
+
+Las cuatro salidas se conectan con asignaciones continuas, que describen conexiones
+permanentes: el valor del lado izquierdo sigue al del derecho en todo momento.
+
+\subsection{Esquemático RTL generado}
+
+La Figura~\ref{fig:schematic} muestra el esquemático RTL que Vivado elabora a partir de
+\texttt{ALU.v}. Se trata de una vista previa al mapeo tecnológico.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=\textwidth]{./img/ALU-schematic.png}
+  \caption{Esquemático RTL generado por Vivado a partir de \texttt{ALU.v}: 43 celdas,
+           24 puertos de entrada/salida y 123 conexiones.}
+  \label{fig:schematic}
+\end{figure}
+
+% ============================================================
+\section{Banco de pruebas}
+\label{sec:tb}
+% ============================================================
+
+La verificación del diseño se realizó con un banco de pruebas \textbf{autoverificable}
+escrito en Verilog (\texttt{ALU\_tb.v}, dentro del conjunto de fuentes de simulación del
+proyecto). «Autoverificable» significa que el propio banco contiene un \emph{modelo de
+referencia} que calcula, a partir de la especificación, el resultado y las tres banderas
+que deberían observarse, y los compara automáticamente contra las salidas del módulo bajo
+prueba. El operador no tiene que inspeccionar formas de onda para decidir si el diseño
+funciona: la simulación termina informando la cantidad de verificaciones realizadas y de
+errores detectados.
+
+El banco instancia la ALU con los mismos parámetros del diseño (8 bits de datos, 6 de
+operación), genera un reloj de 100\,MHz idéntico al de la placa y aplica los
+estímulos a través de tareas que respetan el protocolo real de carga (levantar el botón,
+esperar al menos un flanco, bajarlo). Cubre, entre otros aspectos, el reset sincrónico, la
+carga individual de cada registro, la prioridad entre pulsadores, el truncamiento del
+código de operación, un barrido exhaustivo de las 64 combinaciones posibles de
+\texttt{opt}, casos borde por operación (acarreo, desbordamiento, desplazamientos de
+números negativos) y un bloque final de vectores aleatorios con reporte de cobertura por
+operación. En esta sección no se detalla su implementación; se presentan únicamente las
+capturas que documentan su ejecución.
+
+Las Figuras~\ref{fig:tb2} y~\ref{fig:tb3} muestran las formas de onda de la simulación
+conductual en Vivado. Junto a las señales de la interfaz aparecen las señales internas del
+banco: \texttt{m\_A}, \texttt{m\_B} y \texttt{m\_opt} son el modelo espejo de los registros
+del diseño, y \texttt{checks} y \texttt{errors} son los contadores de verificaciones y de
+fallos.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=\textwidth]{./img/TB2.png}
+  \caption{Simulación: reset inicial y carga sucesiva de los registros.}
+  \label{fig:tb2}
+\end{figure}
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=\textwidth]{./img/TB3.png}
+  \caption{Simulación: Carga de valores en A, B y opt para posterior reset.}
+  \label{fig:tb3}
+\end{figure}
+
+Finalmente, la Figura~\ref{fig:cov} reproduce el informe que el banco imprime por consola
+al terminar: el recuento de veces que se ejercitó cada operación válida durante la etapa
+aleatoria ---útil para confirmar que ninguna quedó sin probar--- y el resumen final, que
+incluye la semilla utilizada (necesaria para reproducir la corrida), el total de
+verificaciones y el número de errores.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.85\textwidth]{./img/coverage.png}
+  \caption{Reporte de cobertura y resumen final impresos por el banco de pruebas. En la
+           corrida capturada se ejecutaron 620 verificaciones sin errores, con las ocho
+           operaciones válidas ejercitadas.}
+  \label{fig:cov}
+\end{figure}
+
+El resultado \texttt{*** TODOS LOS TESTS PASARON ***} constituye la evidencia de que la
+implementación descrita en la Sección~\ref{sec:impl} satisface la especificación de la
+Sección~\ref{sec:spec} para todos los estímulos aplicados.
+
+\end{document}

@@ -7,14 +7,10 @@
 # Copyright 2022-2026 Advanced Micro Devices, Inc. All Rights Reserved.
 # 
 
-echo "This script was generated under a different operating system."
-echo "Please update the PATH and LD_LIBRARY_PATH variables below, before executing this script"
-exit
-
 if [ -z "$PATH" ]; then
-  PATH=C:/AMDDesignTools/2026.1/Vitis/bin;C:/AMDDesignTools/2026.1/Vivado/ids_lite/ISE/bin/nt64;C:/AMDDesignTools/2026.1/Vivado/ids_lite/ISE/lib/nt64:C:/AMDDesignTools/2026.1/Vivado/bin
+  PATH=/opt/Xilinx/2026.1/Vitis/bin:/opt/Xilinx/2026.1/Vivado/ids_lite/ISE/bin/lin64:/opt/Xilinx/2026.1/Vivado/bin
 else
-  PATH=C:/AMDDesignTools/2026.1/Vitis/bin;C:/AMDDesignTools/2026.1/Vivado/ids_lite/ISE/bin/nt64;C:/AMDDesignTools/2026.1/Vivado/ids_lite/ISE/lib/nt64:C:/AMDDesignTools/2026.1/Vivado/bin:$PATH
+  PATH=/opt/Xilinx/2026.1/Vitis/bin:/opt/Xilinx/2026.1/Vivado/ids_lite/ISE/bin/lin64:/opt/Xilinx/2026.1/Vivado/bin:$PATH
 fi
 export PATH
 
@@ -25,7 +21,7 @@ else
 fi
 export LD_LIBRARY_PATH
 
-HD_PWD='C:/Users/tomi_/OneDrive/Documents/comDatos/Computer_Architecture_FCEFyN/Laboratories/Lab1/ALU/ALU.runs/impl_1'
+HD_PWD='/home/gus/Materias/Arqui/proyectos-vivado/Computer_Architecture_FCEFyN/Laboratories/Lab1/ALU/ALU.runs/impl_1'
 cd "$HD_PWD"
 
 HD_LOG=runme.log
@@ -42,7 +38,7 @@ EAStep()
 }
 
 # pre-commands:
-/bin/touch .init_design.begin.rst
+/bin/touch .write_bitstream.begin.rst
 EAStep vivado -log ALU.vdi -applog -m64 -product Vivado -messageDb vivado.pb -mode batch -source ALU.tcl -notrace
 
 
