@@ -1,0 +1,57 @@
+@startuml rx_fsmd
+title rx_fsmd — Receptor UART (máquina de Moore)
+
+hide empty description
+skinparam defaultFontName Monospaced
+skinparam ArrowColor #555555
+skinparam state {
+  BackgroundColor #F4F4F4
+  BorderColor #555555
+}
+
+' ---------------------------------------------------------------- Estados
+' Dentro de cada estado: el valor de la salida (Moore, depende solo del estado)
+state IDLE
+state START
+state DATA
+state STOP
+state DONE #FFE0D0
+
+IDLE  : o_rx_done = 0
+START : o_rx_done = 0
+DATA  : o_rx_done = 0
+STOP  : o_rx_done = 0
+DONE  : o_rx_done = 1
+
+' ---------------------------------------------------------------- Transiciones
+' Formato:  [condición] / acción sobre el datapath
+[*] --> IDLE : i_reset
+
+IDLE  --> START : [rx == 0]\n/ s = 0
+
+START --> START : [tick && s != 7]\n/ s = s + 1
+START --> IDLE  : [tick && s == 7 && rx == 1]\n(glitch)
+START --> DATA  : [tick && s == 7 && rx == 0]\n/ s = 0, n = 0
+
+DATA  --> DATA  : [tick && s != 15]\n/ s = s + 1
+DATA  --> DATA  : [tick && s == 15 && n != DATA_BITS-1]\n/ s = 0, n = n + 1,\n  b = {rx, b[7:1]}
+DATA  --> STOP  : [tick && s == 15 && n == DATA_BITS-1]\n/ s = 0,\n  b = {rx, b[7:1]}
+
+STOP  --> STOP  : [tick && s != SB_TICK-1]\n/ s = s + 1
+STOP  --> DONE  : [tick && s == SB_TICK-1]
+
+DONE  --> IDLE  : siempre\n(dura 1 ciclo)
+
+' ---------------------------------------------------------------- Notas
+note right of IDLE
+  rx = rx_sync (entrada sincronizada)
+  o_dout = b en todo momento
+end note
+
+note bottom of DONE
+  Sin tick, todos los estados salvo
+  IDLE y DONE conservan su valor.
+  Estado inválido (default) → IDLE.
+end note
+
+@enduml
