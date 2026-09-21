@@ -1,0 +1,52 @@
+# ==========================
+# Vivado: archivos generados
+# ==========================
+
+# Directorios generados por proyecto
+**/*.cache/
+**/*.hw/
+**/*.ip_user_files/
+**/*.runs/
+**/*.sim/
+**/*.gen/
+**/.Xil/
+
+# Resultados y bases de datos de simulación
+*.wdb
+*.sdb
+*.rlx
+*.rtti
+*.xdbg
+*.dbg
+*.pb
+
+# Logs, journals y temporales
+*.jou
+*.log
+*.str
+*.tmp
+*.backup.*
+vivado_pid*.str
+
+# Scripts generados por Vivado/XSim
+**/xsim.dir/
+**/compile.bat
+**/elaborate.bat
+**/simulate.bat
+**/xelab.pb
+**/xvlog.pb
+**/xvlog.log
+**/xsim.ini
+**/glbl.v
+
+# Exportaciones y archivos comprimidos
+*.xpr.zip
+*.dcp
+*.bit
+*.bin
+*.ltx
+
+# Sistema/editor
+.DS_Store
+Thumbs.db
+.vscode/
