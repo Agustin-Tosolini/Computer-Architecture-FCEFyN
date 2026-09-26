@@ -1,0 +1,3 @@
+Directory used for pdf output of the .tex file
+This file exists only to keep this directory under version control.
+Delete it once real files are added here.
