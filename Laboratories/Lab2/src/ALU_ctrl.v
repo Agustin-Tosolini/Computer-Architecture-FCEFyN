@@ -119,7 +119,7 @@ module ALU_ctrl #
     end
 
     //------------------------------------------------ ALU (combinacional)
-    alu #
+    ALU #
     (
         .LENGTH_BITS (DATA_BITS),
         .LENGTH_OPT  (LENGTH_OPT)
