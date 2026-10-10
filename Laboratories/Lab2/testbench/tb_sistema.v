@@ -83,7 +83,7 @@ module tb_sistema;
 
     wire zero, carry, overflow;
 
-    alu_ctrl #
+    ALU_ctrl #
     (
         .DATA_BITS  (DATA_BITS),
         .LENGTH_OPT (6)
