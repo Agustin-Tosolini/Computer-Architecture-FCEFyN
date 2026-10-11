@@ -114,6 +114,20 @@
   }%
 }
 
+% Imagen pendiente: si el archivo existe lo incluye, si no dibuja un recuadro
+% punteado con el nombre esperado. Uso: \imagenpendiente{ancho}{archivo}
+\newcommand{\imagenpendiente}[2]{%
+  \IfFileExists{#2}{%
+    \includegraphics[width=#1]{#2}%
+  }{%
+    \begin{tikzpicture}
+      \node[draw=gray!60,dashed,fill=gray!10,rounded corners,
+            minimum height=5cm,minimum width=#1,align=center,
+            font=\small\color{gray}] {Imagen pendiente\\[2pt]\texttt{\detokenize{#2}}};
+    \end{tikzpicture}%
+  }%
+}
+
 % Estilo de la carátula: sin encabezado (los logos van dentro de la página)
 \fancypagestyle{caratula}{%
   \fancyhf{}
@@ -391,6 +405,37 @@ que mueve, y el módulo \texttt{ALU\_ctrl} es el único que conoce el protocolo.
 La ALU quedó como lógica puramente combinacional, sin reloj ni registros, tal
 como fue escrita en el trabajo práctico anterior, cambiando únicamente quién le
 entrega los operandos.
+
+\subsection{Esquemático}
+
+A continuación se incluyen los esquemáticos generados por Vivado luego de la
+elaboración. La Figura~\ref{fig:sch-full} muestra el módulo top con los tres
+bloques principales y sus conexiones; las Figuras~\ref{fig:sch-uart} y
+\ref{fig:sch-intf} muestran el contenido de \texttt{uart} y de \texttt{intf}
+expandidos.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{img/schematic-full.png}
+    \caption{Esquemático del módulo top (\texttt{uart\_alu\_top}).}
+    \label{fig:sch-full}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{img/schematic-uart.png}
+    \caption{Módulo \texttt{uart} expandido: generador de baud rate, receptor y
+    transmisor.}
+    \label{fig:sch-uart}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{img/schematic-inft-alu-ctrl.png}
+    \caption{Módulo \texttt{intf} expandido (\texttt{rx\_intf} y
+    \texttt{tx\_intf}) junto al control \texttt{ALU\_ctrl}.}
+    \label{fig:sch-intf}
+\end{figure}
 
 % ============================================================
 \section{Generador de baud rate}
@@ -723,6 +768,20 @@ alineación), \texttt{0x00} (nueve bits consecutivos en 0 contando el start),
 \texttt{0x80} (verifican el orden LSB primero). El testbench también comprueba
 que la línea permanezca en 1 mientras el transmisor está en reposo.
 
+\begin{figure}[H]
+    \centering
+    \imagenpendiente{\textwidth}{img/signal-loopback.png}
+    \caption{Formas de onda del testbench de loopback.}
+    \label{fig:sim-loopback}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \imagenpendiente{0.8\textwidth}{img/log-loopback.png}
+    \caption{Salida por consola del testbench de loopback.}
+    \label{fig:sim-top-consola}
+\end{figure}
+
 \subsection{Sistema completo}
 
 El segundo testbench instancia el módulo top completo y, del otro lado de las
@@ -760,6 +819,22 @@ correctamente.
 Para acortar los tiempos de simulación se utilizó una velocidad elevada
 (\texttt{BAUD\_RATE = 1562500}, que da $N = 4$); la lógica ejercitada es la
 misma, ya que lo único que cambia es cada cuántos ciclos llega el tick.
+
+\begin{figure}[H]
+    \centering
+    \imagenpendiente{\textwidth}{img/systemsignal.png}
+    \caption{Formas de onda del testbench del sistema completo para una
+    operación.}
+    \label{fig:sim-top}
+\end{figure}
+
+
+\begin{figure}[H]
+    \centering
+    \imagenpendiente{0.8\textwidth}{img/log-fullsystem.png}
+    \caption{Salida por consola del testbench del sistema completo.}
+    \label{fig:sim-top-consola}
+\end{figure}
 
 % ============================================================
 \section{Implementación en la placa}
