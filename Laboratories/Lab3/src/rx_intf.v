@@ -4,7 +4,7 @@
 //------------------------------------------------------------------------------
 // Interface del receptor UART.
 // Buffer de un byte entre el rx_fsmd (que muestra el dato un solo ciclo)
-// y el consumidor (echo_ctrl hoy, debug_unit despues).
+// y el consumidor (debug_unit).
 //
 //   rx_fsmd  --(i_rx_done + i_dout)-->  [buffer]  --(o_r_data + o_rx_empty)-->  controlador
 //                                                 <--(i_rd)--
