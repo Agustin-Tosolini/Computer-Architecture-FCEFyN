@@ -8,7 +8,7 @@
 // que separa la UART del resto del sistema.
 //
 // Hacia la UART: pulsos y bytes crudos.
-// Hacia el controlador (echo_ctrl hoy, debug_unit despues): las seis senales
+// Hacia el controlador (debug_unit): las seis senales
 // del diagrama de bloques (r_data, rd, rx_empty / w_data, wr, tx_full).
 //------------------------------------------------------------------------------
 module intf #

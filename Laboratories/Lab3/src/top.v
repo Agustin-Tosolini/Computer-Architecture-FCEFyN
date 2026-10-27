@@ -2,21 +2,25 @@
 `default_nettype none
 
 //------------------------------------------------------------------------------
-// Top del Trabajo Final — PASO 1: eco por UART.
+// Top del Trabajo Final — PASO 3: debug_unit + cpu_stub.
 //
 // Es la frontera del chip: sus puertos son los pines de la placa y son los
-// nombres que busca el archivo de constraints (top.xdc).
+// nombres que busca el archivo de constraints (top.xdc, sin cambios).
 //
-//   i_rx --> [ uart ] --> [ intf ] --> [ echo_ctrl ]
+//   i_rx --> [ uart ] --> [ intf ] --> [ debug_unit ] <== contrato ==> [ cpu_stub ]
 //   o_tx <--          <--          <--
 //
 //   i_reset (boton) --> [ reset_gen ] --> reset global
 //
+// Reset del procesador:  cpu_rst = reset (global) OR cpu_reset (debug_unit).
+//   - reset global: al encender o con el boton se resetea todo.
+//   - cpu_reset:    el comando 'X' resetea SOLO el procesador; la UART y la
+//                   debug_unit siguen funcionando y pueden responder 'K'.
+//
 // Evolucion prevista:
-//   paso 2/3: echo_ctrl se reemplaza por debug_unit (+ dump_mux) y se agrega
-//             cpu_stub (y despues el cpu real) del otro lado de la debug_unit.
-//   paso 4:   se agrega clk_wiz; su salida "locked" va a reset_gen.i_locked y
-//             CLK_FREQ pasa a ser la frecuencia que genera.
+//   - debug_unit: se agregan los comandos 'D', 'S', 'R', 'L' (sin tocar el top).
+//   - cpu_stub se reemplaza por el cpu real (mismos puertos).
+//   - paso 4: clk_wiz; su "locked" va a reset_gen.i_locked.
 //------------------------------------------------------------------------------
 module top #
 (
@@ -33,11 +37,12 @@ module top #
     input  wire        i_reset,     // U18 - btnC
     input  wire        i_rx,        // B18 - salida del puente USB-UART
     output wire        o_tx,        // A18 - entrada del puente USB-UART
-    output wire [7:0]  o_leds       // LD0..LD7 - ultimo byte recibido
+    output wire [7:0]  o_leds       // LD0..LD3 = estado de la debug_unit, LD4 = halted
 );
 
     //------------------------------------------------ Senales internas
     wire                  reset;          // reset global, sincronico
+    wire                  cpu_rst;        // reset del procesador (global OR 'X')
 
     // uart <-> intf
     wire                  rx_done;
@@ -46,7 +51,7 @@ module top #
     wire [DATA_BITS-1:0]  tx_din;
     wire                  tx_done;
 
-    // intf <-> controlador (las seis senales del diagrama de bloques)
+    // intf <-> debug_unit (las seis senales del diagrama de bloques)
     wire [DATA_BITS-1:0]  r_data;
     wire                  rx_empty;
     wire                  rd;
@@ -54,7 +59,19 @@ module top #
     wire                  wr;
     wire                  tx_full;
 
-    wire [DATA_BITS-1:0]  last_byte;
+    // debug_unit <-> cpu (contrato, params.vh seccion 4)
+    wire                  cpu_enable;
+    wire                  cpu_reset;
+    wire                  imem_we;
+    wire [7:0]            imem_addr;
+    wire [31:0]           imem_data;
+    wire [4:0]            dbg_reg_addr;
+    wire [31:0]           dbg_reg_data;
+    wire [7:0]            dbg_mem_addr;
+    wire [31:0]           dbg_mem_data;
+    wire [31:0]           pc;
+    wire [383:0]          latches;
+    wire                  halted;
 
     //================================================ Reset global
     reset_gen #
@@ -121,29 +138,62 @@ module top #
         .o_tx_full  (tx_full)
     );
 
-    //================================================ Controlador (eco)
-    echo_ctrl #
+    //================================================ Debug unit
+    debug_unit u_debug_unit
     (
-        .DATA_BITS (DATA_BITS)
-    )
-    u_echo_ctrl
-    (
-        .i_clk       (i_clk),
-        .i_reset     (reset),
+        .i_clk          (i_clk),
+        .i_reset        (reset),
 
-        .i_r_data    (r_data),
-        .i_rx_empty  (rx_empty),
-        .o_rd        (rd),
+        .i_r_data       (r_data),
+        .i_rx_empty     (rx_empty),
+        .o_rd           (rd),
 
-        .o_w_data    (w_data),
-        .i_tx_full   (tx_full),
-        .o_wr        (wr),
+        .o_w_data       (w_data),
+        .i_tx_full      (tx_full),
+        .o_wr           (wr),
 
-        .o_last_byte (last_byte)
+        .o_cpu_enable   (cpu_enable),
+        .o_cpu_reset    (cpu_reset),
+        .o_imem_we      (imem_we),
+        .o_imem_addr    (imem_addr),
+        .o_imem_data    (imem_data),
+
+        .o_dbg_reg_addr (dbg_reg_addr),
+        .i_dbg_reg_data (dbg_reg_data),
+        .o_dbg_mem_addr (dbg_mem_addr),
+        .i_dbg_mem_data (dbg_mem_data),
+
+        .i_pc           (pc),
+        .i_latches      (latches),
+        .i_halted       (halted),
+
+        .o_leds         (o_leds)
     );
 
-    //================================================ Salidas a leds
-    assign o_leds = last_byte;
+    //================================================ Procesador (stub)
+    assign cpu_rst = reset | cpu_reset;
+
+    cpu_stub u_cpu
+    (
+        .i_clk          (i_clk),
+        .i_cpu_reset    (cpu_rst),
+
+        .i_enable       (cpu_enable),
+
+        .i_imem_we      (imem_we),
+        .i_imem_addr    (imem_addr),
+        .i_imem_data    (imem_data),
+
+        .i_dbg_reg_addr (dbg_reg_addr),
+        .o_dbg_reg_data (dbg_reg_data),
+
+        .i_dbg_mem_addr (dbg_mem_addr),
+        .o_dbg_mem_data (dbg_mem_data),
+
+        .o_pc           (pc),
+        .o_latches      (latches),
+        .o_halted       (halted)
+    );
 
 endmodule
 
