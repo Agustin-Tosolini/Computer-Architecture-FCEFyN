@@ -2,7 +2,7 @@
 `default_nettype none
 
 //------------------------------------------------------------------------------
-// Testbench del top — PASO 3, debug_unit version 2 (comandos 'X' y 'D').
+// Testbench del top — PASO 3, debug_unit version 3 (comandos 'X', 'D' y 'S').
 //
 // Una segunda copia del modulo uart hace de "PC": manda comandos del protocolo
 // y recibe las respuestas, que se verifican contra lo esperado.
@@ -13,6 +13,15 @@
 // Como todavia no existe 'L', el testbench le escribe valores al cpu_stub
 // directamente con referencias jerarquicas (dut.u_cpu.pc = ...). Es un recurso
 // valido solo en simulacion.
+//
+// BAUD RATE: este testbench usa 1 Mbaud (parametro BAUD_RATE pasado al top y a
+// la uart "PC") para que cada volcado tarde ~3 ms simulados en lugar de 27 ms.
+// Los dos extremos usan los mismos parametros, asi que la logica probada es la
+// misma. El diseño NO cambia: el valor por defecto de todos los modulos sigue
+// siendo 115200 (validado en la placa).
+//
+// La memoria del cpu_stub arranca con INIT_NOPS = 8 NOPs (igual que en la
+// placa) y el modelo del testbench lo tiene en cuenta.
 //
 // El volcado ESPERADO se arma en el testbench con un modelo propio del
 // cpu_stub (mismas formulas que documenta cpu_stub.v), no leyendo al DUT.
@@ -27,20 +36,25 @@
 //   7. 'D' con PC, memoria y halted forzados -> 314 bytes con esos valores;
 //      durante el volcado los leds muestran el estado DUMP (8).
 //   8. 'X' y 'D' -> PC = 0 y halted = 0 otra vez; la memoria se conserva.
-//   9. Totales: cpu_enable no se activo nunca ('D' no ejecuta); cuenta de
-//      cpu_reset.
+//   9. 'S' paso a paso hasta el HALT: PC +4 por paso, ciclos +1, el PC se
+//      congela en el HALT, halted sube 4 pasos despues y los 'S' siguientes ya
+//      no cambian nada. Cada 'S' da exactamente 1 ciclo de cpu_enable.
+//  10. 'X' y 'D' despues de los pasos: PC, ciclos y halted vuelven a 0.
+//  11. Totales: cpu_enable solo se activo en los 'S'; cuenta de cpu_reset.
 //
 // Resultado: imprime "PASS" o la lista de errores y "FAIL".
 //------------------------------------------------------------------------------
 module tb_top;
 
     localparam CLK_FREQ  = 100_000_000;
-    localparam BAUD_RATE = 115200;
+    localparam BAUD_RATE = 1_000_000;    // solo simulacion (ver arriba)
+    localparam INIT_NOPS = 8;            // igual que en el top de la placa
     localparam CLK_HALF  = 5;                                // 100 MHz
-    localparam FRAME_NS  = 10 * (1_000_000_000 / BAUD_RATE); // ~86.8 us por byte
+    localparam FRAME_NS  = 10 * (1_000_000_000 / BAUD_RATE); // 10 us por byte a 1 Mbaud
 
     localparam [7:0] CMD_RESET = 8'h58;   // 'X'
     localparam [7:0] CMD_DUMP  = 8'h44;   // 'D'
+    localparam [7:0] CMD_STEP  = 8'h53;   // 'S'
     localparam [7:0] RSP_ACK   = 8'h4B;   // 'K'
     localparam       DUMP_LEN  = 314;
 
@@ -56,8 +70,9 @@ module tb_top;
 
     top #
     (
-        .CLK_FREQ  (CLK_FREQ),
-        .BAUD_RATE (BAUD_RATE)
+        .CLK_FREQ       (CLK_FREQ),
+        .BAUD_RATE      (BAUD_RATE),
+        .STUB_INIT_NOPS (INIT_NOPS)
     )
     dut
     (
@@ -113,8 +128,7 @@ module tb_top;
         if (dut.cpu_reset)
             cpu_reset_cycles = cpu_reset_cycles + 1;
 
-    // Ciclos en que la debug_unit hace avanzar al procesador. Con 'X' y 'D'
-    // no deberia activarse nunca.
+    // Ciclos en que la debug_unit hace avanzar al procesador (solo en 'S').
     integer cpu_enable_cycles = 0;
     always @(posedge clk)
         if (dut.cpu_enable)
@@ -136,7 +150,8 @@ module tb_top;
     integer    m;
     initial
         for (m = 0; m < 32; m = m + 1)
-            mem_model[m] = 32'h0000_0000;     // el stub arranca todo en HALT
+            mem_model[m] = (m < INIT_NOPS) ? 32'h0000_0013   // NOP
+                                           : 32'h0000_0000;  // HALT
 
     //------------------------------------------------ Utilidades
     integer errors = 0;
@@ -272,7 +287,7 @@ module tb_top;
         end
     endtask
 
-    // Manda un comando que responde con volcado ('D') y verifica los 314
+    // Manda un comando que responde con volcado ('D' o 'S') y verifica los 314
     // bytes contra el volcado esperado. Solo muestra los primeros errores.
     integer dump_errors;
     task check_cmd_dump(input [7:0] cmd, input [8*32-1:0] name, input [31:0] pc_v,
@@ -309,6 +324,17 @@ module tb_top;
     task check_dump(input [8*32-1:0] name, input [31:0] pc_v, input [31:0] cycles_v,
                     input [7:0] status_v);
         check_cmd_dump(CMD_DUMP, name, pc_v, cycles_v, status_v);
+    endtask
+
+    // Un 'S': verifica el volcado y que haya dado exactamente 1 ciclo de enable.
+    integer en_before;
+    task check_step(input [8*32-1:0] name, input [31:0] pc_v, input [31:0] cycles_v,
+                    input [7:0] status_v);
+        begin
+            en_before = cpu_enable_cycles;
+            check_cmd_dump(CMD_STEP, name, pc_v, cycles_v, status_v);
+            check("ciclos de cpu_enable en un 'S'", cpu_enable_cycles - en_before, 32'd1);
+        end
     endtask
 
     //------------------------------------------------ Secuencia
@@ -380,12 +406,34 @@ module tb_top;
         expect_byte(RSP_ACK);
         check_dump("D tras 'X'", 32'd0, 32'd0, 8'h00);   // memoria conservada
 
-        //---------------------------------------- 9. Totales
-        check("ciclos con cpu_enable (nunca)", cpu_enable_cycles, 32'd0);
-        check("ciclos de cpu_reset (total)", cpu_reset_cycles, 32'd4);
+        check("ciclos con cpu_enable (antes de 'S')", cpu_enable_cycles, 32'd0);
+
+        //---------------------------------------- 9. 'S' paso a paso hasta el HALT
+        // Memoria: [0],[1] y [5] escritas en la prueba 7, NOPs en [2],[4],[6],[7].
+        // Se pone un HALT en la palabra 3 (direccion 0x0C):
+        //   S1 PC 4 | S2 PC 8 | S3 PC 0xC (llega al HALT) | S4 el HALT pasa a ID
+        //   (PC congelado) | S5, S6 vaciado | S7 halted = 1 | S8 ya no cambia nada
+        set_stub_mem(8'd3, 32'h0000_0000);
+        check_step("S1", 32'h4, 32'd1, 8'h00);
+        check_step("S2", 32'h8, 32'd2, 8'h00);
+        check_step("S3", 32'hC, 32'd3, 8'h00);
+        check_step("S4 (HALT en ID)", 32'hC, 32'd4, 8'h00);
+        check_step("S5", 32'hC, 32'd5, 8'h00);
+        check_step("S6", 32'hC, 32'd6, 8'h00);
+        check_step("S7 (halted)", 32'hC, 32'd7, 8'h01);
+        check_step("S8 (sin cambios)", 32'hC, 32'd7, 8'h01);
+
+        //---------------------------------------- 10. 'X' y 'D' despues de los pasos
+        pc_send(CMD_RESET);
+        expect_byte(RSP_ACK);
+        check_dump("D tras los pasos y 'X'", 32'd0, 32'd0, 8'h00);
+
+        //---------------------------------------- 11. Totales
+        check("ciclos con cpu_enable (total: 8 'S')", cpu_enable_cycles, 32'd8);
+        check("ciclos de cpu_reset (total)", cpu_reset_cycles, 32'd5);
 
         //---------------------------------------- Resultado
-        if (errors == 0) $display("PASS: comandos 'X' y 'D' correctos");
+        if (errors == 0) $display("PASS: comandos 'X', 'D' y 'S' correctos");
         else             $display("FAIL: %0d errores", errors);
         $finish;
     end

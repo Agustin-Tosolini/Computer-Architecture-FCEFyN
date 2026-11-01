@@ -3,7 +3,7 @@
 
 //------------------------------------------------------------------------------
 // control_fsmd — FSM + registros de la debug_unit (el "protocolo").
-// VERSION 2: comandos 'X' y 'D'.
+// VERSION 3: comandos 'X', 'D' y 'S'.
 //
 // Recibe los comandos de la PC (via intf), los ejecuta sobre el procesador y
 // arma las respuestas. Es el unico modulo que conoce el protocolo.
@@ -11,16 +11,20 @@
 // Comandos implementados:
 //   'X' (0x58)  reset del procesador   ->  responde 'K' (0x4B)
 //   'D' (0x44)  volcado del estado     ->  responde los 314 bytes del volcado
+//   'S' (0x53)  un ciclo de clock      ->  responde los 314 bytes del volcado
 //   cualquier otro byte: se consume y se descarta (sin respuesta)
 //
 //   IDLE --('X' / rd)--> RESET --(siempre, 1 ciclo)--> ACK --(!tx_full / wr)--> IDLE
 //   IDLE --('D' / rd, dump_idx = 0)--> DUMP
+//   IDLE --('S' / rd)--> STEP --(siempre, 1 ciclo; dump_idx = 0)--> DUMP
 //   DUMP --(!tx_full y quedan bytes / wr, dump_idx++)--> DUMP
 //   DUMP --(!tx_full y ultimo byte  / wr, dump_idx = 0)--> IDLE
 //   IDLE --(otro byte / rd)--> IDLE
 //
 // Salidas Moore (dependen solo del estado):
 //   RESET : o_cpu_reset = 1          (dura exactamente 1 ciclo)
+//   STEP  : o_cpu_enable = 1         (dura exactamente 1 ciclo: el procesador
+//                                     recibe UN flanco habilitado)
 //   ACK   : o_w_data    = 'K'
 //   DUMP  : o_w_data    = i_dump_byte (el byte que el dump_mux eligio para dump_idx)
 // Salidas Mealy (estado + entrada, igual que en ALU_ctrl):
@@ -34,6 +38,15 @@
 //   ciclo. Por cada byte entregado (o_wr = 1) dump_idx avanza uno; mientras el
 //   transmisor esta ocupado (i_tx_full = 1) dump_idx no cambia, asi que el byte
 //   que ve la UART es siempre el correcto.
+//
+// Como funciona el paso a paso ('S'):
+//   STEP dura un ciclo con o_cpu_enable = 1, asi que el procesador avanza
+//   exactamente un flanco: el PC y los 4 latches se actualizan una vez (cada
+//   instruccion del pipeline baja una etapa). En el ciclo siguiente la FSM ya
+//   esta en DUMP con o_cpu_enable = 0: el procesador queda congelado y el
+//   volcado muestra el estado DESPUES del paso. Si el procesador ya estaba
+//   detenido (halted), ignora el enable y el volcado sale igual al anterior:
+//   'S' siempre responde con el volcado.
 //
 // Registros del datapath:
 //   cycles   : ciclos que el procesador avanzo (enable = 1 y no halted).
@@ -76,7 +89,7 @@ module control_fsmd
     //------------------------------------------------ Protocolo (params.vh sec. 6)
     localparam [7:0] CMD_LOAD  = 8'h4C,   // 'L'  (pendiente)
                      CMD_RUN   = 8'h52,   // 'R'  (pendiente)
-                     CMD_STEP  = 8'h53,   // 'S'  (pendiente)
+                     CMD_STEP  = 8'h53,   // 'S'
                      CMD_DUMP  = 8'h44,   // 'D'
                      CMD_RESET = 8'h58,   // 'X'
                      RSP_ACK   = 8'h4B;   // 'K'
@@ -94,7 +107,7 @@ module control_fsmd
                      RESET     = 9'b0_0001_0000,
                      ACK       = 9'b0_0010_0000,
                      RUN       = 9'b0_0100_0000,   // pendiente ('R')
-                     STEP      = 9'b0_1000_0000,   // pendiente ('S')
+                     STEP      = 9'b0_1000_0000,
                      DUMP      = 9'b1_0000_0000;
 
     //------------------------------------------------ Registros
@@ -133,6 +146,7 @@ module control_fsmd
                 if (!i_rx_empty) begin
                     case (i_r_data)
                         CMD_RESET: next_state = RESET;
+                        CMD_STEP:  next_state = STEP;
                         CMD_DUMP: begin
                             dump_idx_next = 9'd0;          // el volcado arranca en la cabecera
                             next_state    = DUMP;
@@ -152,6 +166,13 @@ module control_fsmd
             ACK:
                 if (!i_tx_full)
                     next_state = IDLE;
+
+            // Un solo ciclo con o_cpu_enable = 1 (el procesador avanza un
+            // flanco) y despues se manda el volcado del estado resultante.
+            STEP: begin
+                dump_idx_next = 9'd0;
+                next_state    = DUMP;
+            end
 
             // Manda los 314 bytes, uno por cada vez que el transmisor se libera.
             // En el ciclo en que se entrega un byte (o_wr = 1) se avanza al
@@ -186,6 +207,8 @@ module control_fsmd
             IDLE:  o_rd = ~i_rx_empty;                 // Mealy
 
             RESET: o_cpu_reset = 1'b1;                 // Moore
+
+            STEP:  o_cpu_enable = 1'b1;                // Moore
 
             ACK: begin
                 o_w_data = RSP_ACK;                    // Moore
