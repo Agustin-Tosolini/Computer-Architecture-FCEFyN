@@ -2,7 +2,8 @@
 `default_nettype none
 
 //------------------------------------------------------------------------------
-// Testbench del top — PASO 3, debug_unit version 3 (comandos 'X', 'D' y 'S').
+// Testbench del top — PASO 3, debug_unit version 4 (comandos 'X', 'D', 'S',
+// 'R' e 'I').
 //
 // Una segunda copia del modulo uart hace de "PC": manda comandos del protocolo
 // y recibe las respuestas, que se verifican contra lo esperado.
@@ -29,7 +30,8 @@
 // Pruebas:
 //   1. Arranque: TX en reposo (1) y debug_unit en IDLE (leds = 0).
 //   2. 'X' -> 'K', el PC del stub vuelve a 0, cpu_reset dura 1 ciclo.
-//   3. Bytes que no son comando -> sin respuesta y sin reset.
+//   3. Bytes que no son comando (incluida 'I' fuera de RUN) -> sin respuesta
+//      y sin reset.
 //   4. 'X' otra vez -> sigue funcionando.
 //   5. Boton de reset -> tambien resetea el procesador (OR de reset).
 //   6. 'D' recien reseteado -> 314 bytes: PC = 0, estado = 0, memoria en 0.
@@ -40,7 +42,25 @@
 //      congela en el HALT, halted sube 4 pasos despues y los 'S' siguientes ya
 //      no cambian nada. Cada 'S' da exactamente 1 ciclo de cpu_enable.
 //  10. 'X' y 'D' despues de los pasos: PC, ciclos y halted vuelven a 0.
-//  11. Totales: cpu_enable solo se activo en los 'S'; cuenta de cpu_reset.
+//  11. Totales parciales: cpu_enable solo se activo en los 'S'.
+//  12. 'R' hasta el HALT: mismo volcado que S7 (PC 0xC, 7 ciclos, status 0x01)
+//      y exactamente 7 ciclos de cpu_enable.
+//  13. 'R' con el procesador ya detenido: mismo volcado, 0 ciclos de enable.
+//  14. 'I' fuera de RUN (procesador detenido, en IDLE): se ignora.
+//  15. Programa sin HALT (todo NOP): 'R' corre indefinidamente; los leds
+//      muestran RUN (6); otros bytes ('D','S','X','R','i') se descartan y la
+//      corrida sigue; 'I' la corta: volcado con status 0x02,
+//      PC = 4 * ciclos y ciclos = ciclos de enable (ni uno de mas).
+//  16. 'D' despues de la interrupcion: status sigue en 0x02. Una 'I' mandada
+//      en medio del volcado no lo altera y despues se ignora.
+//  17. Otro 'R' + 'I': continua desde donde quedo (ciclos y PC siguen sumando).
+//  18. 'S' despues de una interrupcion: borra el bit (status 0x00), PC +4.
+//  19. 'R' + 'I' y despues 'X': 'X' tambien borra el bit (D -> status 0x00).
+//  20. 'R' borra el bit: 'R' + 'I' (0x02), se pone un HALT 3 palabras mas
+//      adelante y otro 'R' termina solo con status 0x01.
+//  21. Empate: 'I' llega en el mismo ciclo en que el procesador se detiene ->
+//      gana el HALT (status 0x01) y se manda un solo volcado.
+//  22. Total de cpu_reset.
 //
 // Resultado: imprime "PASS" o la lista de errores y "FAIL".
 //------------------------------------------------------------------------------
@@ -55,6 +75,8 @@ module tb_top;
     localparam [7:0] CMD_RESET = 8'h58;   // 'X'
     localparam [7:0] CMD_DUMP  = 8'h44;   // 'D'
     localparam [7:0] CMD_STEP  = 8'h53;   // 'S'
+    localparam [7:0] CMD_RUN   = 8'h52;   // 'R'
+    localparam [7:0] CMD_INT   = 8'h49;   // 'I'
     localparam [7:0] RSP_ACK   = 8'h4B;   // 'K'
     localparam       DUMP_LEN  = 314;
 
@@ -128,7 +150,7 @@ module tb_top;
         if (dut.cpu_reset)
             cpu_reset_cycles = cpu_reset_cycles + 1;
 
-    // Ciclos en que la debug_unit hace avanzar al procesador (solo en 'S').
+    // Ciclos en que la debug_unit hace avanzar al procesador ('S' y 'R').
     integer cpu_enable_cycles = 0;
     always @(posedge clk)
         if (dut.cpu_enable)
@@ -287,15 +309,13 @@ module tb_top;
         end
     endtask
 
-    // Manda un comando que responde con volcado ('D' o 'S') y verifica los 314
-    // bytes contra el volcado esperado. Solo muestra los primeros errores.
+    // Recibe 314 bytes y los compara con "expected". Solo muestra los primeros
+    // errores. Despues verifica que no llegue ni un byte de mas.
     integer dump_errors;
-    task check_cmd_dump(input [7:0] cmd, input [8*32-1:0] name, input [31:0] pc_v,
-                        input [31:0] cycles_v, input [7:0] status_v);
+    integer en_before;                    // cpu_enable_cycles antes de un comando
+    task recv_dump(input [8*32-1:0] name);
         begin
-            build_expected(pc_v, cycles_v, status_v);
             dump_errors = 0;
-            pc_send(cmd);
             for (e = 0; e < DUMP_LEN; e = e + 1) begin
                 wait_byte;
                 if (!got_byte) begin
@@ -321,13 +341,91 @@ module tb_top;
         end
     endtask
 
+    // Manda un comando que responde con volcado ('D', 'S' o 'R') y verifica los
+    // 314 bytes contra el volcado esperado (armado con el modelo).
+    task check_cmd_dump(input [7:0] cmd, input [8*32-1:0] name, input [31:0] pc_v,
+                        input [31:0] cycles_v, input [7:0] status_v);
+        begin
+            build_expected(pc_v, cycles_v, status_v);
+            pc_send(cmd);
+            recv_dump(name);
+        end
+    endtask
+
+    // Para un volcado que ya viene en camino y cuyo PC/ciclos no se conocen de
+    // antemano (corrida cortada con 'I'): cuando llega la cabecera el procesador
+    // ya esta congelado, asi que se toman PC y ciclos del DUT, se arma el
+    // volcado esperado con el modelo y se comparan los 314 bytes. Quien llama
+    // verifica que snap_pc y snap_cycles sean coherentes (PC = 4 * ciclos, ...).
+    reg [31:0] snap_pc, snap_cycles;
+    task check_dump_snapshot(input [8*32-1:0] name, input [7:0] status_v);
+        begin
+            wait_byte;                                     // cabecera (no la consume)
+            if (!got_byte) begin
+                $display("ERROR: %0s: timeout esperando el volcado", name);
+                errors = errors + 1;
+            end
+            else begin
+                snap_pc     = dut.pc;
+                snap_cycles = dut.u_debug_unit.u_control_fsmd.cycles;
+                build_expected(snap_pc, snap_cycles, status_v);
+                recv_dump(name);
+                check("PC congelado durante el volcado", dut.pc, snap_pc);
+            end
+        end
+    endtask
+
+    // Un 'R' que termina solo: verifica el volcado y los ciclos de enable.
+    task check_run(input [8*32-1:0] name, input [31:0] pc_v, input [31:0] cycles_v,
+                   input [7:0] status_v, input [31:0] enables);
+        begin
+            en_before = cpu_enable_cycles;
+            check_cmd_dump(CMD_RUN, name, pc_v, cycles_v, status_v);
+            check("ciclos de cpu_enable en el 'R'", cpu_enable_cycles - en_before, enables);
+        end
+    endtask
+
+    // Un 'R' sobre un programa sin fin, cortado con 'I'. Verifica que el
+    // volcado tenga el status pedido, que el PC haya avanzado 4 por ciclo desde
+    // (pc0, cyc0) y que los ciclos sumados coincidan con los de enable.
+    reg [31:0] run_pc0, run_cyc0;
+    task check_run_int(input [8*32-1:0] name, input [7:0] status_v);
+        begin
+            run_pc0   = dut.pc;
+            run_cyc0  = dut.u_debug_unit.u_control_fsmd.cycles;
+            en_before = cpu_enable_cycles;
+            pc_send(CMD_RUN);
+            #(FRAME_NS * 2);                               // corre un rato
+            pc_send(CMD_INT);
+            check_dump_snapshot(name, status_v);
+            $display("  %0s: cortado en PC = 0x%h, ciclos = %0d", name, snap_pc, snap_cycles);
+            if (snap_cycles <= run_cyc0) begin
+                $display("ERROR: %0s: el procesador no avanzo", name);
+                errors = errors + 1;
+            end
+            check("PC - PC inicial = 4 * ciclos", snap_pc - run_pc0, 4 * (snap_cycles - run_cyc0));
+            check("ciclos sumados = ciclos de enable", snap_cycles - run_cyc0,
+                  cpu_enable_cycles - en_before);
+        end
+    endtask
+
+    // Llena toda la memoria del stub con NOP: un programa que nunca termina.
+    task fill_nops;
+        begin
+            @(negedge clk);
+            for (k = 0; k < 256; k = k + 1) begin
+                dut.u_cpu.imem[k] = 32'h0000_0013;
+                if (k < 32) mem_model[k] = 32'h0000_0013;
+            end
+        end
+    endtask
+
     task check_dump(input [8*32-1:0] name, input [31:0] pc_v, input [31:0] cycles_v,
                     input [7:0] status_v);
         check_cmd_dump(CMD_DUMP, name, pc_v, cycles_v, status_v);
     endtask
 
     // Un 'S': verifica el volcado y que haya dado exactamente 1 ciclo de enable.
-    integer en_before;
     task check_step(input [8*32-1:0] name, input [31:0] pc_v, input [31:0] cycles_v,
                     input [7:0] status_v);
         begin
@@ -361,6 +459,8 @@ module tb_top;
         pc_send("x");                        // 'x' minuscula: NO es el comando
         pc_send("d");                        // 'd' minuscula: tampoco
         pc_send("s");                        // 's' minuscula: tampoco
+        pc_send(CMD_INT);                    // 'I' fuera de RUN: se ignora
+        pc_send("r");                        // 'r' minuscula: no es 'R'
         expect_silence;
         check("PC tras bytes desconocidos", dut.pc, 32'h0000_0080);
         check("ciclos de cpu_reset (sin cambios)", cpu_reset_cycles, 32'd1);
@@ -428,12 +528,115 @@ module tb_top;
         expect_byte(RSP_ACK);
         check_dump("D tras los pasos y 'X'", 32'd0, 32'd0, 8'h00);
 
-        //---------------------------------------- 11. Totales
-        check("ciclos con cpu_enable (total: 8 'S')", cpu_enable_cycles, 32'd8);
-        check("ciclos de cpu_reset (total)", cpu_reset_cycles, 32'd5);
+        //---------------------------------------- 11. Totales parciales
+        check("ciclos con cpu_enable (8 'S')", cpu_enable_cycles, 32'd8);
+        check("ciclos de cpu_reset (hasta aca)", cpu_reset_cycles, 32'd5);
+
+        //---------------------------------------- 12. 'R' hasta el HALT
+        // Misma memoria que en la prueba 9 (HALT en la palabra 3): 'R' tiene que
+        // llegar exactamente al mismo estado que S7, en 7 ciclos de enable.
+        check_run("R hasta el HALT", 32'hC, 32'd7, 8'h01, 32'd7);
+
+        //---------------------------------------- 13. 'R' ya detenido
+        check_run("R ya detenido", 32'hC, 32'd7, 8'h01, 32'd0);
+
+        //---------------------------------------- 14. 'I' fuera de RUN
+        pc_send(CMD_INT);
+        expect_silence;
+        check_dump("D tras 'I' en IDLE", 32'hC, 32'd7, 8'h01);   // sin bit 1
+
+        //---------------------------------------- 15. Programa sin HALT + 'I'
+        pc_send(CMD_RESET);
+        expect_byte(RSP_ACK);
+        fill_nops;
+        en_before = cpu_enable_cycles;
+        pc_send(CMD_RUN);
+        #(FRAME_NS / 2); #1;
+        check("leds durante RUN", {24'd0, leds}, 32'h06);
+        check("cpu_enable durante RUN", {31'd0, dut.cpu_enable}, 32'd1);
+        // Otros bytes durante RUN: se leen y se descartan, la corrida sigue.
+        snap_pc = dut.pc;
+        pc_send(CMD_DUMP);
+        pc_send(CMD_STEP);
+        pc_send(CMD_RESET);
+        pc_send(CMD_RUN);
+        pc_send("i");                         // 'i' minuscula: no interrumpe
+        expect_silence;
+        check("ciclos de cpu_reset ('X' durante RUN no resetea)", cpu_reset_cycles, 32'd6);
+        if (dut.pc <= snap_pc) begin
+            $display("ERROR: el PC no siguio avanzando durante RUN");
+            errors = errors + 1;
+        end
+        check("leds siguen en RUN", {24'd0, leds}, 32'h06);
+        // Ahora si: 'I'
+        pc_send(CMD_INT);
+        check_dump_snapshot("R + I (sin HALT)", 8'h02);
+        $display("  R + I (sin HALT): cortado en PC = 0x%h, ciclos = %0d", snap_pc, snap_cycles);
+        check("PC = 4 * ciclos (desde 0)", snap_pc, 4 * snap_cycles);
+        check("ciclos = ciclos de enable", snap_cycles, cpu_enable_cycles - en_before);
+        check("leds tras la interrupcion (IDLE)", {24'd0, leds}, 32'h00);
+
+        //---------------------------------------- 16. 'D' tras la interrupcion
+        fork
+            check_dump("D tras R + I", snap_pc, snap_cycles, 8'h02);
+            begin                             // una 'I' a mitad del volcado
+                #(FRAME_NS * 100);
+                pc_send(CMD_INT);
+            end
+        join
+        expect_silence;                       // la 'I' se consumio en IDLE, sin efecto
+        check("PC sin cambios tras la 'I' en IDLE", dut.pc, snap_pc);
+
+        //---------------------------------------- 17. Otro 'R' + 'I': continua
+        check_run_int("R + I (continua)", 8'h02);
+        if (run_cyc0 == 32'd0) begin
+            $display("ERROR: el segundo 'R' no partia de los ciclos anteriores");
+            errors = errors + 1;
+        end
+
+        //---------------------------------------- 18. 'S' borra el bit
+        check_step("S tras R + I", snap_pc + 32'd4, snap_cycles + 32'd1, 8'h00);
+
+        //---------------------------------------- 19. 'X' borra el bit
+        check_run_int("R + I (antes de 'X')", 8'h02);
+        pc_send(CMD_RESET);
+        expect_byte(RSP_ACK);
+        check_dump("D tras R + I + X", 32'd0, 32'd0, 8'h00);
+
+        //---------------------------------------- 20. 'R' borra el bit
+        check_run_int("R + I (antes del HALT)", 8'h02);
+        // HALT 3 palabras despues del PC actual: corre 3 instrucciones y para.
+        set_stub_mem(snap_pc[9:2] + 8'd3, 32'h0000_0000);
+        check_run("R hasta el HALT (tras I)", snap_pc + 32'd12, snap_cycles + 32'd7,
+                  8'h01, 32'd7);
+
+        //---------------------------------------- 21. Empate HALT / 'I'
+        pc_send(CMD_RESET);
+        expect_byte(RSP_ACK);
+        fill_nops;
+        pc_send(CMD_RUN);
+        #(FRAME_NS * 2);
+        fork
+            pc_send(CMD_INT);
+            begin
+                // Apenas la 'I' queda disponible (rx_empty baja en un flanco),
+                // en el semiciclo siguiente se fuerza halted: en el proximo
+                // flanco la FSM ve las dos cosas a la vez.
+                wait (dut.rx_empty == 1'b0);
+                @(negedge clk);
+                dut.u_cpu.halting   = 1'b1;
+                dut.u_cpu.drain_cnt = 2'd3;
+            end
+        join
+        check_dump_snapshot("empate HALT / I", 8'h01);   // gana el HALT
+        $display("  empate HALT / I: PC = 0x%h, ciclos = %0d", snap_pc, snap_cycles);
+        check_dump("D tras el empate", snap_pc, snap_cycles, 8'h01);
+
+        //---------------------------------------- 22. Total de cpu_reset
+        check("ciclos de cpu_reset (total: 8 'X')", cpu_reset_cycles, 32'd8);
 
         //---------------------------------------- Resultado
-        if (errors == 0) $display("PASS: comandos 'X', 'D' y 'S' correctos");
+        if (errors == 0) $display("PASS: comandos 'X', 'D', 'S', 'R' e 'I' correctos");
         else             $display("FAIL: %0d errores", errors);
         $finish;
     end
