@@ -30,7 +30,9 @@ module top #
     parameter DATA_BITS    = 8,
     parameter RX_SB_TICK   = 16,            // el Rx espera 1 bit de stop
     parameter TX_STOP_BITS = 1,             // el Tx manda 1 bit de stop
-    parameter POR_CYCLES   = 16             // ciclos de reset al encender
+    parameter POR_CYCLES   = 16,            // ciclos de reset al encender
+    parameter STUB_INIT_NOPS = 8            // NOPs iniciales en la memoria del cpu_stub
+                                            // (para probar 'S' en la placa sin 'L')
 )
 (
     input  wire        i_clk,       // W5  - 100 MHz
@@ -173,7 +175,11 @@ module top #
     //================================================ Procesador (stub)
     assign cpu_rst = reset | cpu_reset;
 
-    cpu_stub u_cpu
+    cpu_stub #
+    (
+        .INIT_NOPS (STUB_INIT_NOPS)
+    )
+    u_cpu
     (
         .i_clk          (i_clk),
         .i_cpu_reset    (cpu_rst),
