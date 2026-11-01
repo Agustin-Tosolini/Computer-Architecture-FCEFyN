@@ -3,29 +3,42 @@
 
 //------------------------------------------------------------------------------
 // control_fsmd — FSM + registros de la debug_unit (el "protocolo").
-// VERSION 1: solo comando 'X'.
+// VERSION 2: comandos 'X' y 'D'.
 //
 // Recibe los comandos de la PC (via intf), los ejecuta sobre el procesador y
 // arma las respuestas. Es el unico modulo que conoce el protocolo.
 //
-// Comandos implementados en esta version:
-//   'X' (0x58)  reset del procesador  ->  responde 'K' (0x4B)
+// Comandos implementados:
+//   'X' (0x58)  reset del procesador   ->  responde 'K' (0x4B)
+//   'D' (0x44)  volcado del estado     ->  responde los 314 bytes del volcado
 //   cualquier otro byte: se consume y se descarta (sin respuesta)
 //
 //   IDLE --('X' / rd)--> RESET --(siempre, 1 ciclo)--> ACK --(!tx_full / wr)--> IDLE
+//   IDLE --('D' / rd, dump_idx = 0)--> DUMP
+//   DUMP --(!tx_full y quedan bytes / wr, dump_idx++)--> DUMP
+//   DUMP --(!tx_full y ultimo byte  / wr, dump_idx = 0)--> IDLE
 //   IDLE --(otro byte / rd)--> IDLE
 //
 // Salidas Moore (dependen solo del estado):
-//   RESET : o_cpu_reset = 1   (dura exactamente 1 ciclo)
+//   RESET : o_cpu_reset = 1          (dura exactamente 1 ciclo)
 //   ACK   : o_w_data    = 'K'
+//   DUMP  : o_w_data    = i_dump_byte (el byte que el dump_mux eligio para dump_idx)
 // Salidas Mealy (estado + entrada, igual que en ALU_ctrl):
-//   IDLE  : o_rd = !i_rx_empty
-//   ACK   : o_wr = !i_tx_full
+//   IDLE      : o_rd = !i_rx_empty
+//   ACK, DUMP : o_wr = !i_tx_full
 //
-// Registros del datapath que ya existen (los va a usar el volcado 'D'):
+// Como funciona el volcado:
+//   control_fsmd solo decide CUANDO se manda cada byte y en que ORDEN (dump_idx
+//   = 0, 1, ..., 313). QUE byte va en cada posicion lo decide el dump_mux, que
+//   es combinacional: con dump_idx estable, i_dump_byte esta listo en el mismo
+//   ciclo. Por cada byte entregado (o_wr = 1) dump_idx avanza uno; mientras el
+//   transmisor esta ocupado (i_tx_full = 1) dump_idx no cambia, asi que el byte
+//   que ve la UART es siempre el correcto.
+//
+// Registros del datapath:
 //   cycles   : ciclos que el procesador avanzo (enable = 1 y no halted).
 //              Vuelve a 0 con el reset global y con 'X'.
-//   dump_idx : indice del byte del volcado (0..313). Por ahora queda en 0.
+//   dump_idx : indice del byte del volcado (0..313).
 // El byte de estado del volcado (o_status) tambien lo arma este modulo.
 //------------------------------------------------------------------------------
 module control_fsmd
@@ -54,7 +67,7 @@ module control_fsmd
     output wire [8:0]    o_dump_idx,       // 0..313
     output wire [31:0]   o_cycles,
     output wire [7:0]    o_status,         // bit 0 = halted
-    input  wire [7:0]    i_dump_byte,      // (se usa con 'D')
+    input  wire [7:0]    i_dump_byte,      // byte del volcado en la posicion o_dump_idx
 
     // ---------------- Depuracion
     output reg  [3:0]    o_state_code      // estado en binario (para leds)
@@ -64,9 +77,12 @@ module control_fsmd
     localparam [7:0] CMD_LOAD  = 8'h4C,   // 'L'  (pendiente)
                      CMD_RUN   = 8'h52,   // 'R'  (pendiente)
                      CMD_STEP  = 8'h53,   // 'S'  (pendiente)
-                     CMD_DUMP  = 8'h44,   // 'D'  (pendiente)
+                     CMD_DUMP  = 8'h44,   // 'D'
                      CMD_RESET = 8'h58,   // 'X'
                      RSP_ACK   = 8'h4B;   // 'K'
+
+    // Ultima posicion del volcado: 314 bytes -> indices 0..313
+    localparam [8:0] DUMP_LAST = 9'd313;
 
     //------------------------------------------------ Estados (one-hot)
     // Se declaran todos los del diagrama para fijar la codificacion desde ya.
@@ -79,7 +95,7 @@ module control_fsmd
                      ACK       = 9'b0_0010_0000,
                      RUN       = 9'b0_0100_0000,   // pendiente ('R')
                      STEP      = 9'b0_1000_0000,   // pendiente ('S')
-                     DUMP      = 9'b1_0000_0000;   // pendiente ('D')
+                     DUMP      = 9'b1_0000_0000;
 
     //------------------------------------------------ Registros
     reg [8:0]  state,    next_state;
@@ -117,7 +133,11 @@ module control_fsmd
                 if (!i_rx_empty) begin
                     case (i_r_data)
                         CMD_RESET: next_state = RESET;
-                        default:   next_state = IDLE;     // byte desconocido
+                        CMD_DUMP: begin
+                            dump_idx_next = 9'd0;          // el volcado arranca en la cabecera
+                            next_state    = DUMP;
+                        end
+                        default:   next_state = IDLE;      // byte desconocido
                     endcase
                 end
 
@@ -132,6 +152,19 @@ module control_fsmd
             ACK:
                 if (!i_tx_full)
                     next_state = IDLE;
+
+            // Manda los 314 bytes, uno por cada vez que el transmisor se libera.
+            // En el ciclo en que se entrega un byte (o_wr = 1) se avanza al
+            // siguiente; despues del ultimo se vuelve a IDLE.
+            DUMP:
+                if (!i_tx_full) begin
+                    if (dump_idx == DUMP_LAST) begin
+                        dump_idx_next = 9'd0;
+                        next_state    = IDLE;
+                    end
+                    else
+                        dump_idx_next = dump_idx + 9'd1;
+                end
 
             // Estados pendientes o invalidos: recuperacion
             default:
@@ -156,6 +189,11 @@ module control_fsmd
 
             ACK: begin
                 o_w_data = RSP_ACK;                    // Moore
+                o_wr     = ~i_tx_full;                 // Mealy
+            end
+
+            DUMP: begin
+                o_w_data = i_dump_byte;                // Moore (via dump_idx)
                 o_wr     = ~i_tx_full;                 // Mealy
             end
 
