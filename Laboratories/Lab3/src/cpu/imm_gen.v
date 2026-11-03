@@ -67,3 +67,7 @@ endmodule
 // Otros           | Devuelve cero; no indica si la instruccion es valida.
 // B/J ya salen en bytes: no desplazar otra vez antes de sumarlos al PC.
 //------------------------------------------------------------------------------
+// El case mira el opcode (i_instr[6:0]) para saber donde estan los bits del
+// inmediato. Segun el formato, los extrae, une o reordena y completa los
+// 32 bits (extendiendo el signo cuando corresponde). No realiza la operacion:
+// solo entrega la constante lista para usar por el resto del procesador.

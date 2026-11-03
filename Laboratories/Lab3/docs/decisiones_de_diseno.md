@@ -4,7 +4,11 @@ Documento de trabajo para registrar qué elegimos, por qué y qué consecuencias
 tiene. Se actualiza al implementar o revisar cada módulo; también servirá como
 base para el informe final.
 
-Última actualización: 2026-10-27.
+Última actualización: 2026-11-03.
+
+Referencia para estudiar: [instrucciones de la CPU con ejemplos](instrucciones_cpu.md).
+Incluye el subconjunto reconocido por el decodificador, HALT propio y NOP;
+las decisiones sobre su implementación se mantienen en este documento.
 
 **Estados:** implementado significa que existe el código; no implica que haya
 pasado simulación o pruebas en placa. Acordado significa que es la dirección
@@ -78,6 +82,87 @@ mientras debug todavía muestra el dato anterior.
 | Para shifts inmediatos, conservar el formato I y usar cinco bits en la ALU. | `alu_control` distingue SRLI/SRAI usando los campos de la instrucción. | Generador implementado; control pendiente |
 | Devolver cero para opcodes restantes. | Cubre instrucciones sin inmediato y valores no soportados; no constituye una señal de validez. | Implementado |
 
+## Control de la ALU (`src/cpu/alu_control.v`)
+
+| Decisión | Motivo y consecuencias | Estado |
+|---|---|---|
+| Crear un bloque combinacional nuevo, separado del `ALU_ctrl` del TP2. | El anterior coordinaba bytes UART; este selecciona una operacion aritmética dentro de la CPU. | Implementado |
+| Entradas `i_alu_op` (2 bits), `i_funct3` (3 bits) e `i_funct7_b5` (bit 30); salida `o_alu_ctrl` (4 bits). | La salida conecta a `alu.i_op`. La integración debe transportar los controles y campos hasta EX. | Implementado; integración pendiente |
+| ALUOp: 00 suma, 01 resta, 10 tipo R, 11 tipo I aritmético. | Es una codificación interna que deberá respetar `control_unit`. | Implementado; unidad principal pendiente |
+| En tipo R concatenar `{funct7[5], funct3}`; en tipo I usar el bit 30 solo si funct3 es 101. | Distingue SRLI/SRAI sin interpretar el signo de un inmediato de ADDI como una orden de resta. | Implementado |
+| No validar instrucciones completas en este bloque. | La unidad principal deberá impedir efectos de instrucciones no soportadas. Un código de ALU no constituye una señal de validez. | Acordado |
+
+## Unidad de control principal (`src/cpu/control_unit.v`)
+
+Implementada como lógica combinacional de ID; integración y simulación pendientes.
+
+- Recibe la instrucción completa e `i_valid`, en vez de solo el opcode. Permite
+  validar funct3/funct7 y reconocer HALT únicamente como la palabra cero completa.
+- Genera ALUOp según el contrato de `alu_control`: 00 suma, 01 resta, 10 R, 11 I.
+  También controla escritura de registros, acceso a memoria, operandos y saltos.
+- `o_alu_src_a`: 0 selecciona rs1, 1 selecciona cero. `o_alu_src_b`: 0 selecciona
+  rs2, 1 selecciona inmediato. El forwarding precederá estas selecciones.
+- `o_result_src` tiene un bit: 0 selecciona el resultado de EX, 1 memoria.
+  Para JAL/JALR, EX debe sustituir su resultado por PC+4 usando `o_jump` antes
+  de guardarlo en EX/MEM. Así se mantiene el forwarding de la dirección de retorno.
+- `o_uses_rs1` y `o_uses_rs2` identifican operandos reales para la futura unidad
+  de riesgos. Un store usa rs2 como dato aunque el operando B de ALU sea inmediato.
+- Una burbuja o codificación no soportada desactiva todos los controles de efectos.
+  `o_illegal` indica una instrucción válida no soportada; aún falta decidir si la
+  CPU la detendrá o notificará mediante otro mecanismo. No se implementan traps.
+- El control valida los campos de las instrucciones implementadas; no comprueba
+  alineación de direcciones ni capacidad de memoria, que dependen de la ejecución.
+
+## Program Counter (`src/cpu/pc_reg.v`)
+
+| Decisión | Motivo y consecuencias | Estado |
+|---|---|---|
+| Registro de 32 bits con dirección en bytes, perteneciente a IF. | Sigue la interfaz propuesta en A1 de `02_modulos.md`. La conversión a índice de palabra corresponde a la conexión con memoria. | Implementado |
+| Reset síncrono a cero, prioritario sobre ambas habilitaciones. | Permite reiniciar incluso con la CPU pausada. Requiere reset antes del uso; no se agrega inicialización independiente. | Implementado |
+| Cargar `i_pc_next` solo si `i_enable && i_pc_write`. | Separa la pausa global de la inhibición local por riesgos o HALT. En cualquier otro caso conserva el PC. | Implementado |
+| Calcular PC+4 y seleccionar saltos fuera de este módulo. | El registro almacena la dirección recibida sin imponer el recorrido secuencial ni validar alineación. | Implementado; lógica externa pendiente |
+
+El objetivo inmediato de integración es probar IF e ID por pasos, sin ejecutar
+todavía las instrucciones. En esa prueba `i_pc_write` podrá mantenerse en uno.
+
+## Memoria de instrucciones (`src/cpu/instr_mem.v`)
+
+| Decisión | Motivo y consecuencias | Estado |
+|---|---|---|
+| 256 palabras de 32 bits (1 KiB), direcciones de palabra de ocho bits. | Sigue A2 de la guía y el contrato de carga. IF conectará PC[9:2]; verificar direcciones fuera de rango y alineación queda a cargo de la integración para evitar alias involuntarios. | Implementado |
+| Lectura combinacional y escritura por flanco ascendente con `i_we`. | Permite buscar durante el ciclo IF sin agregar latencia de lectura. Se solicita RAM distribuida mediante el atributo de Vivado; verificar su inferencia al sintetizar. | Implementado |
+| Inicializar a HALT al configurar la FPGA; sin entrada de reset. | El programa se conserva al reiniciar la CPU. La inicialización no limpia posiciones al cargar un segundo programa: el cargador deberá establecer el final y gestionar los restos del anterior. | Implementado |
+| Escribir solamente con la CPU detenida, por contrato externo. | Este módulo no recibe `i_enable` ni arbitra ejecución y carga. No se debe depender de lectura simultánea de la posición que se está escribiendo para ejecutar instrucciones. | Interfaz implementada; integración pendiente |
+
+## Registro IF/ID (`src/cpu/if_id.v`)
+
+| Decisión | Motivo y consecuencias | Estado |
+|---|---|---|
+| Guardar PC (32 bits), instrucción (32 bits) y valid (1 bit). | ID debe conservar el PC de su propia instrucción aunque IF ya busque otra. Captura los tres campos juntos. | Implementado |
+| Reset síncrono a PC=0, instrucción NOP y valid=0. | Arranca con una burbuja y evita interpretar el contenido inicial como HALT. | Implementado |
+| Prioridad: reset > pausa global > flush > stall local > carga. | Refinamiento de la guía: `i_enable=0` conserva todo incluso con flush activo. Con la CPU habilitada, flush gana a `i_write=0` para descartar el camino incorrecto. | Implementado |
+| El flush carga una burbuja; no modifica por sí mismo el PC de IF. | La futura lógica de riesgos debe coordinar redirección del PC e invalidación de etapas. | Registro implementado; integración pendiente |
+| Capturar `i_valid` junto con los datos. | Las etapas posteriores deben ignorar los efectos de instrucciones inválidas. En la prueba inicial se puede usar 1 para cada búsqueda válida. | Implementado |
+
+## Integración de prueba (`src/cpu/cpu_if_id_test.v`)
+
+- Conecta `pc_reg`, `instr_mem`, `if_id`, `control_unit`, `imm_gen` y `reg_file`.
+  Es un bloque sintetizable para envolver con un top de placa, no reemplaza el
+  top UART existente ni representa la CPU completa.
+- Expone por separado PC e instrucción de IF y PC, instrucción, valid, operandos,
+  inmediato y controles de ID. Un pulso síncrono de enable permite un paso.
+- PC avanza de cuatro en cuatro; IF/ID captura el PC y la instrucción anteriores
+  en ese mismo flanco. No se implementan stalls, saltos ni ejecución de HALT:
+  solo se observa su decodificación. El banco tiene escritura deshabilitada.
+- Acepta carga de programa solo con enable=0 y reset=0. Reset conserva la memoria
+  de instrucciones e invalida ID. No se carga automáticamente un programa de prueba.
+- Para esta prueba, si PC sale del rango 0..1023 o no está alineado, se congela
+  PC, se indica `o_if_addr_error` y se inyectan burbujas al avanzar. Se evita leer
+  aliases de posiciones anteriores; esto no define un mecanismo de traps final.
+- Se agrega `testbench/tb_cpu_if_id_test.v` con comprobaciones de carga, pausa,
+  avance, decodificación, reset, ausencia de ejecución y límite de memoria.
+  Simulación pendiente por falta de simulador disponible en el PATH.
+
 ## 4. Pipeline y resolución de riesgos
 
 Estas decisiones están acordadas conceptualmente; aún no representan módulos
@@ -123,6 +208,10 @@ de pipeline implementados.
 ## 7. Estado de verificación
 
 - ALU: implementada; simulación pendiente.
+- PC: implementado; simulación e integración IF/ID pendientes.
+- Registro IF/ID: implementado; simulación e integración pendientes.
+- Memoria de instrucciones: implementada; simulación, inferencia en Vivado e integración pendientes.
+- Control de ALU: implementado y revisado contra la codificación de `alu.v`; simulación pendiente.
 - Generador de inmediatos: implementado; simulación pendiente.
 - Banco de registros: implementado; existe `testbench/tb_reg_file.v` con casos
   de reset, escritura, x0, lecturas, bypass, pausa y debug. Simulación pendiente.
