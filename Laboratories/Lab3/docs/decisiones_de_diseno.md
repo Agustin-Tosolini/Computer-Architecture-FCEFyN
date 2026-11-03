@@ -7,6 +7,8 @@ base para el informe final.
 Última actualización: 2026-11-03.
 
 Referencia para estudiar: [instrucciones de la CPU con ejemplos](instrucciones_cpu.md).
+Referencia para probar: [salidas esperadas de IF/ID por instrucción](prueba_if_id_salidas_esperadas.md).
+Prueba secuencial: [programa IF/ID paso a paso](programa_if_id_paso_a_paso.md), con assembler, HEX y salidas por ciclo.
 Incluye el subconjunto reconocido por el decodificador, HALT propio y NOP;
 las decisiones sobre su implementación se mantienen en este documento.
 

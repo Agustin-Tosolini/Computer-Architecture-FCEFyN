@@ -1,5 +1,10 @@
 # Instrucciones de la CPU — referencia con ejemplos
 
+Para probar la decodificación, consultar las
+[salidas esperadas del top IF/ID por instrucción](prueba_if_id_salidas_esperadas.md).
+Para observar el avance del pipeline, empezar por el
+[programa único con seguimiento paso a paso](programa_if_id_paso_a_paso.md).
+
 Este documento resume las **32 instrucciones de RISC-V más el HALT propio**
 que reconoce nuestro [decodificador](../src/cpu/control_unit.v).
 Es el subconjunto del proyecto, no toda la ISA RISC-V.

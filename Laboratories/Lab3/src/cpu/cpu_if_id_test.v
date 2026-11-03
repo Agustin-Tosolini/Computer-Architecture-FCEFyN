@@ -10,35 +10,43 @@ module cpu_if_id_test
     input wire [7:0] i_imem_addr,
     input wire [31:0] i_imem_data,
     input wire [4:0] i_dbg_reg_addr,
-    output wire [31:0] o_dbg_reg_data,     // Valor almacenado en el registro seleccionado por i_dbg_reg_addr.
 
-    output wire [31:0] o_if_pc,            // Direccion en bytes de la instruccion que IF esta buscando.
-    output wire [31:0] o_if_instr,         // Codigo maquina de 32 bits buscado en IF; NOP si hay error de direccion.
-    output wire o_if_addr_error,           // 1: PC fuera de la memoria de 1 KiB o no alineado a 4 bytes.
-    output wire [31:0] o_id_pc,            // Direccion en bytes de la instruccion que esta siendo decodificada en ID.
-    output wire [31:0] o_id_instr,         // Codigo maquina de 32 bits guardado en IF/ID; permite identificar la instruccion.
-    output wire o_id_valid,                // 1: ID contiene una instruccion valida; 0: burbuja sin efectos.
-    output wire [31:0] o_id_imm,           // Inmediato reconstruido de 32 bits; cero para formatos sin inmediato.
-    output wire [4:0] o_id_rs1,            // Numero del primer registro fuente (x0..x31); relevante si uses_rs1=1.
-    output wire [4:0] o_id_rs2,            // Numero del segundo registro fuente (x0..x31); relevante si uses_rs2=1.
-    output wire [4:0] o_id_rd,             // Numero del registro destino (x0..x31); relevante si reg_write=1.
-    output wire [31:0] o_id_rs1_data,      // Valor leido del registro rs1; permanece en cero tras reset en esta prueba.
-    output wire [31:0] o_id_rs2_data,      // Valor leido del registro rs2; permanece en cero tras reset en esta prueba.
+    // Debug: lectura del banco de registros.
+    output wire [31:0] o_dbg_reg_data,        // Dato del registro elegido por debug.
 
-    output wire o_id_reg_write,            // 1: la instruccion pide escribir rd; solo se observa, no hay WB conectado.
-    output wire o_id_alu_src_a,            // Operando A seleccionado: 0=valor de rs1, 1=cero.
-    output wire o_id_alu_src_b,            // Operando B seleccionado: 0=valor de rs2, 1=inmediato.
-    output wire o_id_mem_read,             // 1: la instruccion pide leer memoria de datos; no se ejecuta aun.
-    output wire o_id_mem_write,            // 1: la instruccion pide escribir memoria de datos; no se ejecuta aun.
-    output wire o_id_result_src,           // Origen del resultado para WB: 0=resultado de EX, 1=dato de memoria.
-    output wire o_id_branch,               // 1: salto condicional BEQ/BNE reconocido; esta prueba no salta.
-    output wire o_id_jump,                 // 1: salto incondicional JAL/JALR reconocido; esta prueba no salta.
-    output wire o_id_jalr,                 // 1: el salto reconocido es JALR (destino basado en rs1).
-    output wire [1:0] o_id_alu_op,         // Categoria para alu_control: 00=suma, 01=resta, 10=tipo R, 11=inmediata.
-    output wire o_id_halt,                 // 1: HALT reconocido en ID; no detiene esta prueba de decodificacion.
-    output wire o_id_uses_rs1,             // 1: la instruccion utiliza realmente el registro fuente rs1.
-    output wire o_id_uses_rs2,             // 1: la instruccion utiliza realmente rs2 (tambien como dato de STORE).
-    output wire o_id_illegal               // 1: ID contiene una instruccion valida cuya codificacion no soportamos.
+    // IF: busqueda de instrucciones.
+    output wire [31:0] o_if_pc,               // PC actual de IF, en bytes.
+    output wire [31:0] o_if_instr,            // Instruccion buscada en IF.
+    output wire o_if_addr_error,              // PC fuera de rango o desalineado.
+
+    // Registro de pipeline IF/ID (latch): valores almacenados que recibe ID.
+    output wire [31:0] o_id_pc,               // PC de la instruccion en ID.
+    output wire [31:0] o_id_instr,            // Instruccion a decodificar.
+    output wire o_id_valid,                   // 1=instruccion presente; 0=burbuja.
+
+    // ID: datos y operandos decodificados (sin registro ID/EX todavia).
+    output wire [31:0] o_id_imm,              // Inmediato reconstruido de 32 bits.
+    output wire [4:0] o_id_rs1,               // Numero del registro fuente rs1.
+    output wire [4:0] o_id_rs2,               // Numero del registro fuente rs2.
+    output wire [4:0] o_id_rd,                // Numero del registro destino rd.
+    output wire [31:0] o_id_rs1_data,         // Valor leido de rs1.
+    output wire [31:0] o_id_rs2_data,         // Valor leido de rs2.
+
+    // ID: controles combinacionales de la instruccion.
+    output wire o_id_reg_write,               // Solicita escribir rd.
+    output wire o_id_alu_src_a,               // Operando A: 0=rs1; 1=cero.
+    output wire o_id_alu_src_b,               // Operando B: 0=rs2; 1=inmediato.
+    output wire o_id_mem_read,                // Solicita leer memoria de datos.
+    output wire o_id_mem_write,               // Solicita escribir memoria de datos.
+    output wire o_id_result_src,              // Resultado: 0=EX; 1=memoria.
+    output wire o_id_branch,                  // Reconoce BEQ/BNE.
+    output wire o_id_jump,                    // Reconoce JAL/JALR.
+    output wire o_id_jalr,                    // Reconoce JALR.
+    output wire [1:0] o_id_alu_op,            // 00=suma; 01=resta; 10=R; 11=aritmetica I.
+    output wire o_id_halt,                    // Reconoce HALT; aun no detiene la CPU.
+    output wire o_id_uses_rs1,                // La instruccion utiliza rs1.
+    output wire o_id_uses_rs2,                // La instruccion utiliza rs2.
+    output wire o_id_illegal                  // Instruccion presente no soportada.
 );
     wire [31:0] pc_next = o_if_pc + 32'd4;
     wire [31:0] mem_instr;
