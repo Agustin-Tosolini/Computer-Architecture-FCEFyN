@@ -116,14 +116,20 @@
 
 // Comandos (PC -> FPGA), un byte ASCII
 `define CMD_LOAD        8'h4C   // 'L' + N (2 bytes, LSB primero) + N palabras
-                                //       (4 bytes c/u, little-endian)
-`define CMD_RUN         8'h52   // 'R'  corre hasta halted, responde volcado
+                                //       (4 bytes c/u, little-endian), todo
+                                //       seguido. Las palabras N..255 quedan
+                                //       en HALT y la 255 siempre es HALT; si
+                                //       N > 256 las sobrantes se descartan.
+                                //       Resetea el cpu y responde ACK.
+`define CMD_RUN         8'h52   // 'R'  corre hasta halted (o hasta 'I'), responde volcado
+`define CMD_INT         8'h49   // 'I'  interrumpe un 'R' en curso (la respuesta es
+                                //      el volcado del 'R'). Fuera de RUN se ignora.
 `define CMD_STEP        8'h53   // 'S'  avanza 1 ciclo, responde volcado
 `define CMD_DUMP        8'h44   // 'D'  no ejecuta, responde volcado
 `define CMD_RESET       8'h58   // 'X'  resetea el cpu, responde ACK
 
 // Respuestas (FPGA -> PC)
-`define RSP_ACK         8'h4B   // 'K'
+`define RSP_ACK         8'h4B   // 'K'  reset ('X') o carga ('L') terminados
 `define DUMP_HEADER     8'hA5   // primer byte de todo volcado
 
 // Formato del volcado (todos los valores de 32 bits en little-endian)
@@ -133,7 +139,8 @@
 //   0       1      DUMP_HEADER (0xA5)
 //   1       4      PC
 //   5       4      Contador de ciclos
-//   9       1      Estado: bit 0 = halted, resto en 0
+//   9       1      Estado: bit 0 = halted, bit 1 = interrumpido ('R' cortado
+//                    con 'I'), resto en 0
 //   10      128    Registros x0..x31 (4 bytes c/u)
 //   138     48     Latches (LATCHES_W / 8 bytes)
 //   186     128    Memoria de datos, palabras 0..31 (4 bytes c/u)

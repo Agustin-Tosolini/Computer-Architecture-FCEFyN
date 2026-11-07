@@ -3,12 +3,15 @@
 
 //------------------------------------------------------------------------------
 // control_fsmd — FSM + registros de la debug_unit (el "protocolo").
-// VERSION 4: comandos 'X', 'D', 'S', 'R' e 'I'.
+// VERSION 5: comandos 'L', 'X', 'D', 'S', 'R' e 'I' (protocolo completo).
 //
 // Recibe los comandos de la PC (via intf), los ejecuta sobre el procesador y
 // arma las respuestas. Es el unico modulo que conoce el protocolo.
 //
 // Comandos implementados:
+//   'L' (0x4C)  cargar programa        ->  responde 'K' (0x4B)
+//               Formato: 'L', N (2 bytes, LSB primero), N palabras de 4 bytes
+//               en little-endian. Ver "Como funciona la carga".
 //   'X' (0x58)  reset del procesador   ->  responde 'K' (0x4B)
 //   'D' (0x44)  volcado del estado     ->  responde los 314 bytes del volcado
 //   'S' (0x53)  un ciclo de clock      ->  responde los 314 bytes del volcado
@@ -19,6 +22,17 @@
 //   cualquier otro byte: se consume y se descarta (sin respuesta)
 //
 //   IDLE --('X' / rd)--> RESET --(siempre, 1 ciclo)--> ACK --(!tx_full / wr)--> IDLE
+//   IDLE --('L' / rd, byte_cnt = 0)--> LOAD_LEN
+//   LOAD_LEN  --(1.er byte / rd, N[7:0])--> LOAD_LEN
+//   LOAD_LEN  --(2.o byte y N != 0 / rd, N[15:8], idx = 0)--> LOAD_WORD
+//   LOAD_LEN  --(2.o byte y N == 0 / rd, idx = 0)--> CLEAR
+//   LOAD_WORD --(byte 1..3 / rd, word = {byte, word[31:8]})--> LOAD_WORD
+//   LOAD_WORD --(4.o byte  / rd, word = {byte, word[31:8]})--> WRITE
+//   WRITE --(faltan palabras / idx++)--> LOAD_WORD
+//   WRITE --(ultima palabra e idx < 255 / idx++)--> CLEAR
+//   WRITE --(ultima palabra e idx >= 255)--> RESET
+//   CLEAR --(idx < 255 / idx++)--> CLEAR
+//   CLEAR --(idx == 255)--> RESET
 //   IDLE --('D' / rd, dump_idx = 0)--> DUMP
 //   IDLE --('S' / rd, interrupted = 0)--> STEP --(siempre, 1 ciclo; dump_idx = 0)--> DUMP
 //   IDLE --('R' / rd, interrupted = 0)--> RUN
@@ -31,12 +45,15 @@
 //
 // Salidas Moore (dependen solo del estado):
 //   RESET : o_cpu_reset = 1          (dura exactamente 1 ciclo)
+//   WRITE : o_imem_we = (idx < 256), o_imem_data = word (HALT si idx == 255)
+//   CLEAR : o_imem_we = 1,           o_imem_data = HALT
+//   WRITE y CLEAR: o_imem_addr = idx[7:0]
 //   STEP  : o_cpu_enable = 1         (dura exactamente 1 ciclo: el procesador
 //                                     recibe UN flanco habilitado)
 //   ACK   : o_w_data    = 'K'
 //   DUMP  : o_w_data    = i_dump_byte (el byte que el dump_mux eligio para dump_idx)
 // Salidas Mealy (estado + entrada, igual que en ALU_ctrl):
-//   IDLE      : o_rd = !i_rx_empty
+//   IDLE, LOAD_LEN, LOAD_WORD : o_rd = !i_rx_empty
 //   RUN       : o_rd = !i_rx_empty   (todo byte se consume: el buffer nunca
 //                                     queda lleno durante la corrida)
 //               o_cpu_enable = !i_halted
@@ -79,7 +96,37 @@
 //   DUMP con o_cpu_enable = 0: el volcado muestra el estado congelado. Un
 //   nuevo 'R' continua desde ese punto (el PC y los registros no se tocan).
 //
+// Como funciona la carga ('L'):
+//   La PC manda los 3 + 4N bytes seguidos, sin esperar respuesta. Alcanza con
+//   el buffer de 1 byte de rx_intf porque la FSM consume cada byte en el ciclo
+//   siguiente a su llegada y el proximo tarda ~8680 ciclos (115200 baud).
+//   En la debug_unit nunca hay mas de UNA palabra: se arma en el registro word
+//   con un desplazamiento a derecha (el primer byte termina en [7:0], es decir
+//   little-endian) y apenas esta completa, WRITE la escribe en la memoria del
+//   procesador (1 ciclo con o_imem_we = 1). Despues word se reutiliza.
+//   Mientras se carga, NINGUN byte es comando (un 0x58 dentro de una palabra
+//   es solo un dato): la FSM consume siempre exactamente 4N bytes.
+//   Al terminar:
+//     - CLEAR escribe HALT (0x00000000) en las palabras N..255: despues de un
+//       'L' la memoria tiene exactamente el programa y el resto es HALT (un
+//       salto a memoria "vacia" se detiene, y no quedan restos de programas
+//       anteriores). Con N = 0 la memoria queda toda en HALT.
+//     - La palabra 255 SIEMPRE es HALT: si N >= 256, la palabra que llega en
+//       esa posicion se reemplaza por HALT, y las palabras 256 en adelante se
+//       consumen (para no desincronizarse) pero no se escriben.
+//     - RESET + ACK, igual que 'X': el procesador arranca de cero (PC = 0,
+//       pipeline vacio, cycles = 0, interrupted = 0) y la PC recibe 'K'.
+//       'K' confirma un reset ('X') o una carga ('L') terminados.
+//   Si se cortara la transmision a mitad de una carga, la FSM queda esperando
+//   bytes: se recupera con el boton de reset. (Se asume que la PC y la UART
+//   funcionan; no hay timeout.)
+//
 // Registros del datapath:
+//   n_words     : N, cantidad de palabras del 'L' en curso (16 bits).
+//   idx         : palabra actual de la carga / borrado (16 bits; la direccion
+//                 de memoria son los 8 bits bajos).
+//   word        : palabra que se esta armando (4 bytes).
+//   byte_cnt    : que byte de N o de la palabra llego (0..3).
 //   cycles      : ciclos que el procesador avanzo (enable = 1 y no halted).
 //                 Vuelve a 0 con el reset global y con 'X'.
 //   dump_idx    : indice del byte del volcado (0..313).
@@ -122,7 +169,7 @@ module control_fsmd
 );
 
     //------------------------------------------------ Protocolo (params.vh sec. 6)
-    localparam [7:0] CMD_LOAD  = 8'h4C,   // 'L'  (pendiente)
+    localparam [7:0] CMD_LOAD  = 8'h4C,   // 'L'
                      CMD_RUN   = 8'h52,   // 'R'
                      CMD_STEP  = 8'h53,   // 'S'
                      CMD_DUMP  = 8'h44,   // 'D'
@@ -133,24 +180,33 @@ module control_fsmd
     // Ultima posicion del volcado: 314 bytes -> indices 0..313
     localparam [8:0] DUMP_LAST = 9'd313;
 
+    // Memoria de programa: 256 palabras (0..255)
+    localparam [15:0] IMEM_LAST  = 16'd255;
+    localparam [31:0] INSTR_HALT = 32'h0000_0000;
+
     //------------------------------------------------ Estados (one-hot)
-    // Se declaran todos los del diagrama para fijar la codificacion desde ya.
-    // Los marcados "pendiente" todavia no se alcanzan nunca.
-    localparam [8:0] IDLE      = 9'b0_0000_0001,
-                     LOAD_LEN  = 9'b0_0000_0010,   // pendiente ('L')
-                     LOAD_WORD = 9'b0_0000_0100,   // pendiente ('L')
-                     WRITE     = 9'b0_0000_1000,   // pendiente ('L')
-                     RESET     = 9'b0_0001_0000,
-                     ACK       = 9'b0_0010_0000,
-                     RUN       = 9'b0_0100_0000,
-                     STEP      = 9'b0_1000_0000,
-                     DUMP      = 9'b1_0000_0000;
+    localparam [9:0] IDLE      = 10'b00_0000_0001,
+                     LOAD_LEN  = 10'b00_0000_0010,
+                     LOAD_WORD = 10'b00_0000_0100,
+                     WRITE     = 10'b00_0000_1000,
+                     RESET     = 10'b00_0001_0000,
+                     ACK       = 10'b00_0010_0000,
+                     RUN       = 10'b00_0100_0000,
+                     STEP      = 10'b00_1000_0000,
+                     DUMP      = 10'b01_0000_0000,
+                     CLEAR     = 10'b10_0000_0000;
 
     //------------------------------------------------ Registros
-    reg [8:0]  state,    next_state;
+    reg [9:0]  state,    next_state;
     reg [31:0] cycles,   cycles_next;
     reg [8:0]  dump_idx, dump_idx_next;
     reg        interrupted, interrupted_next;
+    reg [15:0] n_words,  n_words_next;
+    reg [15:0] idx,      idx_next;
+    reg [31:0] word,     word_next;
+    reg [1:0]  byte_cnt, byte_cnt_next;
+
+    wire       last_word = (idx + 16'd1 == n_words);   // la palabra idx es la ultima
 
     //------------------------------------------------ Logica de memoria
     always @(posedge i_clk) begin
@@ -159,12 +215,20 @@ module control_fsmd
             cycles      <= 32'd0;
             dump_idx    <= 9'd0;
             interrupted <= 1'b0;
+            n_words     <= 16'd0;
+            idx         <= 16'd0;
+            word        <= 32'd0;
+            byte_cnt    <= 2'd0;
         end
         else begin
             state       <= next_state;
             cycles      <= cycles_next;
             dump_idx    <= dump_idx_next;
             interrupted <= interrupted_next;
+            n_words     <= n_words_next;
+            idx         <= idx_next;
+            word        <= word_next;
+            byte_cnt    <= byte_cnt_next;
         end
     end
 
@@ -174,6 +238,10 @@ module control_fsmd
         cycles_next      = cycles;
         dump_idx_next    = dump_idx;
         interrupted_next = interrupted;
+        n_words_next     = n_words;
+        idx_next         = idx;
+        word_next        = word;
+        byte_cnt_next    = byte_cnt;
 
         // Contador de ciclos: suma cada ciclo en que el procesador avanza.
         if (o_cpu_enable && !i_halted)
@@ -187,6 +255,10 @@ module control_fsmd
                 if (!i_rx_empty) begin
                     case (i_r_data)
                         CMD_RESET: next_state = RESET;
+                        CMD_LOAD: begin
+                            byte_cnt_next = 2'd0;
+                            next_state    = LOAD_LEN;
+                        end
                         CMD_STEP: begin
                             interrupted_next = 1'b0;       // nueva ejecucion
                             next_state       = STEP;
@@ -202,6 +274,55 @@ module control_fsmd
                         default:   next_state = IDLE;      // byte desconocido
                     endcase
                 end
+
+            // Recibe N en 2 bytes (el menos significativo primero).
+            LOAD_LEN:
+                if (!i_rx_empty) begin
+                    if (byte_cnt == 2'd0) begin
+                        n_words_next[7:0] = i_r_data;
+                        byte_cnt_next     = 2'd1;
+                    end
+                    else begin
+                        n_words_next[15:8] = i_r_data;
+                        byte_cnt_next      = 2'd0;
+                        idx_next           = 16'd0;
+                        if ({i_r_data, n_words[7:0]} == 16'd0)
+                            next_state = CLEAR;            // N = 0: solo borrar
+                        else
+                            next_state = LOAD_WORD;
+                    end
+                end
+
+            // Arma una palabra con 4 bytes: cada byte entra por arriba y los
+            // anteriores bajan 8 bits. Con el 4.o la palabra esta completa.
+            LOAD_WORD:
+                if (!i_rx_empty) begin
+                    word_next     = {i_r_data, word[31:8]};
+                    byte_cnt_next = byte_cnt + 2'd1;       // 3 -> 0 al completar
+                    if (byte_cnt == 2'd3)
+                        next_state = WRITE;
+                end
+
+            // Un ciclo con o_imem_we (si idx < 256). Despues, la proxima
+            // palabra, el borrado del resto de la memoria o el reset.
+            WRITE:
+                if (!last_word) begin
+                    idx_next   = idx + 16'd1;
+                    next_state = LOAD_WORD;
+                end
+                else if (idx < IMEM_LAST) begin
+                    idx_next   = idx + 16'd1;
+                    next_state = CLEAR;
+                end
+                else
+                    next_state = RESET;                    // ya se llego a la 255
+
+            // Escribe HALT en las palabras idx..255, una por ciclo.
+            CLEAR:
+                if (idx == IMEM_LAST)
+                    next_state = RESET;
+                else
+                    idx_next = idx + 16'd1;
 
             // Un solo ciclo con o_cpu_reset = 1; el contador de ciclos y la
             // bandera de interrupcion vuelven a 0 junto con el procesador.
@@ -269,7 +390,13 @@ module control_fsmd
         o_imem_we    = 1'b0;
 
         case (state)
-            IDLE:  o_rd = ~i_rx_empty;                 // Mealy
+            IDLE:      o_rd = ~i_rx_empty;             // Mealy
+            LOAD_LEN:  o_rd = ~i_rx_empty;             // Mealy
+            LOAD_WORD: o_rd = ~i_rx_empty;             // Mealy
+
+            WRITE: o_imem_we = (idx <= IMEM_LAST);     // Moore: las palabras 256+
+                                                       // se descartan
+            CLEAR: o_imem_we = 1'b1;                   // Moore
 
             RESET: o_cpu_reset = 1'b1;                 // Moore
 
@@ -295,8 +422,10 @@ module control_fsmd
     end
 
     //------------------------------------------------ Salidas del datapath
-    assign o_imem_addr = 8'd0;          // se usan con 'L'
-    assign o_imem_data = 32'd0;
+    // En WRITE se escribe la palabra armada, salvo en la 255, que siempre es
+    // HALT. En CLEAR (y en los demas estados, donde o_imem_we = 0) va HALT.
+    assign o_imem_addr = idx[7:0];
+    assign o_imem_data = (state == WRITE && idx != IMEM_LAST) ? word : INSTR_HALT;
     assign o_dump_idx  = dump_idx;
     assign o_cycles    = cycles;
     assign o_status    = {6'd0, interrupted, i_halted};
@@ -313,6 +442,7 @@ module control_fsmd
             RUN:       o_state_code = 4'd6;
             STEP:      o_state_code = 4'd7;
             DUMP:      o_state_code = 4'd8;
+            CLEAR:     o_state_code = 4'd9;
             default:   o_state_code = 4'hF;
         endcase
     end
