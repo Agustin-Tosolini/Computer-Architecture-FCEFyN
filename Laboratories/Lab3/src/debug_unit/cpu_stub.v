@@ -11,7 +11,11 @@
 // No ejecuta instrucciones. Imita solo lo que la debug_unit puede observar:
 //
 //   * Memoria de programa REAL (256 x 32), escrita con i_imem_we.
-//     Arranca toda en 0x00000000 (= HALT): memoria vacia = parada.
+//     Arranca con INIT_NOPS instrucciones NOP (0x00000013) y el resto en
+//     0x00000000 (= HALT). Con el valor por defecto (0) arranca toda en HALT:
+//     memoria vacia = parada. El top usa INIT_NOPS = 8 para poder probar 'S'
+//     en la placa antes de tener 'L': el PC avanza 0, 4, ..., 0x20 y despues
+//     aparece el HALT.
 //
 //   * PC: avanza de a 4 por cada ciclo con i_enable = 1.
 //
@@ -40,7 +44,10 @@
 //   * i_cpu_reset: PC = 0, halted = 0. NO borra la memoria de programa
 //     (asi se puede volver a correr el mismo programa).
 //------------------------------------------------------------------------------
-module cpu_stub
+module cpu_stub #
+(
+    parameter INIT_NOPS = 0             // NOPs al principio de la memoria (solo pruebas)
+)
 (
     input  wire          i_clk,
     input  wire          i_cpu_reset,      // pulso sincronico, activo en 1
@@ -69,6 +76,7 @@ module cpu_stub
 
     //------------------------------------------------ Parametros locales
     localparam [31:0] INSTR_HALT   = 32'h0000_0000;
+    localparam [31:0] INSTR_NOP    = 32'h0000_0013;   // addi x0, x0, 0
     localparam        IMEM_DEPTH   = 256;
     localparam        LATCH_WORDS  = 12;          // 384 / 32
     localparam [1:0]  DRAIN_CYCLES = 2'd3;        // ID->EX, EX->MEM, MEM->WB
@@ -81,7 +89,7 @@ module cpu_stub
     integer k;
     initial
         for (k = 0; k < IMEM_DEPTH; k = k + 1)
-            imem[k] = INSTR_HALT;
+            imem[k] = (k < INIT_NOPS) ? INSTR_NOP : INSTR_HALT;
 
     always @(posedge i_clk)
         if (i_imem_we)
