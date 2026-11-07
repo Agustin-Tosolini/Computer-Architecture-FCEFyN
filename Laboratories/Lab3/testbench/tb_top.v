@@ -2,8 +2,8 @@
 `default_nettype none
 
 //------------------------------------------------------------------------------
-// Testbench del top — PASO 3, debug_unit version 4 (comandos 'X', 'D', 'S',
-// 'R' e 'I').
+// Testbench del top — PASO 3, debug_unit version 5 (comandos 'L', 'X', 'D',
+// 'S', 'R' e 'I').
 //
 // Una segunda copia del modulo uart hace de "PC": manda comandos del protocolo
 // y recibe las respuestas, que se verifican contra lo esperado.
@@ -11,9 +11,10 @@
 //   [ uart "PC" ] --tx--> i_rx [ top: uart > intf > debug_unit > cpu_stub ]
 //                 <--rx-- o_tx
 //
-// Como todavia no existe 'L', el testbench le escribe valores al cpu_stub
-// directamente con referencias jerarquicas (dut.u_cpu.pc = ...). Es un recurso
-// valido solo en simulacion.
+// En las pruebas 1 a 21 el testbench le escribe valores al cpu_stub
+// directamente con referencias jerarquicas (dut.u_cpu.pc = ...), un recurso
+// valido solo en simulacion. Desde la prueba 22 la memoria se carga como en la
+// placa: con el comando 'L' por la UART.
 //
 // BAUD RATE: este testbench usa 1 Mbaud (parametro BAUD_RATE pasado al top y a
 // la uart "PC") para que cada volcado tarde ~3 ms simulados en lugar de 27 ms.
@@ -60,7 +61,21 @@
 //      adelante y otro 'R' termina solo con status 0x01.
 //  21. Empate: 'I' llega en el mismo ciclo en que el procesador se detiene ->
 //      gana el HALT (status 0x01) y se manda un solo volcado.
-//  22. Total de cpu_reset.
+//  22. 'L' con 3 palabras (addi, addi, HALT): responde 'K' despues del ultimo
+//      byte; 1 ciclo de cpu_reset (PC = 0, halted = 0), 0 de cpu_enable y
+//      256 de imem_we (3 palabras + 253 de CLEAR). La memoria queda con el
+//      programa y el resto en HALT; 'D' lo muestra.
+//  23. Datos que parecen comandos ('X', 'R', 'S', 'I', 'L', 'K' dentro de las
+//      palabras): se cargan como datos, una sola 'K'.
+//  24. Memoria llena de NOP + 'L' de 5 NOPs + 'R': termina en PC 0x14 con 9
+//      ciclos (el CLEAR puso el HALT en la palabra 5).
+//  25. 'L' con N = 0: memoria toda en HALT; 'R' para enseguida (4 ciclos).
+//  26. 'L' con N = 256 NOPs: la palabra 255 queda en HALT (forzada); sin CLEAR;
+//      'R' termina en PC 0x3FC con 259 ciclos. Leds en LOAD_WORD (2) a mitad.
+//  27. 'L' con N = 300: las palabras 256..299 se consumen pero no se escriben
+//      (nada da la vuelta a la palabra 0); despues 'D' funciona (sincronizado).
+//  28. imem_we solo se activo durante los 'L' (256 ciclos por carga).
+//  29. Total de cpu_reset.
 //
 // Resultado: imprime "PASS" o la lista de errores y "FAIL".
 //------------------------------------------------------------------------------
@@ -77,6 +92,7 @@ module tb_top;
     localparam [7:0] CMD_STEP  = 8'h53;   // 'S'
     localparam [7:0] CMD_RUN   = 8'h52;   // 'R'
     localparam [7:0] CMD_INT   = 8'h49;   // 'I'
+    localparam [7:0] CMD_LOAD  = 8'h4C;   // 'L'
     localparam [7:0] RSP_ACK   = 8'h4B;   // 'K'
     localparam       DUMP_LEN  = 314;
 
@@ -155,6 +171,12 @@ module tb_top;
     always @(posedge clk)
         if (dut.cpu_enable)
             cpu_enable_cycles = cpu_enable_cycles + 1;
+
+    // Ciclos en que la debug_unit escribe la memoria de programa (solo en 'L').
+    integer imem_we_cycles = 0;
+    always @(posedge clk)
+        if (dut.imem_we)
+            imem_we_cycles = imem_we_cycles + 1;
 
     //------------------------------------------------ Modelo del cpu_stub
     // Mismas formulas que documenta cpu_stub.v.
@@ -313,6 +335,7 @@ module tb_top;
     // errores. Despues verifica que no llegue ni un byte de mas.
     integer dump_errors;
     integer en_before;                    // cpu_enable_cycles antes de un comando
+    integer rst_before, we_before;        // idem para cpu_reset e imem_we
     task recv_dump(input [8*32-1:0] name);
         begin
             dump_errors = 0;
@@ -406,6 +429,56 @@ module tb_top;
             check("PC - PC inicial = 4 * ciclos", snap_pc - run_pc0, 4 * (snap_cycles - run_cyc0));
             check("ciclos sumados = ciclos de enable", snap_cycles - run_cyc0,
                   cpu_enable_cycles - en_before);
+        end
+    endtask
+
+    //------------------------------------------------ Carga con 'L'
+    // Programa a cargar: lo arma cada prueba en prog[0..n-1].
+    reg [31:0] prog [0:511];
+    integer    w;
+
+    // Manda 'L', N y las N palabras (little-endian), sin esperar nada entre
+    // bytes (como la PC), y espera la 'K'. Actualiza el modelo de la memoria
+    // con lo que deberia quedar: el programa, el resto en HALT.
+    task load_prog(input integer n);
+        begin
+            pc_send(CMD_LOAD);
+            pc_send(n[7:0]);
+            pc_send(n[15:8]);
+            for (w = 0; w < n; w = w + 1) begin
+                pc_send(prog[w][ 7: 0]);
+                pc_send(prog[w][15: 8]);
+                pc_send(prog[w][23:16]);
+                pc_send(prog[w][31:24]);
+            end
+            expect_byte(RSP_ACK);
+            expect_silence;                           // una sola respuesta
+            for (w = 0; w < 32; w = w + 1)
+                mem_model[w] = (w < n) ? prog[w] : 32'h0000_0000;
+        end
+    endtask
+
+    // Compara las 256 palabras de la memoria del stub con lo esperado despues
+    // de un 'L' de n palabras: prog[k] si k < n, HALT en el resto, y la 255
+    // siempre HALT.
+    integer imem_errors;
+    reg [31:0] imem_exp;
+    task check_imem(input [8*32-1:0] name, input integer n);
+        begin
+            imem_errors = 0;
+            for (w = 0; w < 256; w = w + 1) begin
+                imem_exp = (w < n && w != 255) ? prog[w] : 32'h0000_0000;
+                if (dut.u_cpu.imem[w] !== imem_exp) begin
+                    if (imem_errors < 6)
+                        $display("ERROR: %0s: imem[%0d] = %h, esperado %h",
+                                 name, w, dut.u_cpu.imem[w], imem_exp);
+                    imem_errors = imem_errors + 1;
+                end
+            end
+            if (imem_errors != 0) begin
+                $display("ERROR: %0s: %0d palabras distintas en la memoria", name, imem_errors);
+                errors = errors + 1;
+            end
         end
     endtask
 
@@ -632,11 +705,79 @@ module tb_top;
         $display("  empate HALT / I: PC = 0x%h, ciclos = %0d", snap_pc, snap_cycles);
         check_dump("D tras el empate", snap_pc, snap_cycles, 8'h01);
 
-        //---------------------------------------- 22. Total de cpu_reset
-        check("ciclos de cpu_reset (total: 8 'X')", cpu_reset_cycles, 32'd8);
+        //---------------------------------------- 22. 'L' con 3 palabras
+        // El procesador viene detenido (prueba 21) y con el PC lejos de 0.
+        check("imem_we antes del primer 'L'", imem_we_cycles, 32'd0);
+        fill_nops;                                // ninguna palabra vale HALT
+        prog[0] = 32'h0050_0093;                  // addi x1, x0, 5
+        prog[1] = 32'h0030_8113;                  // addi x2, x1, 3
+        prog[2] = 32'h0000_0000;                  // HALT
+        rst_before = cpu_reset_cycles;
+        en_before  = cpu_enable_cycles;
+        we_before  = imem_we_cycles;
+        load_prog(3);
+        check("ciclos de cpu_reset en un 'L'", cpu_reset_cycles - rst_before, 32'd1);
+        check("ciclos de cpu_enable en un 'L'", cpu_enable_cycles - en_before, 32'd0);
+        check("ciclos de imem_we en un 'L' de 3", imem_we_cycles - we_before, 32'd256);
+        check("PC tras 'L'", dut.pc, 32'd0);
+        check_imem("L de 3", 3);
+        check_dump("D tras L de 3", 32'd0, 32'd0, 8'h00);
+
+        //---------------------------------------- 23. Datos que parecen comandos
+        prog[0] = 32'h5852_5349;                  // bytes 'I' 'S' 'R' 'X'
+        prog[1] = 32'h4C44_4B49;                  // bytes 'I' 'K' 'D' 'L'
+        prog[2] = 32'h0000_0049;                  // 'I' 0 0 0
+        prog[3] = 32'h5252_5252;                  // 'R' 'R' 'R' 'R'
+        load_prog(4);
+        check_imem("L con bytes de comandos", 4);
+        check("leds en IDLE tras el 'L'", {24'd0, leds}, 32'h00);
+
+        //---------------------------------------- 24. 'L' de 5 NOPs + 'R'
+        fill_nops;
+        for (k = 0; k < 5; k = k + 1) prog[k] = 32'h0000_0013;
+        load_prog(5);
+        check_imem("L de 5 NOPs", 5);
+        check_run("R tras L de 5 NOPs", 32'h14, 32'd9, 8'h01, 32'd9);
+
+        //---------------------------------------- 25. 'L' con N = 0
+        fill_nops;
+        we_before = imem_we_cycles;
+        load_prog(0);
+        check("ciclos de imem_we en un 'L' de 0", imem_we_cycles - we_before, 32'd256);
+        check_imem("L de 0", 0);
+        check_dump("D tras L de 0", 32'd0, 32'd0, 8'h00);
+        check_run("R tras L de 0", 32'h0, 32'd4, 8'h01, 32'd4);
+
+        //---------------------------------------- 26. 'L' con N = 256
+        for (k = 0; k < 256; k = k + 1) prog[k] = 32'h0000_0013;
+        we_before = imem_we_cycles;
+        fork
+            load_prog(256);
+            begin                                 // a mitad de la carga
+                #(FRAME_NS * 500);
+                check("leds durante la carga (LOAD_WORD)", {28'd0, leds[3:0]}, 32'h2);
+            end
+        join
+        check("ciclos de imem_we en un 'L' de 256", imem_we_cycles - we_before, 32'd256);
+        check_imem("L de 256 (la 255 forzada a HALT)", 256);
+        check_run("R tras L de 256", 32'h3FC, 32'd259, 8'h01, 32'd259);
+
+        //---------------------------------------- 27. 'L' con N = 300
+        for (k = 256; k < 300; k = k + 1) prog[k] = 32'hBAD0_0000 + k;
+        we_before = imem_we_cycles;
+        load_prog(300);
+        check("ciclos de imem_we en un 'L' de 300", imem_we_cycles - we_before, 32'd256);
+        check_imem("L de 300 (256..299 descartadas)", 300);
+        check_dump("D tras L de 300", 32'd0, 32'd0, 8'h00);
+
+        //---------------------------------------- 28. imem_we solo en los 'L'
+        check("ciclos de imem_we (total: 6 'L')", imem_we_cycles, 32'd1536);
+
+        //---------------------------------------- 29. Total de cpu_reset
+        check("ciclos de cpu_reset (total: 8 'X' + 6 'L')", cpu_reset_cycles, 32'd14);
 
         //---------------------------------------- Resultado
-        if (errors == 0) $display("PASS: comandos 'X', 'D', 'S', 'R' e 'I' correctos");
+        if (errors == 0) $display("PASS: comandos 'L', 'X', 'D', 'S', 'R' e 'I' correctos");
         else             $display("FAIL: %0d errores", errors);
         $finish;
     end
