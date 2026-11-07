@@ -1,0 +1,4 @@
+# Ejemplo de 3 instrucciones (una palabra hex de 32 bits por linea)
+00500093    # addi x1, x0, 5
+00308113    # addi x2, x1, 3
+00000000    # HALT
