@@ -6,7 +6,7 @@ Para observar el avance del pipeline, empezar por el
 [programa único con seguimiento paso a paso](programa_if_id_paso_a_paso.md).
 
 Este documento resume las **32 instrucciones de RISC-V más el HALT propio**
-que reconoce nuestro [decodificador](../src/cpu/control_unit.v).
+que reconoce nuestro [decodificador](../src/cpu/id/control_unit.v).
 Es el subconjunto del proyecto, no toda la ISA RISC-V.
 
 El top `cpu_if_id_test` busca y decodifica estas instrucciones, pero todavía

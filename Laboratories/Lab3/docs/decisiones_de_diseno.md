@@ -4,7 +4,7 @@ Documento de trabajo para registrar qué elegimos, por qué y qué consecuencias
 tiene. Se actualiza al implementar o revisar cada módulo; también servirá como
 base para el informe final.
 
-Última actualización: 2026-11-03.
+Última actualización: 2026-11-08.
 
 Referencia para estudiar: [instrucciones de la CPU con ejemplos](instrucciones_cpu.md).
 Referencia para probar: [salidas esperadas de IF/ID por instrucción](prueba_if_id_salidas_esperadas.md).
@@ -21,11 +21,11 @@ antes de integrar los bloques.
 
 | Decisión | Motivo y consecuencias | Estado |
 |---|---|---|
-| Agrupar los módulos de la CPU en `src/cpu/`. | Separa el trabajo del procesador del de comunicación y debug. Las carpetas no determinan la jerarquía del hardware: la determinan las instancias. | Implementado |
+| Organizar `src/cpu/` en `if/`, `id/`, `ex/`, `mem/`, `pipeline/` y `hazards/`; dejar los módulos integradores en la raíz. | Facilita ubicar cada bloque por etapa o función. Los registros entre etapas se agrupan en `pipeline/`. La jerarquía del hardware depende de las instancias, no de las carpetas. | Implementado |
 | Mantener `cpu_stub` disponible para desarrollar la Debug Unit. | Permite que ambos integrantes trabajen por separado. Sus datos artificiales y su temporización no son una referencia exacta del pipeline real. | Implementado en la infraestructura existente |
-| Mantener un contrato explícito entre CPU y Debug Unit. | La CPU expone habilitación, reset, carga de instrucciones, lecturas de debug, PC, estado del pipeline y `halted`. La integración deberá respetar ese contrato. | Contrato existente en `src/params.vh`; CPU real pendiente |
+| Mantener un contrato explícito entre CPU y Debug Unit. | La CPU expone habilitación, reset, carga de instrucciones, lecturas de debug, PC, estado del pipeline y `halted`. La integración deberá respetar ese contrato. | CPU implementada; conexión al top de placa pendiente |
 
-## 2. ALU (`src/cpu/alu.v`)
+## 2. ALU (`src/cpu/ex/alu.v`)
 
 | Decisión | Motivo y consecuencias | Estado |
 |---|---|---|
@@ -55,7 +55,7 @@ Codificación interna:
 Un código interno no reconocido devuelve cero. Esto no sustituye la validación
 de instrucciones que deberá realizar la lógica de control.
 
-## 3. Banco de registros (`src/cpu/reg_file.v`)
+## 3. Banco de registros (`src/cpu/id/reg_file.v`)
 
 | Decisión | Motivo y consecuencias | Estado |
 |---|---|---|
@@ -73,7 +73,7 @@ El forwarding del banco no cambia el almacenamiento antes del flanco. Por eso,
 antes de una escritura, una lectura de operandos puede mostrar el dato nuevo
 mientras debug todavía muestra el dato anterior.
 
-## Generador de inmediatos (`src/cpu/imm_gen.v`)
+## Generador de inmediatos (`src/cpu/id/imm_gen.v`)
 
 | Decisión | Motivo y consecuencias | Estado |
 |---|---|---|
@@ -84,7 +84,7 @@ mientras debug todavía muestra el dato anterior.
 | Para shifts inmediatos, conservar el formato I y usar cinco bits en la ALU. | `alu_control` distingue SRLI/SRAI usando los campos de la instrucción. | Generador implementado; control pendiente |
 | Devolver cero para opcodes restantes. | Cubre instrucciones sin inmediato y valores no soportados; no constituye una señal de validez. | Implementado |
 
-## Control de la ALU (`src/cpu/alu_control.v`)
+## Control de la ALU (`src/cpu/ex/alu_control.v`)
 
 | Decisión | Motivo y consecuencias | Estado |
 |---|---|---|
@@ -94,7 +94,7 @@ mientras debug todavía muestra el dato anterior.
 | En tipo R concatenar `{funct7[5], funct3}`; en tipo I usar el bit 30 solo si funct3 es 101. | Distingue SRLI/SRAI sin interpretar el signo de un inmediato de ADDI como una orden de resta. | Implementado |
 | No validar instrucciones completas en este bloque. | La unidad principal deberá impedir efectos de instrucciones no soportadas. Un código de ALU no constituye una señal de validez. | Acordado |
 
-## Unidad de control principal (`src/cpu/control_unit.v`)
+## Unidad de control principal (`src/cpu/id/control_unit.v`)
 
 Implementada como lógica combinacional de ID; integración y simulación pendientes.
 
@@ -115,7 +115,7 @@ Implementada como lógica combinacional de ID; integración y simulación pendie
 - El control valida los campos de las instrucciones implementadas; no comprueba
   alineación de direcciones ni capacidad de memoria, que dependen de la ejecución.
 
-## Program Counter (`src/cpu/pc_reg.v`)
+## Program Counter (`src/cpu/if/pc_reg.v`)
 
 | Decisión | Motivo y consecuencias | Estado |
 |---|---|---|
@@ -127,7 +127,7 @@ Implementada como lógica combinacional de ID; integración y simulación pendie
 El objetivo inmediato de integración es probar IF e ID por pasos, sin ejecutar
 todavía las instrucciones. En esa prueba `i_pc_write` podrá mantenerse en uno.
 
-## Memoria de instrucciones (`src/cpu/instr_mem.v`)
+## Memoria de instrucciones (`src/cpu/if/instr_mem.v`)
 
 | Decisión | Motivo y consecuencias | Estado |
 |---|---|---|
@@ -136,7 +136,7 @@ todavía las instrucciones. En esa prueba `i_pc_write` podrá mantenerse en uno.
 | Inicializar a HALT al configurar la FPGA; sin entrada de reset. | El programa se conserva al reiniciar la CPU. La inicialización no limpia posiciones al cargar un segundo programa: el cargador deberá establecer el final y gestionar los restos del anterior. | Implementado |
 | Escribir solamente con la CPU detenida, por contrato externo. | Este módulo no recibe `i_enable` ni arbitra ejecución y carga. No se debe depender de lectura simultánea de la posición que se está escribiendo para ejecutar instrucciones. | Interfaz implementada; integración pendiente |
 
-## Registro IF/ID (`src/cpu/if_id.v`)
+## Registro IF/ID (`src/cpu/pipeline/if_id.v`)
 
 | Decisión | Motivo y consecuencias | Estado |
 |---|---|---|
@@ -165,6 +165,158 @@ todavía las instrucciones. En esa prueba `i_pc_write` podrá mantenerse en uno.
   avance, decodificación, reset, ausencia de ejecución y límite de memoria.
   Simulación pendiente por falta de simulador disponible en el PATH.
 
+## Registro ID/EX (`src/cpu/pipeline/id_ex.v`)
+
+- Guarda juntos PC, operandos rs1/rs2, inmediato, números rs1/rs2/rd,
+  funct3, bit 30 y los controles generados por ID, incluido valid.
+  Conserva uses_rs1/uses_rs2 para forwarding e illegal para no perder
+  la indicación de una instrucción no soportada; su tratamiento final sigue pendiente.
+- Son 163 bits de estado. No guarda la instrucción completa ni calcula resultados.
+  Este tamaño no define todavía el empaquetado de `o_latches` para debug.
+- Captura en el flanco ascendente con enable=1. Prioridad: reset > pausa global
+  > flush o entrada inválida > captura. Es consistente con la pausa de IF/ID.
+- Reset, flush habilitado o i_valid=0 durante un avance ponen todos los campos
+  en cero, incluidos valid, HALT y controles de escritura. Aquí no hace falta
+  cargar una instrucción NOP: se almacena la información ya decodificada.
+- No tiene un permiso local de escritura: ante load-use, hazard_unit
+  congelará PC e IF/ID e insertará una burbuja en ID/EX mediante flush.
+- Integrado en cpu.v; conexión a Debug Unit en placa pendiente.
+
+## Registro EX/MEM (`src/cpu/pipeline/ex_mem.v`)
+
+- Guarda resultado de EX, dato de STORE ya adelantado, rd, funct3 y los
+  controles reg_write, mem_read, mem_write, result_src, halt, illegal y valid.
+  Son 79 bits de estado; cpu.v los incluye completos en o_latches.
+- El resultado llega seleccionado desde EX: cálculo de ALU, dirección de
+  memoria o PC+4 para JAL/JALR. Este registro no calcula ni selecciona datos.
+- Prioridad: reset > pausa global > entrada inválida > captura. Al capturar
+  una burbuja se limpian todos los campos y controles, igual que en ID/EX.
+- No recibe flush: con saltos resueltos en EX, se descartan las instrucciones
+  jóvenes de IF/ID e ID/EX; la instrucción de EX debe seguir hacia MEM.
+- Conserva illegal como información de estado, sin definir todavía una política
+  de excepciones. El control de ID ya desactiva efectos para instrucciones ilegales.
+- Integrado con EX y memoria en cpu.v; conexión al top de placa pendiente.
+
+## Integración de CPU (`src/cpu/cpu.v`)
+
+- Conecta IF, ID, EX, MEM y WB, los cuatro registros intermedios, forwarding
+  y hazard_unit. Conserva cpu_if_id_test como prueba aislada; el top de placa
+  sigue con cpu_stub hasta la siguiente integración con UART/debug.
+- Los puertos coinciden con el contrato de cpu_stub (sin el parámetro de prueba
+  INIT_NOPS). No cambia clk_wiz, el formato de 314 bytes ni la memoria visible.
+- `step = i_enable && !o_halted` habilita PC, registros intermedios, banco y RAM.
+  Reset tiene prioridad sobre pausa. La carga de programa solo acepta escrituras
+  con i_enable=0 y reset=0; reset conserva programa y datos.
+- Forwarding corrige ambos operandos antes de seleccionar inmediato/cero para
+  ALU. El rs2 corregido alimenta STORE; el resultado final de WB alimenta
+  forwarding y el bypass WB→ID. WB selecciona dato de memoria o resultado EX.
+- BEQ/BNE comparan en EX; JAL usa PC+inmediato, JALR usa (rs1+inmediato)&~1.
+  JAL/JALR guardan PC+4 como resultado de EX. El destino requiere alineación
+  de cuatro bytes, pues no se implementan instrucciones comprimidas.
+- HALT aceptado en ID congela el PC de búsqueda (habitualmente PC de HALT+4),
+  descarta la instrucción buscada después y deja drenar las anteriores. Un salto
+  tomado en EX descarta HALT en ID antes de aceptarlo. o_halted se activa al
+  retirar el marcador en WB, dejando todos los valid en cero, y persiste hasta
+  reset. IF/ID vacío conserva su codificación NOP, no una instrucción HALT.
+- Política inicial sin traps: instrucción ilegal o fetch fuera de rango/alineación
+  produce una parada con drenaje. Fetch inválido se representa con 0xFFFFFFFF
+  para que ID lo reconozca como ilegal, sin leer una dirección truncada.
+- Un acceso inválido en MEM no escribe RAM ni rd; descarta instrucciones más
+  jóvenes, permite completar WB anterior y envía un marcador de parada a WB.
+  Esta parada tiene prioridad sobre salto de EX. No se agrega un bit de error
+  al protocolo: o_halted indica parada, sin distinguir su causa. Diagnóstico
+  persistente de fallos queda pendiente; no se afirma implementar excepciones RISC-V.
+
+### Empaquetado de latches dentro del contrato de 384 bits
+
+Se usa `{3'b000, IF/ID, ID/EX, EX/MEM, MEM/WB}`. Dentro de cada bloque,
+los campos siguen el orden de las salidas declaradas en su módulo (de mayor a
+menor peso). Se incluyen todos los campos almacenados, sin truncarlos.
+
+| Bits de o_latches | Contenido | Ancho |
+|---|---|---|
+| 383:381 | Relleno cero | 3 |
+| 380:316 | IF/ID | 65 |
+| 315:153 | ID/EX | 163 |
+| 152:74 | EX/MEM | 79 |
+| 73:0 | MEM/WB | 74 |
+
+El volcado existente transmite primero los bytes menos significativos. Sus
+12 palabras de 32 bits son trozos del vector, no 12 registros independientes.
+La presentación por campos en Python queda para la integración con debug.
+
+## Unidad de riesgos (`src/cpu/hazards/hazard_unit.v`)
+
+- Combinacional: detecta dependencia de ID con un LOAD válido en EX que escribe
+  rd distinto de x0; compara solo operandos usados, incluido rs2 de STORE.
+- Ante load-use deshabilita escritura de PC e IF/ID e inserta burbuja en ID/EX.
+  EX/MEM y MEM/WB siguen avanzando. Así la carga sale de EX y la dependencia
+  deja de bloquear al ciclo siguiente; forwarding desde WB entrega el dato.
+- Una redirección válida de EX (branch tomado, JAL o JALR) tiene prioridad:
+  permite actualizar PC y limpia IF/ID e ID/EX. El destino y mux de PC se
+  calculan fuera del módulo. No se limpian las instrucciones anteriores.
+- La pausa de debug se respeta mediante enable de los registros, incluso si
+  las salidas combinacionales de flush están activas. No modifica el reloj.
+- cpu.v combina estas salidas con HALT y errores; esta unidad no implementa
+  la parada y drenaje por HALT ni altera el contrato de debug.
+
+## Unidad de forwarding (`src/cpu/hazards/forwarding_unit.v`)
+
+- Combinacional, sin reloj: compara rs1/rs2 usados por una instrucción válida
+  de ID/EX con rd de escritores válidos en EX/MEM y MEM/WB. Ignora destino x0.
+- Selectores independientes: 00=dato ID/EX, 01=resultado final WB,
+  10=resultado EX/MEM; 11 no se utiliza. EX/MEM tiene prioridad por ser reciente.
+- Un LOAD en EX/MEM no permite adelantar su dirección como dato ni elegir un
+  resultado anterior de WB para ese mismo registro. La hazard_unit deberá insertar el stall load-use antes de que la consumidora llegue a EX.
+- Los mux quedan para la integración: forwarding antes de seleccionar cero o
+  inmediato para la ALU; rs2 corregido también alimentará STORE y comparación
+  de branch, y rs1 corregido servirá para JALR. WB debe aportar el dato final
+  seleccionado entre memoria y EX. Los permisos de escritura deben respetar
+  la política de errores que se defina al integrar la CPU.
+- No modifica el contrato de debug ni añade almacenamiento al pipeline.
+
+## Registro MEM/WB (`src/cpu/pipeline/mem_wb.v`)
+
+- Conserva resultado de EX, dato leído de memoria, rd, reg_write, result_src,
+  halt, illegal y valid (74 bits en total).
+- Reset síncrono prioritario; con enable=0 conserva todos los campos. Al avanzar
+  con valid=0 limpia todos los campos para introducir una burbuja sin efectos.
+- No necesita flush por saltos resueltos en EX: contiene instrucciones anteriores.
+- El mux de WB seleccionará EX o memoria mediante result_src fuera del registro.
+  La integración deberá condicionar la escritura por validez, enable y errores
+  de acceso; este módulo solo almacena los controles que recibe.
+- Conectado en cpu.v e incluido completo en o_latches, conservando el contrato
+  de 384 bits de la Debug Unit.
+
+## Memoria de datos (`src/cpu/mem/data_mem.v`)
+
+- 32 palabras de 32 bits (128 bytes), siguiendo el contrato del volcado de la
+  Debug Unit como referencia principal. Toda la memoria de datos queda visible.
+  Little-endian, lectura combinacional y
+  escritura síncrona por bytes. Se solicita RAM distribuida; la inferencia y
+  el uso de recursos deberán comprobarse en Vivado.
+- La CPU entrega dirección en bytes; debug entrega un índice de palabra de
+  ocho bits (se conserva el contrato) y recibe la palabra completa de forma
+  combinacional. Los índices válidos son 0..31; los restantes devuelven cero.
+- `i_re` selecciona LOAD (LB/LH/LW/LBU/LHU); `i_we` selecciona STORE (SB/SH/SW).
+  Las escrituras requieren enable=1, reset=0 y acceso válido. La integración
+  debe habilitar re/we solo para una instrucción válida de EX/MEM.
+- LB/LH extienden signo, LBU/LHU completan con ceros. SB/SH conservan los bytes
+  no seleccionados. El dato de STORE deberá llegar con forwarding aplicado.
+- Inicialización a cero al configurar la FPGA. El reset de CPU conserva esta
+  RAM y bloquea escrituras mientras está activo. Reprogramar no borrará los datos
+  por este módulo: el programa debe inicializar los datos que necesite.
+- Se rechazan direcciones fuera de 0..127, accesos desalineados (halfword impar
+  o word no múltiplo de cuatro), funct3 no soportado y re/we simultáneos.
+  `o_access_error=1`, lectura cero y escritura inhibida. No se truncan direcciones
+  incorrectas para acceder a otra posición. Refina la simplificación de la guía
+  que proponía ignorar bits de alineación.
+- Lecturas de CPU y debug siguen disponibles con enable=0. Sin solicitud de
+  LOAD, o_rdata=0; sin solicitud de acceso, o_access_error=0. El error es
+  combinacional, sin registro de fallo ni mecanismo de trap.
+- Falta conectar el módulo con EX/MEM y MEM/WB y definir la respuesta de la CPU
+  al error, incluyendo impedir que un LOAD rechazado escriba en el banco.
+
 ## 4. Pipeline y resolución de riesgos
 
 Estas decisiones están acordadas conceptualmente; aún no representan módulos
@@ -173,7 +325,7 @@ de pipeline implementados.
 | Decisión | Motivo y consecuencias | Estado |
 |---|---|---|
 | Pipeline de cinco etapas: IF, ID, EX, MEM y WB. | Separa búsqueda, decodificación, cálculo, acceso a datos y escritura de resultados. | Acordado |
-| Cuatro grupos de registros: IF/ID, ID/EX, EX/MEM y MEM/WB. | Cada grupo tiene una estructura fija que incluye los datos y controles necesarios para las distintas instrucciones. No se crea un registro diferente por tipo de instrucción. | Acordado; campos y tamaños pendientes |
+| Cuatro grupos de registros: IF/ID, ID/EX, EX/MEM y MEM/WB. | Cada grupo tiene una estructura fija que incluye los datos y controles necesarios para las distintas instrucciones. No se crea un registro diferente por tipo de instrucción. | Implementado; campos y tamaños definidos en cpu.v |
 | Implementar los registros de pipeline con flip-flops por flanco. | La consigna los llama latches, pero no se pretende inferir latches sensibles a nivel. | Acordado |
 | Forwarding hacia EX desde EX/MEM y MEM/WB. | Permite usar resultados pendientes sin esperar su escritura en el banco. Se selecciona cada operando por separado y se prioriza EX/MEM cuando hay coincidencias válidas en ambos orígenes. Nunca se adelantan escrituras a x0. | Acordado |
 | Mantener también el forwarding WB → ID del banco. | Cubre el caso en que la productora está en WB mientras la consumidora está en ID: al ciclo siguiente, la productora ya no estará disponible en MEM/WB. | Implementado en el banco; integración pendiente |
@@ -188,22 +340,21 @@ de pipeline implementados.
 |---|---|---|
 | Usar `enable` para detener o avanzar la CPU; no cortar el reloj con lógica. | Permite ejecutar un ciclo por comando sin detener UART ni Debug Unit. Debe controlar todos los cambios de estado relevantes de la CPU. | Implementado en el banco; integración pendiente |
 | Distinguir reset global de reset de CPU. | Reiniciar el procesador no debe interrumpir la UART. | Acordado para la integración |
-| HALT propio codificado como `0x00000000`; NOP como `0x00000013`. | Son valores definidos en el contrato existente. Una burbuja no debe confundirse con HALT; su validez y controles deben respetarse. | Acordado; CPU pendiente |
+| HALT propio codificado como `0x00000000`; NOP como `0x00000013`. | Son valores definidos en el contrato existente. Una burbuja no debe confundirse con HALT; su validez y controles deben respetarse. | Implementado en cpu.v |
 | Detener la admisión de instrucciones al aceptar HALT, y dejar drenar el pipeline. | Las instrucciones anteriores deben terminar antes de indicar `halted`. Se distingue entre estar terminando (`halting`) y haber terminado (`halted`). | Acordado |
 | Dar prioridad a un salto tomado en EX sobre un HALT posterior en ID. | Ese HALT pertenece al camino descartado y no debe detener la ejecución. | Acordado |
 
 ## 6. Puntos pendientes de cerrar
 
-- Definir campos, anchos y orden exacto del vector de debug de los registros del
-  pipeline. Los 384 bits de `params.vh` son provisionales; actualizar también el
-  formato del volcado y el software si cambian.
-- Confirmar al implementar las memorias la propuesta de 256 palabras de 32 bits
-  por memoria, lectura asíncrona y memorias de programa y datos separadas.
-- Precisar tratamiento de direcciones fuera de rango, accesos desalineados e
-  instrucciones no soportadas.
+- Incorporar en la visualización de Python el mapa de campos de los 384 bits
+  definido en la sección de integración, conservando el tamaño del volcado.
+- Memorias separadas con lectura asíncrona: programa de 256 palabras y datos
+  de 32 palabras, ambas de 32 bits. El tamaño de datos respeta el volcado de debug.
+- Evaluar diagnóstico persistente de errores; cpu.v ya detiene sin traps ante
+  accesos inválidos e instrucciones no soportadas.
 - Definir qué se conserva o limpia en memoria al resetear y reprogramar.
-- Precisar el ciclo de finalización de HALT y el PC visible al detenerse; no
-  adoptar automáticamente la temporización simplificada de `cpu_stub`.
+- Validar en placa la finalización de HALT definida en cpu.v; su temporización
+  real sustituirá la aproximación de cpu_stub.
 - Definir si se centralizan las constantes en `params.vh`: actualmente ese
   archivo documenta el contrato, pero los módulos no lo incluyen.
 
