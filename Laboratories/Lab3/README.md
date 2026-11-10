@@ -8,8 +8,14 @@ Debug Unit; protocolo completo: `'L'`, `'X'`, `'D'`, `'S'`, `'R'` e `'I'`.**
 Todas las pruebas dan `PASS` en simulación (`bash scripts/run_all_tests.sh`).
 Falta validar en Vivado (timing y recursos) y en la placa: `CHECKLIST_placa.md`.
 
-Decisiones de diseño (cpu, debug unit, integración y respuestas a las
-preguntas de la consigna): [`docs/decisiones_de_diseno.md`](docs/decisiones_de_diseno.md).
+**Depurador gráfico (parte C):** `bash scripts/gui/lanzar_depurador.sh`, o
+"Depurador TP RISC-V" en el menú. Funciona con la placa o en modo simulado.
+Instalación y uso: [`docs/manual_depurador.md`](docs/manual_depurador.md).
+
+![Depurador](docs/img/depurador_corrida.png)
+
+Decisiones de diseño (cpu, debug unit, integración, depurador y respuestas a
+las preguntas de la consigna): [`docs/decisiones_de_diseno.md`](docs/decisiones_de_diseno.md).
 Contrato entre cpu y debug_unit, y formato del volcado: [`src/params.vh`](src/params.vh).
 
 ---
@@ -49,6 +55,10 @@ constrains/
   top.xdc               pines de la Basys 3 (clock, botón, UART, 8 LEDs)
 
 scripts/
+  gui/                  DEPURADOR GRAFICO (parte C): depurador.py, protocolo.py,
+                        decodificador.py, desensamblador.py, fpga_simulada.py,
+                        hilo_serie.py, app/ (ventana), programas/ (demos),
+                        tests/ (pytest), lanzar_depurador.sh, instalar_lanzador.sh
   uart_test.py          prueba desde la PC (pyserial): echo, x, l, d, s, r, step, terminal
   ensamblador.py        ensamblador mínimo RV32I: .asm -> .hex
   rv32i_model.py        modelo de referencia: valores esperados y vectores de prueba
@@ -85,6 +95,7 @@ docs/
 bash scripts/run_all_tests.sh            # ~6 min (tb_top y tb_top_cpu son lentos)
 bash scripts/run_all_tests.sh --rapido   # ~1 min
 python3 scripts/mutaciones.py            # pruebas de mutación, ~8 min
+bash scripts/gui/correr_tests.sh         # tests de Python del depurador, ~35 s
 ```
 
 **Uno por uno**, desde `Laboratories/Lab3`:
@@ -167,5 +178,6 @@ iniciar sesión.
 Probar en la placa con `CHECKLIST_placa.md`. Revisar en Vivado **WNS ≥ 0** con
 el cpu real y que las dos memorias (programa y datos) salgan como **RAM
 distribuida** (LUTRAM), no como miles de flip-flops.
-Pendientes: `clk_wiz` y frecuencia, panel de LEDs/7 segmentos y la interfaz
-final (parte C).
+Pendientes: `clk_wiz` y frecuencia, panel de LEDs/7 segmentos y las funciones
+extra del depurador (fase 3: comparación con el modelo, vista del pipeline,
+diagrama de ciclos, historial, exportar, tema oscuro).

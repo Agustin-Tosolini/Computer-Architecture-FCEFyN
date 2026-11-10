@@ -1,2 +1,5 @@
 # Generado por Python (scripts/*.py)
 __pycache__/
+
+# Entorno virtual del depurador grafico (parte C)
+scripts/gui/.venv/

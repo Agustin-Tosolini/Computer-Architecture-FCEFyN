@@ -574,3 +574,46 @@ termina en el primer HALT de relleno. Lo que sí puede pasar:
 En los dos modos (`'R'` y `'S'`) el pipeline queda vacío al terminar: cuando
 `o_halted` sube, todas las instrucciones anteriores al HALT ya escribieron y
 solo queda el marcador del HALT en MEM/WB.
+
+## 12. Depurador gráfico (parte C)
+
+Aplicación de escritorio para usar el sistema sin consola. Manual:
+[`manual_depurador.md`](manual_depurador.md). Todo el código está en
+`scripts/gui/`, separado de las herramientas anteriores (`uart_test.py` no
+cambió).
+
+### Arquitectura
+
+```
+Interfaz (hilo principal, app/)                Trabajador (QThread, hilo_serie.py)
+  ventana_principal.py  ── señales (pedidos) ─►  Enlace (protocolo.py)
+  editor, tablas,       ◄─ señales (volcado,      │  usa un "transporte":
+  latches, log              errores, bytes) ──    ├─ PuertoSerie (transporte.py, pyserial)
+                                                  └─ FpgaSimulada (fpga_simulada.py,
+                                                       usa rv32i_model.py)
+  decodificador.py: 326 bytes -> Estado (campos con nombre, campos_latches.py)
+  desensamblador.py: palabra -> texto (ida y vuelta con ensamblador.py)
+```
+
+| Módulo | Función |
+|---|---|
+| `protocolo.py` | Constantes y la clase `Enlace`: cargar, reset, paso, correr (con interrupción) y volcar, con timeouts y errores claros |
+| `decodificador.py` / `campos_latches.py` | Volcado → `Estado` (dataclass); tabla de params.vh 4b con una descripción por campo (los tooltips) |
+| `transporte.py` / `fpga_simulada.py` | Los dos "cables", con la misma interfaz (`escribir`, `leer`, `vaciar_entrada`, `cerrar`) |
+| `hilo_serie.py` | El único lugar que habla con la FPGA, en otro hilo |
+| `app/` | Ventana, editor con resaltado, tablas, árbol de latches, log, tema |
+
+### Decisiones
+
+39. **PySide6 (Qt 6).** Tablas, árboles, editor con resaltado, iconos del tema, `QSettings` e hilos con señales, todo en una biblioteca con licencia LGPL que se instala con pip. Tkinter se ve anticuado y no tiene tablas ni resaltado; PyQt6 es igual a PySide6 pero GPL. En Mint hace falta `libxcb-cursor0` para el plugin `xcb`.
+40. **Entorno virtual nuevo en `scripts/gui/.venv`, ignorado en git.** PySide6 pesa cientos de MB. El `.venv` viejo de `scripts/` (versionado, creado en otra carpeta) se dejó como estaba.
+41. **La interfaz nunca toca el puerto serie.** Un `Trabajador` en un `QThread` atiende los pedidos de a uno (las señales entre hilos se encolan), así nunca se mezclan dos respuestas y la ventana no se congela. Interrumpir es la excepción: activa un `threading.Event` que `Enlace.correr()` mira cada 0,1 s mientras espera el volcado del `'R'`, y entonces manda la `'I'`. Al cerrar la ventana durante una corrida se manda `'I'` antes de salir.
+42. **Un "transporte" intercambiable.** `Enlace` no sabe si habla con la placa o con la FPGA simulada. La simulada habla el mismo protocolo byte por byte (imita a `control_fsmd`: carga con CLEAR, `'K'`, bytes ignorados durante RUN) y usa el modelo de referencia; así los tests del protocolo y el modo demo prueban el mismo código que se usa con la placa.
+43. **Modo simulado sin latches.** El modelo calcula registros, memoria, PC y ciclos, pero no los 480 bits de los latches ciclo a ciclo: se mandan como burbujas (salvo el patrón conocido al terminar por HALT) y la interfaz lo avisa. Un modelo de latches bit a bit, verificado contra el RTL, queda para la fase 3.
+44. **Programa sin fin en modo simulado:** "corre" a 2000 ciclos por segundo (la placa hace 100 millones); al llegar la `'I'` se calcula el estado en ese ciclo. Para eso `rv32i_model.ejecutar` recibió dos parámetros opcionales: `mem_inicial` (la RAM conserva lo del programa anterior) y `verificar_estable` (un contador sin fin nunca se estabiliza). Su comportamiento por defecto no cambió.
+45. **Constantes duplicadas, pero verificadas.** `decodificador.py`, `campos_latches.py` y `uart_test.py` repiten el formato del volcado (ningún módulo lee params.vh en tiempo de ejecución, igual que el RTL). `tests/test_constantes.py` lee `src/params.vh` y exige que todo coincida.
+46. **Pseudo-instrucciones en el ensamblador compartido** (`mv`, `li`, `beqz`, `bnez`, `call`, `ret`, además de `nop` y `j`). Se agregaron a `scripts/ensamblador.py` (lo usan el modelo, `uart_test.py` y la GUI) en lugar de duplicarlo; `li` ocupa 1 o 2 palabras según el valor, y el listado muestra la expansión. Las instrucciones RISC-V que no están en la consigna (`mul`, `blt`, `auipc`…) dan un error explícito; para probar una instrucción ilegal está `.word`.
+47. **Ejemplos nuevos en `scripts/gui/programas/`**, no en `scripts/programas/`: el generador de vectores de la integración (`rv32i_model.py --generar`) toma esa carpeta y escribiría en `testbench/vectores/`. Cada uno tiene su resultado esperado calculado a mano (`# ESPERADO:`); `generar_programas.py` lo verifica contra el modelo y escribe los `.hex`.
+48. **Volcados reales en los tests sin tocar `testbench/`.** `scripts/gui/tests/hdl/tb_captura.v` es un testbench propio que corre el top con el cpu real, guarda los bytes del volcado y los valores internos del diseño; `test_captura_rtl.py` exige que el decodificador los interprete igual, campo por campo (los 480 bits de latches incluidos).
+49. **Errores siempre en la ventana.** Los errores esperables (timeout, cabecera mala, cable desconectado) se convierten en excepciones propias con mensajes en castellano y llegan a la interfaz por señales: log, barra de estado y un cuadro que no bloquea. Un gancho global (`sys.excepthook` y `threading.excepthook`) manda cualquier error inesperado al log (`~/.local/state/tp_riscv/depurador.log`) y a un diálogo. Si se desenchufa la placa estando quieta, un temporizador lo detecta mirando la lista de puertos.
+50. **Propuesta de hardware (no implementada):** guardar el PC también en EX/MEM y MEM/WB dentro del volcado (2 palabras más: 544 bits, 334 bytes) permitiría saber con certeza qué instrucción hay en MEM y WB. Sin eso, la vista del pipeline (fase 3) lo reconstruye con el historial de pasos o con el modelo, y muestra "?" cuando no hay certeza.

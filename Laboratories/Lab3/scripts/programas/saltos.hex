@@ -24,7 +24,7 @@
 00000000    # 0x030: halt
 0100026F    # 0x034: sigue:  jal  x4, funcion
 00500293    # 0x038: addi x5, x0, 5
-0140006F    # 0x03C: j    fin
+0140006F    # 0x03C: j    fin   -> jal x0, fin
 00100693    # 0x040: addi x13, x0, 1
 00120313    # 0x044: funcion: addi x6, x4, 1
 000303E7    # 0x048: jalr x7, 0(x6)

@@ -1,0 +1,22 @@
+# fibonacci.hex - generado desde fibonacci.asm (no editar a mano)
+# Fibonacci: guarda F(0)..F(10) en mem[0..10] con un loop (bnez) y deja F(10)
+# en a0, leyendo la memoria con lw. Usa pseudo-instrucciones (li, mv, bnez).
+# Ciclos: 82 instrucciones + 2 x 10 saltos tomados + 4 = 106.
+#
+# Resultado esperado (rv32i_model.py):
+#   estado = 0x01 (HALT), ciclos = 106, PC = 0x00000034
+#   registros distintos de 0: x5 = 0x00000059, x6 = 0x00000090, x10 = 0x00000037, x28 = 0x0000002C, x29 = 0x00000090
+#   memoria que escribe el programa: mem[0] = 0x00000000, mem[1] = 0x00000001, mem[2] = 0x00000001, mem[3] = 0x00000002, mem[4] = 0x00000003, mem[5] = 0x00000005, mem[6] = 0x00000008, mem[7] = 0x0000000D, mem[8] = 0x00000015, mem[9] = 0x00000022, mem[10] = 0x00000037 (el resto conserva lo que habia: la memoria no se borra)
+00000293    # 0x000: li   t0, 0   -> addi t0, x0, 0
+00100313    # 0x004: li   t1, 1   -> addi t1, x0, 1
+00B00393    # 0x008: li   t2, 11   -> addi t2, x0, 11
+00000E13    # 0x00C: li   t3, 0   -> addi t3, x0, 0
+005E2023    # 0x010: bucle:  sw   t0, 0(t3)
+00628EB3    # 0x014: add  t4, t0, t1
+00030293    # 0x018: mv   t0, t1   -> addi t0, t1, 0
+000E8313    # 0x01C: mv   t1, t4   -> addi t1, t4, 0
+004E0E13    # 0x020: addi t3, t3, 4
+FFF38393    # 0x024: addi t2, t2, -1
+FE0394E3    # 0x028: bnez t2, bucle   -> bne t2, x0, bucle
+02802503    # 0x02C: lw   a0, 40(x0)
+00000000    # 0x030: halt

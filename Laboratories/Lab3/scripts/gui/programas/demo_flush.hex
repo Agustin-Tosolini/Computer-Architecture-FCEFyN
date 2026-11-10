@@ -1,0 +1,19 @@
+# demo_flush.hex - generado desde demo_flush.asm (no editar a mano)
+# Flush: un salto se resuelve en EX; si se toma, las 2 instrucciones que ya se
+# habian buscado se descartan (flush de IF/ID e ID/EX): 2 ciclos de penalidad.
+# Ciclos: 5 instrucciones + 2 x 2 saltos tomados + 4 = 13.
+#
+# Resultado esperado (rv32i_model.py):
+#   estado = 0x01 (HALT), ciclos = 13, PC = 0x00000028
+#   registros distintos de 0: x5 = 0x00000001, x28 = 0x00000003
+#   memoria que escribe el programa: ninguna (el resto conserva lo que habia: la memoria no se borra)
+00100293    # 0x000: li   t0, 1   -> addi t0, x0, 1
+00028E63    # 0x004: beq  t0, x0, nunca
+00528663    # 0x008: beq  t0, t0, salto
+06F00313    # 0x00C: li   t1, 111   -> addi t1, x0, 111
+0DE00393    # 0x010: li   t2, 222   -> addi t2, x0, 222
+00300E13    # 0x014: salto:  li   t3, 3   -> addi t3, x0, 3
+00C0006F    # 0x018: j    fin   -> jal x0, fin
+1BC00E93    # 0x01C: li   t4, 444   -> addi t4, x0, 444
+22B00F13    # 0x020: nunca:  li   t5, 555   -> addi t5, x0, 555
+00000000    # 0x024: fin:    halt

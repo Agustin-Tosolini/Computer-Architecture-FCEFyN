@@ -167,13 +167,19 @@ class ErrorPrograma(Exception):
     """El programa depende del contenido previo de la memoria de datos."""
 
 
-def ejecutar(prog, max_instr=5000, pasos_sin_fin=40, estricto=False):
+def ejecutar(prog, max_instr=5000, pasos_sin_fin=40, estricto=False,
+             mem_inicial=None, verificar_estable=True):
     """prog: lista de palabras (las que faltan hasta 256 son HALT).
-    La memoria de datos arranca en 0 en el modelo; con estricto=True se exige
-    que el programa no lea datos que no escribio (ver arriba)."""
+    La memoria de datos arranca en 0 (o en mem_inicial, 32 palabras: lo que
+    dejo el programa anterior); con estricto=True se exige que el programa no
+    lea datos que no escribio (ver arriba).
+    Programa sin fin: se calculan pasos_sin_fin ciclos; con
+    verificar_estable=False no se exige que el estado se haya estabilizado
+    (lo usa la FPGA simulada del depurador para mirar cualquier ciclo)."""
     imem = list(prog[:IMEM_WORDS]) + [0] * (IMEM_WORDS - len(prog[:IMEM_WORDS]))
     imem[IMEM_WORDS - 1] = 0              # la debug_unit fuerza HALT en la 255
-    regs, mem = [0] * 32, [0] * DMEM_WORDS
+    regs = [0] * 32
+    mem = list(mem_inicial) if mem_inicial is not None else [0] * DMEM_WORDS
     enteras = set()                      # palabras ya escritas enteras (sw)
     eventos_reg, eventos_mem = [], []    # (ciclo, idx, valor)
     saltos, stalls = {}, set()            # ciclo -> destino ; ciclos de stall
@@ -268,7 +274,8 @@ def ejecutar(prog, max_instr=5000, pasos_sin_fin=40, estricto=False):
         r.ciclos, r.estado, total = 0, ST_INT, pasos_sin_fin
 
     # Paso a paso: estado despues de cada ciclo k = 1..total.
-    regs_k, mem_k, pc_k, masc_k = [0] * 32, [0] * DMEM_WORDS, 0, 0
+    mem_k = list(mem_inicial) if mem_inicial is not None else [0] * DMEM_WORDS
+    regs_k, pc_k, masc_k = [0] * 32, 0, 0
     ir, im = sorted(eventos_reg), sorted(eventos_mem)
     for k in range(1, total + 1):
         if k == fault_edge:
@@ -302,10 +309,14 @@ def ejecutar(prog, max_instr=5000, pasos_sin_fin=40, estricto=False):
             raise AssertionError("modelo inconsistente: paso a paso != ejecucion")
     else:
         # Sin fin: el estado (regs/mem) tiene que haberse estabilizado.
-        if regs_k != regs or mem_k != mem:
+        if verificar_estable and (regs_k != regs or mem_k != mem):
             raise AssertionError("programa sin fin cuyo estado no se estabiliza "
                                  f"en {pasos_sin_fin} ciclos")
-        r.regs, r.mem, r.pc, r.pc_bucle = regs, mem, None, pc
+        if verificar_estable:
+            r.regs, r.mem = regs, mem
+        else:                              # estado en el ultimo ciclo calculado
+            r.regs, r.mem = regs_k, mem_k
+        r.pc, r.pc_bucle = None, pc
     if r.estado == ST_HALT:
         # Patron de parada normal (params.vh 4b): MEM/WB.ctrl = valid | halt,
         # IF/ID.instr = NOP; el resto en cero.
