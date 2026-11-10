@@ -1,0 +1,33 @@
+# saltos.hex - generado por ensamblador.py desde saltos.asm (no editar a mano)
+# beq/bne tomados y no tomados, jal/jalr (direccion de retorno) y flush de las
+# instrucciones buscadas de mas. Un HALT en el camino descartado no detiene.
+# Ciclos: 14 instrucciones + 2 x 5 saltos tomados + 4 = 28.
+#
+# Resultado esperado con el cpu real (rv32i_model.py):
+#   estado = 0x01 (HALT), ciclos = 28, PC = 0x00000058
+#   registros distintos de 0: x1 = 0x00000005, x2 = 0x00000006, x3 = 0x00000003,
+#       x4 = 0x00000038, x5 = 0x00000005, x6 = 0x00000039, x7 = 0x0000004C,
+#       x8 = 0x0000004C
+#   memoria que escribe el programa: ninguna (el resto conserva lo que habia: la memoria no se borra)
+00500093    # 0x000: addi x1, x0, 5
+00500113    # 0x004: addi x2, x0, 5
+00208663    # 0x008: beq  x1, x2, igual
+00000000    # 0x00C: halt
+00200513    # 0x010: addi x10, x0, 2
+00209C63    # 0x014: igual:  bne  x1, x2, mal
+00300193    # 0x018: addi x3, x0, 3
+00008863    # 0x01C: beq  x1, x0, mal
+00110113    # 0x020: addi x2, x2, 1
+00209863    # 0x024: bne  x1, x2, sigue
+00100593    # 0x028: addi x11, x0, 1
+00100613    # 0x02C: mal:    addi x12, x0, 1
+00000000    # 0x030: halt
+0100026F    # 0x034: sigue:  jal  x4, funcion
+00500293    # 0x038: addi x5, x0, 5
+0140006F    # 0x03C: j    fin
+00100693    # 0x040: addi x13, x0, 1
+00120313    # 0x044: funcion: addi x6, x4, 1
+000303E7    # 0x048: jalr x7, 0(x6)
+00100713    # 0x04C: addi x14, x0, 1
+00038413    # 0x050: fin:    addi x8, x7, 0
+00000000    # 0x054: halt

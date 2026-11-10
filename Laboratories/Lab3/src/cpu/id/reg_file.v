@@ -54,9 +54,9 @@ module reg_file
     assign o_rs2_data = (i_rs2 == 5'd0) ? 32'd0 :
                        (write_en && i_rd == i_rs2) ? i_wdata : regs[i_rs2];
 
-    // Debug inspecciona todas las posiciones, incluida regs[0], sin forzar cero.
-    // regs[0] queda en cero tras el reset; antes puede ser desconocida en simulacion.
-    assign o_dbg_data = regs[i_dbg_addr];
+    // Debug lee el contenido almacenado, sin bypass. x0 se fuerza a cero
+    // (contrato): asi vale 0 incluso antes del primer reset.
+    assign o_dbg_data = (i_dbg_addr == 5'd0) ? 32'd0 : regs[i_dbg_addr];
 
 endmodule
 
@@ -77,5 +77,5 @@ endmodule
 // i_rd        | Entrada| Numero del registro destino (x0 no se modifica).
 // i_wdata     | Entrada| Dato que se quiere guardar.
 // i_dbg_addr  | Entrada| Numero del registro a consultar desde debug.
-// o_dbg_data  | Salida | Contenido directo de regs[0..31], sin bypass.
+// o_dbg_data  | Salida | Contenido de regs[1..31], sin bypass; x0 siempre 0.
 //------------------------------------------------------------------------------

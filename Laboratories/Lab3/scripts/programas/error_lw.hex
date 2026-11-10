@@ -1,0 +1,14 @@
+# error_lw.hex - generado por ensamblador.py desde error_lw.asm (no editar a mano)
+# Parada por error: lw fuera de la memoria de datos (128 bytes: 0..127).
+# Estado 0x05. El PC ya busco 3 instrucciones despues del lw: 0x08 + 12.
+#
+# Resultado esperado con el cpu real (rv32i_model.py):
+#   estado = 0x05 (detenido por ERROR), ciclos = 6, PC = 0x00000014
+#   registros distintos de 0: x1 = 0x0000002A
+#   memoria que escribe el programa: mem[31] = 0x0000002A (el resto conserva lo que habia: la memoria no se borra)
+02A00093    # 0x000: addi x1, x0, 42
+06102E23    # 0x004: sw   x1, 124(x0)
+08002103    # 0x008: lw   x2, 128(x0)
+00100193    # 0x00C: addi x3, x0, 1
+00100213    # 0x010: addi x4, x0, 1
+00000000    # 0x014: halt

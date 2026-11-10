@@ -47,8 +47,9 @@ module debug_unit
     input  wire [31:0]   i_dbg_mem_data,
 
     input  wire [31:0]   i_pc,
-    input  wire [383:0]  i_latches,
+    input  wire [479:0]  i_latches,        // 15 palabras (params.vh, seccion 4b)
     input  wire          i_halted,
+    input  wire          i_fault,          // 1 = detenido por error (bit 2 del estado)
 
     // ---------------- Depuracion en la placa
     output wire [7:0]    o_leds            // {3'b000, halted, codigo de estado}
@@ -81,6 +82,7 @@ module debug_unit
         .o_imem_addr   (o_imem_addr),
         .o_imem_data   (o_imem_data),
         .i_halted      (i_halted),
+        .i_fault       (i_fault),
 
         .o_dump_idx    (dump_idx),
         .o_cycles      (cycles),

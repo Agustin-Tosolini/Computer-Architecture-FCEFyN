@@ -1,0 +1,48 @@
+# alu.hex - generado por ensamblador.py desde alu.asm (no editar a mano)
+# Todas las operaciones de la ALU (tipo R e I) con casos borde: signo en
+# slt/sra, sltu, desplazamientos de 0 y 31 bits, desborde y x0 como destino.
+# Ciclos: 32 instrucciones + 4 = 36.
+#
+# Resultado esperado con el cpu real (rv32i_model.py):
+#   estado = 0x01 (HALT), ciclos = 36, PC = 0x00000084
+#   registros distintos de 0: x1 = 0xFFFFFFF8, x2 = 0x00000003, x3 = 0x80000000,
+#       x4 = 0x0000001F, x5 = 0xFFFFFFFB, x6 = 0x0000000B, x7 = 0x80000000,
+#       x8 = 0x00000001, x9 = 0xFFFFFFFF, x10 = 0xF0000000, x11 = 0x10000000,
+#       x12 = 0xFFFFFFF8, x13 = 0x00000001, x16 = 0x00000001, x17 = 0xFFFFFFFB,
+#       x18 = 0xFFFFFFFB, x20 = 0x000007F7, x21 = 0xFFFFFFF0, x22 = 0xFFFFF803,
+#       x23 = 0x00000007, x24 = 0x00000001, x25 = 0x00000001, x26 = 0x80000000,
+#       x27 = 0x00000001, x28 = 0xFFFFFFFF, x29 = 0xFFFFFFF8, x31 = 0x7FFFFFFD
+#   memoria que escribe el programa: ninguna (el resto conserva lo que habia: la memoria no se borra)
+FF800093    # 0x000: addi x1, x0, -8
+00300113    # 0x004: addi x2, x0, 3
+800001B7    # 0x008: lui  x3, 0x80000
+01F00213    # 0x00C: addi x4, x0, 31
+002082B3    # 0x010: add  x5, x1, x2
+40110333    # 0x014: sub  x6, x2, x1
+004113B3    # 0x018: sll  x7, x2, x4
+0040D433    # 0x01C: srl  x8, x1, x4
+4040D4B3    # 0x020: sra  x9, x1, x4
+4021D533    # 0x024: sra  x10, x3, x2
+0021D5B3    # 0x028: srl  x11, x3, x2
+00009633    # 0x02C: sll  x12, x1, x0
+0020A6B3    # 0x030: slt  x13, x1, x2
+0020B733    # 0x034: sltu x14, x1, x2
+001127B3    # 0x038: slt  x15, x2, x1
+00113833    # 0x03C: sltu x16, x2, x1
+0020C8B3    # 0x040: xor  x17, x1, x2
+0020E933    # 0x044: or   x18, x1, x2
+0020F9B3    # 0x048: and  x19, x1, x2
+7FF08A13    # 0x04C: addi x20, x1, 2047
+FF00FA93    # 0x050: andi x21, x1, -16
+80016B13    # 0x054: ori  x22, x2, -2048
+FFF0CB93    # 0x058: xori x23, x1, -1
+FF90AC13    # 0x05C: slti x24, x1, -7
+FFF13C93    # 0x060: sltiu x25, x2, -1
+01F11D13    # 0x064: slli x26, x2, 31
+01F1DD93    # 0x068: srli x27, x3, 31
+41F1DE13    # 0x06C: srai x28, x3, 31
+4000DE93    # 0x070: srai x29, x1, 0
+00501F13    # 0x074: slli x30, x0, 5
+40218FB3    # 0x078: sub  x31, x3, x2
+00208033    # 0x07C: add  x0, x1, x2
+00000000    # 0x080: halt

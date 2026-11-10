@@ -14,8 +14,9 @@ module cpu (
     input wire [7:0] i_dbg_mem_addr,      // Palabra de datos 0..31.
     output wire [31:0] o_dbg_mem_data,    // Contenido de memoria de datos.
     output wire [31:0] o_pc,             // PC de busqueda, en bytes.
-    output wire [383:0] o_latches,       // Estado de los cuatro registros intermedios.
-    output reg o_halted                  // Parada completada; requiere reset.
+    output wire [479:0] o_latches,       // Los cuatro registros intermedios (15 palabras).
+    output wire o_halted,                // Parada completada; requiere reset.
+    output wire o_fault                  // La parada fue por error; requiere reset.
 );
     reg halting;
     wire step = i_enable && !o_halted;
@@ -117,16 +118,21 @@ module cpu (
     wire [31:0] pc_next = redirect ? target : o_pc + 32'd4;
 
     always @(posedge i_clk) begin
-        if (i_cpu_reset) begin
+        if (i_cpu_reset)
             halting <= 1'b0;
-            o_halted <= 1'b0;
-        end
-        else if (step) begin
-            if (stop_id || mem_fault) halting <= 1'b1;
-            // En este flanco sale el marcador de WB y quedan todas las etapas vacias.
-            if (wb_valid && wb_halt) o_halted <= 1'b1;
-        end
+        else if (step && (stop_id || mem_fault))
+            halting <= 1'b1;
     end
+
+    // Parada: el marcador de HALT (o de error) llego a MEM/WB, es decir, a la
+    // etapa WB. Las etapas anteriores ya estan vacias y la instruccion previa
+    // escribio su resultado en ese mismo flanco. Con o_halted = 1, step = 0 y
+    // MEM/WB queda congelado: las dos salidas se mantienen hasta el reset.
+    // 5 NOPs + HALT -> o_halted = 1 despues de 9 ciclos habilitados.
+    assign o_halted = wb_valid && wb_halt;
+    // Error: instruccion ilegal, fetch fuera de rango/desalineado o acceso
+    // invalido a la memoria de datos. Todos llegan a WB con illegal = 1.
+    assign o_fault  = o_halted && wb_illegal;
 
     // IF: seleccion de PC y memoria de programa.
     pc_reg u_pc (.i_clk(i_clk), .i_reset(i_cpu_reset), .i_enable(step),
@@ -261,7 +267,7 @@ module cpu (
         .i_reg_write(mem_reg_write && !mem_fault),
         .i_result_src(mem_result_src),
         .i_halt(mem_halt || mem_fault),
-        .i_illegal(mem_illegal),
+        .i_illegal(mem_illegal || mem_fault), // El fallo de MEM tambien es error.
         .i_valid(mem_valid),
         .o_result(wb_result),
         .o_mem_data(wb_mem_data),
@@ -291,20 +297,30 @@ module cpu (
         .i_ex_redirect(redirect), .o_pc_write(pc_write), .o_if_id_write(if_write),
         .o_if_id_flush(if_flush), .o_id_ex_flush(ex_flush));
 
-    // MEM: 32 palabras; WB usa el mux wb_data y el puerto de escritura de u_regs.
+    // MEM: 32 palabras de RAM (el reset no las borra); WB usa el mux wb_data y
+    // el puerto de escritura de u_regs.
     data_mem u_dmem (.i_clk(i_clk), .i_reset(i_cpu_reset), .i_enable(step),
         .i_addr(mem_result), .i_wdata(mem_store_data),
         .i_re(mem_valid && mem_mem_read), .i_we(mem_valid && mem_mem_write),
         .i_funct3(mem_funct3), .o_rdata(mem_data), .o_access_error(mem_error),
         .i_dbg_addr(i_dbg_mem_addr), .o_dbg_data(o_dbg_mem_data));
 
-    // Contrato de 384 bits: 3 ceros + IF/ID(65) + ID/EX(163) + EX/MEM(79) + MEM/WB(74).
+    // Contrato de 480 bits (params.vh, seccion 4b): cada latch ocupa palabras
+    // enteras de 32 bits. Los campos de 32 bits van en su propia palabra; los
+    // campos chicos se juntan en una palabra de control rellena con ceros.
     // Dentro de cada bloque, campos en el orden de sus salidas declaradas.
-    wire [64:0] snapshot_id = {id_pc, id_instr, id_valid};
-    wire [162:0] snapshot_ex = {ex_pc, ex_rs1_data, ex_rs2_data, ex_imm, ex_rs1, ex_rs2, ex_rd, ex_funct3, ex_funct7_b5, ex_reg_write, ex_alu_src_a, ex_alu_src_b, ex_mem_read, ex_mem_write, ex_result_src, ex_branch, ex_jump, ex_jalr, ex_alu_op, ex_halt, ex_uses_rs1, ex_uses_rs2, ex_illegal, ex_valid};
-    wire [78:0] snapshot_mem = {mem_result, mem_store_data, mem_rd, mem_funct3, mem_reg_write, mem_mem_read, mem_mem_write, mem_result_src, mem_halt, mem_illegal, mem_valid};
-    wire [73:0] snapshot_wb = {wb_result, wb_mem_data, wb_rd, wb_reg_write, wb_result_src, wb_halt, wb_illegal, wb_valid};
-    assign o_latches = {3'd0, snapshot_id, snapshot_ex, snapshot_mem, snapshot_wb};
+    wire [95:0] snapshot_id = {id_pc, id_instr, 31'd0, id_valid};
+    wire [191:0] snapshot_ex = {ex_pc, ex_rs1_data, ex_rs2_data, ex_imm,
+        13'd0, ex_rs1, ex_rs2, ex_rd, ex_funct3, ex_funct7_b5,
+        16'd0, ex_reg_write, ex_alu_src_a, ex_alu_src_b, ex_mem_read, ex_mem_write,
+        ex_result_src, ex_branch, ex_jump, ex_jalr, ex_alu_op, ex_halt,
+        ex_uses_rs1, ex_uses_rs2, ex_illegal, ex_valid};
+    wire [95:0] snapshot_mem = {mem_result, mem_store_data,
+        17'd0, mem_rd, mem_funct3, mem_reg_write, mem_mem_read, mem_mem_write,
+        mem_result_src, mem_halt, mem_illegal, mem_valid};
+    wire [95:0] snapshot_wb = {wb_result, wb_mem_data,
+        22'd0, wb_rd, wb_reg_write, wb_result_src, wb_halt, wb_illegal, wb_valid};
+    assign o_latches = {snapshot_id, snapshot_ex, snapshot_mem, snapshot_wb};
 endmodule
 
 `default_nettype wire

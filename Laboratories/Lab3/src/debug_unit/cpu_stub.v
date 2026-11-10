@@ -5,17 +5,21 @@
 // cpu_stub — Procesador FALSO para desarrollar y probar la debug_unit.
 //
 // Tiene EXACTAMENTE los mismos puertos que el cpu real (contrato de params.vh,
-// seccion 4). Cuando el cpu real este listo, se cambia cpu_stub por cpu en el
-// top y no deberia hacer falta tocar nada mas.
+// seccion 4). El top elige uno u otro con el parametro USE_CPU_STUB: en la placa
+// va el cpu real; tb_top usa el stub para probar el protocolo.
+//
+// Diferencias conocidas con el cpu real (el stub no ejecuta instrucciones):
+//   * Al detenerse el PC queda en la direccion del HALT (el cpu real: HALT + 4).
+//   * o_fault vale siempre 0 (nunca se detiene por error).
 //
 // No ejecuta instrucciones. Imita solo lo que la debug_unit puede observar:
 //
 //   * Memoria de programa REAL (256 x 32), escrita con i_imem_we.
 //     Arranca con INIT_NOPS instrucciones NOP (0x00000013) y el resto en
 //     0x00000000 (= HALT). Con el valor por defecto (0) arranca toda en HALT:
-//     memoria vacia = parada. El top usa INIT_NOPS = 8 para poder probar 'S'
-//     en la placa antes de tener 'L': el PC avanza 0, 4, ..., 0x20 y despues
-//     aparece el HALT.
+//     memoria vacia = parada. Con USE_CPU_STUB = 1 el top le pasa
+//     STUB_INIT_NOPS = 8 (lo usa tb_top): el PC avanza 0, 4, ..., 0x20 y
+//     despues aparece el HALT. (Asi se probo 'S' en la placa antes de 'L'.)
 //
 //   * PC: avanza de a 4 por cada ciclo con i_enable = 1.
 //
@@ -37,9 +41,9 @@
 //     programa, y asi se puede verificar el comando 'L' con un volcado 'D'.
 //     En el cpu real este puerto lee la memoria de datos.
 //
-//   * Latches: 12 palabras de 32 bits; la palabra k ocupa los bits
+//   * Latches: 15 palabras de 32 bits; la palabra k ocupa los bits
 //     [32k+31 : 32k] y vale {4'hA, k, PC[23:0]}  ej: PC=8, palabra 3 -> 0xA300_0008.
-//     El byte alto (A0..AB) identifica la palabra en el volcado.
+//     El byte alto (A0..AE) identifica la palabra en el volcado.
 //
 //   * i_cpu_reset: PC = 0, halted = 0. NO borra la memoria de programa
 //     (asi se puede volver a correr el mismo programa).
@@ -70,15 +74,16 @@ module cpu_stub #
 
     // Estado
     output wire [31:0]   o_pc,
-    output wire [383:0]  o_latches,
-    output wire          o_halted
+    output wire [479:0]  o_latches,
+    output wire          o_halted,
+    output wire          o_fault           // el stub nunca se detiene por error
 );
 
     //------------------------------------------------ Parametros locales
     localparam [31:0] INSTR_HALT   = 32'h0000_0000;
     localparam [31:0] INSTR_NOP    = 32'h0000_0013;   // addi x0, x0, 0
     localparam        IMEM_DEPTH   = 256;
-    localparam        LATCH_WORDS  = 12;          // 384 / 32
+    localparam        LATCH_WORDS  = 15;          // 480 / 32
     localparam [1:0]  DRAIN_CYCLES = 2'd3;        // ID->EX, EX->MEM, MEM->WB
 
     //------------------------------------------------ Memoria de programa
@@ -142,6 +147,7 @@ module cpu_stub #
     //------------------------------------------------ Estado
     assign o_pc     = pc;
     assign o_halted = halted;
+    assign o_fault  = 1'b0;
 
 endmodule
 

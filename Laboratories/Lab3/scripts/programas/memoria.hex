@@ -1,0 +1,44 @@
+# memoria.hex - generado por ensamblador.py desde memoria.asm (no editar a mano)
+# Stores de byte y media palabra seguidos de loads, con y sin signo.
+# Memoria little-endian: el byte 0 de una palabra es el menos significativo.
+# Ciclos: 28 instrucciones + 2 stalls + 4 = 34.
+#
+# Resultado esperado con el cpu real (rv32i_model.py):
+#   estado = 0x01 (HALT), ciclos = 34, PC = 0x00000074
+#   registros distintos de 0: x1 = 0xFFFFFFFF, x2 = 0x0000007A, x3 = 0x00000123,
+#       x4 = 0x89ABC7EF, x5 = 0xFFFFFFEF, x6 = 0x000000EF, x7 = 0x0000007A,
+#       x8 = 0xFFFF89AB, x9 = 0x000089AB, x10 = 0x00000123, x11 = 0xC7EF0000,
+#       x12 = 0xFFFFFFEF, x13 = 0xC7EEFFEF, x14 = 0xC7EEFFEF, x15 = 0x00000001,
+#       x16 = 0x0000C7EF
+#   memoria que escribe el programa: mem[0] = 0x01237AFF, mem[1] = 0x89ABC7EF,
+#       mem[2] = 0xEF0000EF, mem[3] = 0xC7EF0000, mem[4] = 0xC7EEFFEF,
+#       mem[31] = 0xC7EEFFEF (el resto conserva lo que habia: la memoria no se borra)
+FFF00093    # 0x000: addi x1, x0, -1
+00102023    # 0x004: sw   x1, 0(x0)
+07A00113    # 0x008: addi x2, x0, 0x7A
+002000A3    # 0x00C: sb   x2, 1(x0)
+12300193    # 0x010: addi x3, x0, 0x123
+00301123    # 0x014: sh   x3, 2(x0)
+89ABC237    # 0x018: lui  x4, 0x89ABC
+7EF20213    # 0x01C: addi x4, x4, 0x7EF
+00402223    # 0x020: sw   x4, 4(x0)
+00002423    # 0x024: sw   x0, 8(x0)
+00002623    # 0x028: sw   x0, 12(x0)
+00400423    # 0x02C: sb   x4, 8(x0)
+004005A3    # 0x030: sb   x4, 11(x0)
+00401723    # 0x034: sh   x4, 14(x0)
+00400283    # 0x038: lb   x5, 4(x0)
+00404303    # 0x03C: lbu  x6, 4(x0)
+00100383    # 0x040: lb   x7, 1(x0)
+00601403    # 0x044: lh   x8, 6(x0)
+00605483    # 0x048: lhu  x9, 6(x0)
+00201503    # 0x04C: lh   x10, 2(x0)
+00C02583    # 0x050: lw   x11, 12(x0)
+00B00603    # 0x054: lb   x12, 11(x0)
+00B606B3    # 0x058: add  x13, x12, x11
+06D02E23    # 0x05C: sw   x13, 124(x0)
+07C02703    # 0x060: lw   x14, 124(x0)
+00E02823    # 0x064: sw   x14, 16(x0)
+00304783    # 0x068: lbu  x15, 3(x0)
+00E05803    # 0x06C: lhu  x16, 14(x0)
+00000000    # 0x070: halt

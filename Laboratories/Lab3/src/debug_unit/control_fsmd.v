@@ -13,9 +13,9 @@
 //               Formato: 'L', N (2 bytes, LSB primero), N palabras de 4 bytes
 //               en little-endian. Ver "Como funciona la carga".
 //   'X' (0x58)  reset del procesador   ->  responde 'K' (0x4B)
-//   'D' (0x44)  volcado del estado     ->  responde los 314 bytes del volcado
-//   'S' (0x53)  un ciclo de clock      ->  responde los 314 bytes del volcado
-//   'R' (0x52)  correr hasta el HALT   ->  responde los 314 bytes del volcado
+//   'D' (0x44)  volcado del estado     ->  responde los 326 bytes del volcado
+//   'S' (0x53)  un ciclo de clock      ->  responde los 326 bytes del volcado
+//   'R' (0x52)  correr hasta el HALT   ->  responde los 326 bytes del volcado
 //   'I' (0x49)  interrumpir un 'R'     ->  (la respuesta es el volcado del 'R')
 //               Solo tiene efecto DURANTE un 'R'; en cualquier otro momento
 //               se consume y se descarta como un byte desconocido.
@@ -61,7 +61,7 @@
 //
 // Como funciona el volcado:
 //   control_fsmd solo decide CUANDO se manda cada byte y en que ORDEN (dump_idx
-//   = 0, 1, ..., 313). QUE byte va en cada posicion lo decide el dump_mux, que
+//   = 0, 1, ..., 325). QUE byte va en cada posicion lo decide el dump_mux, que
 //   es combinacional: con dump_idx estable, i_dump_byte esta listo en el mismo
 //   ciclo. Por cada byte entregado (o_wr = 1) dump_idx avanza uno; mientras el
 //   transmisor esta ocupado (i_tx_full = 1) dump_idx no cambia, asi que el byte
@@ -129,12 +129,14 @@
 //   byte_cnt    : que byte de N o de la palabra llego (0..3).
 //   cycles      : ciclos que el procesador avanzo (enable = 1 y no halted).
 //                 Vuelve a 0 con el reset global y con 'X'.
-//   dump_idx    : indice del byte del volcado (0..313).
+//   dump_idx    : indice del byte del volcado (0..325).
 //   interrupted : 1 = la ultima corrida 'R' se corto con 'I'. Vuelve a 0 con el
 //                 reset global, con 'X' y al empezar un 'R' o un 'S'. 'D' no
 //                 lo cambia (muestra como quedo la ultima ejecucion).
 // El byte de estado del volcado (o_status) tambien lo arma este modulo:
-//   bit 0 = halted, bit 1 = interrupted, bits 7..2 = 0.
+//   bit 0 = halted, bit 1 = interrupted, bit 2 = fault (el procesador se
+//   detuvo por error; siempre viene junto con halted), bits 7..3 = 0.
+//   HALT normal -> 0x01, interrumpido -> 0x02, error -> 0x05.
 //------------------------------------------------------------------------------
 module control_fsmd
 (
@@ -157,11 +159,12 @@ module control_fsmd
     output wire [7:0]    o_imem_addr,
     output wire [31:0]   o_imem_data,
     input  wire          i_halted,
+    input  wire          i_fault,          // 1 = se detuvo por error (con halted)
 
     // ---------------- Hacia / desde el dump_mux
-    output wire [8:0]    o_dump_idx,       // 0..313
+    output wire [8:0]    o_dump_idx,       // 0..325
     output wire [31:0]   o_cycles,
-    output wire [7:0]    o_status,         // bit 0 = halted, bit 1 = interrupted
+    output wire [7:0]    o_status,         // bit 0 halted, bit 1 interrupted, bit 2 fault
     input  wire [7:0]    i_dump_byte,      // byte del volcado en la posicion o_dump_idx
 
     // ---------------- Depuracion
@@ -177,8 +180,8 @@ module control_fsmd
                      CMD_INT   = 8'h49,   // 'I'  (solo durante RUN)
                      RSP_ACK   = 8'h4B;   // 'K'
 
-    // Ultima posicion del volcado: 314 bytes -> indices 0..313
-    localparam [8:0] DUMP_LAST = 9'd313;
+    // Ultima posicion del volcado: 326 bytes -> indices 0..325 (entra en 9 bits)
+    localparam [8:0] DUMP_LAST = 9'd325;
 
     // Memoria de programa: 256 palabras (0..255)
     localparam [15:0] IMEM_LAST  = 16'd255;
@@ -360,7 +363,7 @@ module control_fsmd
                     next_state       = DUMP;
                 end
 
-            // Manda los 314 bytes, uno por cada vez que el transmisor se libera.
+            // Manda los 326 bytes, uno por cada vez que el transmisor se libera.
             // En el ciclo en que se entrega un byte (o_wr = 1) se avanza al
             // siguiente; despues del ultimo se vuelve a IDLE.
             DUMP:
@@ -428,7 +431,7 @@ module control_fsmd
     assign o_imem_data = (state == WRITE && idx != IMEM_LAST) ? word : INSTR_HALT;
     assign o_dump_idx  = dump_idx;
     assign o_cycles    = cycles;
-    assign o_status    = {6'd0, interrupted, i_halted};
+    assign o_status    = {5'd0, i_fault, interrupted, i_halted};
 
     //------------------------------------------------ Codigo de estado (leds)
     always @(*) begin

@@ -8,15 +8,20 @@ module tb_cpu;
     reg [31:0] imem_data=0;
     reg [4:0] reg_addr=0;
     wire [31:0] reg_data, mem_data, pc;
-    wire [383:0] latches;
-    wire halted;
+    wire [479:0] latches;
+    wire halted, fault;
     integer cycles, stalls, k;
-    reg [415:0] saved;
+    reg [511:0] saved;
+    // Patrones de los latches (480 bits, params.vh seccion 4b).
+    // Reset: todo en cero salvo IF/ID.instr = NOP.
+    localparam [479:0] LAT_RESET = {32'd0, 32'h13, 32'd0, 384'd0};
+    // Parada: igual que el reset, pero MEM/WB conserva el marcador de parada
+    // (bit 0 valid, bit 2 halt; bit 1 illegal solo si fue por error).
     cpu dut (.i_clk(clk), .i_cpu_reset(reset), .i_enable(enable),
         .i_imem_we(imem_we), .i_imem_addr(imem_addr), .i_imem_data(imem_data),
         .i_dbg_reg_addr(reg_addr), .o_dbg_reg_data(reg_data),
         .i_dbg_mem_addr(mem_addr), .o_dbg_mem_data(mem_data),
-        .o_pc(pc), .o_latches(latches), .o_halted(halted));
+        .o_pc(pc), .o_latches(latches), .o_halted(halted), .o_fault(fault));
     task check;
         input [31:0] got, expected;
         begin if (got !== expected) $fatal(1,"CPU got %h expected %h pc=%h",got,expected,pc); end
@@ -33,13 +38,14 @@ module tb_cpu;
     task restart;
         begin
             @(negedge clk); enable=0; reset=1;
-            @(posedge clk); #1; check(pc,0); check(halted,0);
-            if (latches !== {3'd0,32'd0,32'h13,1'b0,316'd0}) $fatal(1,"reset latches");
+            @(posedge clk); #1; check(pc,0); check(halted,0); check(fault,0);
+            if (latches !== LAT_RESET) $fatal(1,"reset latches");
             @(negedge clk); reset=0;
         end
     endtask
     task run_program;
         input pause_each_cycle;
+        input expect_fault;
         begin
             cycles=0; stalls=0;
             while (!halted && cycles<400) begin
@@ -55,7 +61,11 @@ module tb_cpu;
                 end
             end
             if (!halted) $fatal(1,"CPU no termina");
-            if (latches !== {3'd0,32'd0,32'h13,1'b0,316'd0}) $fatal(1,"HALT no vacia pipeline");
+            check(fault, expect_fault);
+            // IF/ID, ID/EX y EX/MEM vacios; el marcador de parada queda en MEM/WB.
+            if (latches[479:96] !== {32'd0, 32'h13, 32'd0, 288'd0}) $fatal(1,"HALT no vacia pipeline");
+            if (latches[0] !== 1'b1 || latches[2] !== 1'b1 || latches[1] !== expect_fault)
+                $fatal(1,"MEM/WB no tiene el marcador de parada");
             @(negedge clk); enable=0;
         end
     endtask
@@ -213,7 +223,7 @@ module tb_cpu;
         put(8'd81,32'h03700c93); // ultima escritura antes HALT
         put(8'd82,32'h00000000); // HALT final
         put(8'd83,32'h06102c23); // STORE
-        run_program(0);
+        run_program(0,0);
         if (stalls != 3) $fatal(1,"numero de stalls %0d",stalls);
         check_architecture;
         // Enable no reinicia una CPU detenida.
@@ -222,45 +232,52 @@ module tb_cpu;
         repeat(3) begin @(posedge clk); #1; if ({pc,latches} !== saved) $fatal(1,"halt inestable"); end
         restart;
         // Mismo programa, pausando en cada ciclo, incluso stall, STORE y salto.
-        run_program(1); check_architecture;
+        run_program(1,0); check_architecture;
+        // El reset borra los registros pero NO la memoria de datos (RAM).
         restart;
+        reg_addr=1; #1; check(reg_data,0);   // era 7
+        mem_addr=0; #1; check(mem_data,32'h0000000e);
+        mem_addr=31; #1; check(mem_data,32'h12345000);
         // LOAD invalido: no pisa destino ni permite efectos posteriores.
         put(0,32'h02a00093); // addi x1,x0,42
         put(1,32'h08002083); // lw x1,128(x0)
         put(2,32'h00102023); // sw x1,0(x0), descartado
         put(3,32'h06300113); // addi x2,x0,99, descartado
-        run_program(0);
+        run_program(0,1);
         reg_addr=1; #1; check(reg_data,42);
         reg_addr=2; #1; check(reg_data,0);
-        mem_addr=0; #1; check(mem_data,14);
+        mem_addr=0; #1; check(mem_data,14);  // el sw descartado no escribio
         restart;
         put(0,32'h00700093);
         put(1,32'hffffffff); // ilegal: parada sin ejecutar lo posterior
         put(2,32'h06300113);
-        run_program(0);
+        run_program(0,1);
         reg_addr=1; #1; check(reg_data,7);
         reg_addr=2; #1; check(reg_data,0);
         restart;
         put(0,32'h40000093); // x1=1024, fuera de memoria de programa
         put(1,32'h00008067); // jalr x0,0(x1)
         put(2,32'h06300113); // camino descartado
-        run_program(0);
+        run_program(0,1);
         check(pc,1024);
         reg_addr=2; #1; check(reg_data,0);
         restart;
         put(0,32'h00200093); // destino sin alineacion de palabra
         put(1,32'h00008067);
-        run_program(0); check(pc,2);
+        run_program(0,1); check(pc,2);
         restart;
         put(0,32'h00900093); // x1=9
         put(1,32'h08102023); // sw x1,128(x0), fuera de rango
         put(2,32'h06300113);
-        run_program(0);
+        run_program(0,1);
         mem_addr=0; #1; check(mem_data,14);
         reg_addr=2; #1; check(reg_data,0);
         restart;
         put(0,32'h00000000); // HALT inmediato
-        run_program(0);
+        run_program(0,0);
+        // Patron exacto de una parada normal: solo MEM/WB.ctrl = valid | halt.
+        if (latches !== {32'd0, 32'h13, 32'd0, 384'd0} + 480'h5) $fatal(1,"patron final de HALT");
+        check(pc,4); // PC = direccion del HALT + 4
         $display("PASS: cpu integrada, ejecucion continua y paso a paso");
         $finish;
     end

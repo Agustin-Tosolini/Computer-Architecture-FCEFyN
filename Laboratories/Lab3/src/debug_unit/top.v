@@ -2,12 +2,12 @@
 `default_nettype none
 
 //------------------------------------------------------------------------------
-// Top del Trabajo Final — PASO 3: debug_unit + cpu_stub.
+// Top del Trabajo Final — PASO 4: debug_unit + cpu real (o cpu_stub).
 //
 // Es la frontera del chip: sus puertos son los pines de la placa y son los
 // nombres que busca el archivo de constraints (top.xdc, sin cambios).
 //
-//   i_rx --> [ uart ] --> [ intf ] --> [ debug_unit ] <== contrato ==> [ cpu_stub ]
+//   i_rx --> [ uart ] --> [ intf ] --> [ debug_unit ] <== contrato ==> [ cpu ]
 //   o_tx <--          <--          <--
 //
 //   i_reset (boton) --> [ reset_gen ] --> reset global
@@ -17,10 +17,17 @@
 //   - cpu_reset:    el comando 'X' resetea SOLO el procesador; la UART y la
 //                   debug_unit siguen funcionando y pueden responder 'K'.
 //
+// Procesador: el parametro USE_CPU_STUB elige cual se instancia (los dos
+// tienen los mismos puertos, contrato de params.vh seccion 4):
+//   - USE_CPU_STUB = 0 (por defecto, PLACA): el cpu real (src/cpu/cpu.v).
+//   - USE_CPU_STUB = 1 (solo tb_top): el cpu_stub, que imita al cpu con valores
+//     reconocibles para probar el protocolo de la debug_unit.
+// Se resuelve con un generate: solo se sintetiza la rama elegida. La instancia
+// se llama u_cpu en las dos ramas; su ruta jerarquica es dut.g_cpu.u_cpu o
+// dut.g_stub.u_cpu.
+//
 // Evolucion prevista:
-//   - debug_unit: se agregan los comandos 'D', 'S', 'R', 'L' (sin tocar el top).
-//   - cpu_stub se reemplaza por el cpu real (mismos puertos).
-//   - paso 4: clk_wiz; su "locked" va a reset_gen.i_locked.
+//   - clk_wiz; su "locked" va a reset_gen.i_locked.
 //------------------------------------------------------------------------------
 module top #
 (
@@ -31,8 +38,9 @@ module top #
     parameter RX_SB_TICK   = 16,            // el Rx espera 1 bit de stop
     parameter TX_STOP_BITS = 1,             // el Tx manda 1 bit de stop
     parameter POR_CYCLES   = 16,            // ciclos de reset al encender
-    parameter STUB_INIT_NOPS = 8            // NOPs iniciales en la memoria del cpu_stub
-                                            // (para probar 'S' en la placa sin 'L')
+    parameter USE_CPU_STUB = 0,             // 0 = cpu real (placa), 1 = cpu_stub (tb_top)
+    parameter STUB_INIT_NOPS = 8            // NOPs iniciales del cpu_stub (solo con
+                                            // USE_CPU_STUB = 1)
 )
 (
     input  wire        i_clk,       // W5  - 100 MHz
@@ -72,8 +80,9 @@ module top #
     wire [7:0]            dbg_mem_addr;
     wire [31:0]           dbg_mem_data;
     wire [31:0]           pc;
-    wire [383:0]          latches;
+    wire [479:0]          latches;        // 15 palabras (params.vh, seccion 4b)
     wire                  halted;
+    wire                  fault;
 
     //================================================ Reset global
     reset_gen #
@@ -168,38 +177,58 @@ module top #
         .i_pc           (pc),
         .i_latches      (latches),
         .i_halted       (halted),
+        .i_fault        (fault),
 
         .o_leds         (o_leds)
     );
 
-    //================================================ Procesador (stub)
+    //================================================ Procesador
     assign cpu_rst = reset | cpu_reset;
 
-    cpu_stub #
-    (
-        .INIT_NOPS (STUB_INIT_NOPS)
-    )
-    u_cpu
-    (
-        .i_clk          (i_clk),
-        .i_cpu_reset    (cpu_rst),
-
-        .i_enable       (cpu_enable),
-
-        .i_imem_we      (imem_we),
-        .i_imem_addr    (imem_addr),
-        .i_imem_data    (imem_data),
-
-        .i_dbg_reg_addr (dbg_reg_addr),
-        .o_dbg_reg_data (dbg_reg_data),
-
-        .i_dbg_mem_addr (dbg_mem_addr),
-        .o_dbg_mem_data (dbg_mem_data),
-
-        .o_pc           (pc),
-        .o_latches      (latches),
-        .o_halted       (halted)
-    );
+    generate
+        if (USE_CPU_STUB) begin : g_stub
+            cpu_stub #
+            (
+                .INIT_NOPS (STUB_INIT_NOPS)
+            )
+            u_cpu
+            (
+                .i_clk          (i_clk),
+                .i_cpu_reset    (cpu_rst),
+                .i_enable       (cpu_enable),
+                .i_imem_we      (imem_we),
+                .i_imem_addr    (imem_addr),
+                .i_imem_data    (imem_data),
+                .i_dbg_reg_addr (dbg_reg_addr),
+                .o_dbg_reg_data (dbg_reg_data),
+                .i_dbg_mem_addr (dbg_mem_addr),
+                .o_dbg_mem_data (dbg_mem_data),
+                .o_pc           (pc),
+                .o_latches      (latches),
+                .o_halted       (halted),
+                .o_fault        (fault)
+            );
+        end
+        else begin : g_cpu
+            cpu u_cpu
+            (
+                .i_clk          (i_clk),
+                .i_cpu_reset    (cpu_rst),
+                .i_enable       (cpu_enable),
+                .i_imem_we      (imem_we),
+                .i_imem_addr    (imem_addr),
+                .i_imem_data    (imem_data),
+                .i_dbg_reg_addr (dbg_reg_addr),
+                .o_dbg_reg_data (dbg_reg_data),
+                .i_dbg_mem_addr (dbg_mem_addr),
+                .o_dbg_mem_data (dbg_mem_data),
+                .o_pc           (pc),
+                .o_latches      (latches),
+                .o_halted       (halted),
+                .o_fault        (fault)
+            );
+        end
+    endgenerate
 
 endmodule
 

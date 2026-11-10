@@ -1,0 +1,26 @@
+# sumas_encadenadas.hex - generado por ensamblador.py desde sumas_encadenadas.asm (no editar a mano)
+# Sumas encadenadas: cada instruccion usa el resultado de la anterior.
+# Prueba forwarding EX/MEM -> EX, MEM/WB -> EX, bypass WB -> ID y x0 destino.
+# Ciclos: 14 instrucciones + 4 = 18 (sin stalls ni saltos).
+#
+# Resultado esperado con el cpu real (rv32i_model.py):
+#   estado = 0x01 (HALT), ciclos = 18, PC = 0x0000003C
+#   registros distintos de 0: x1 = 0x00000001, x2 = 0x00000002, x3 = 0x00000003,
+#       x4 = 0x00000005, x5 = 0x00000008, x6 = 0x0000000D, x7 = 0x0000000D,
+#       x8 = 0xFFFFFFF4, x9 = 0xFFFFFFF6, x10 = 0xFFFFFFEC
+#   memoria que escribe el programa: ninguna (el resto conserva lo que habia: la memoria no se borra)
+00100093    # 0x000: addi x1, x0, 1
+00108133    # 0x004: add  x2, x1, x1
+001101B3    # 0x008: add  x3, x2, x1
+00218233    # 0x00C: add  x4, x3, x2
+003202B3    # 0x010: add  x5, x4, x3
+00428333    # 0x014: add  x6, x5, x4
+00730013    # 0x018: addi x0, x6, 7
+006003B3    # 0x01C: add  x7, x0, x6
+40708433    # 0x020: sub  x8, x1, x7
+00000013    # 0x024: nop
+002404B3    # 0x028: add  x9, x8, x2
+00000013    # 0x02C: nop
+00000013    # 0x030: nop
+00948533    # 0x034: add  x10, x9, x9
+00000000    # 0x038: halt

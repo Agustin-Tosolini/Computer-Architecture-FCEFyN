@@ -1,0 +1,11 @@
+# loop_infinito.hex - generado por ensamblador.py desde loop_infinito.asm (no editar a mano)
+# Programa sin fin: despues de dos instrucciones, un salto a si mismo (j .).
+# 'R' corre para siempre; 'I' lo corta y el volcado trae estado = 0x02.
+#
+# Resultado esperado con el cpu real (rv32i_model.py):
+#   no termina (loop sin fin): cortar con 'I' -> estado = 0x02
+#   registros distintos de 0: x1 = 0x00000003
+#   memoria que escribe el programa: mem[2] = 0x00000003 (el resto conserva lo que habia: la memoria no se borra)
+00300093    # 0x000: addi x1, x0, 3
+00102423    # 0x004: sw   x1, 8(x0)
+0000006F    # 0x008: fin:    j    fin

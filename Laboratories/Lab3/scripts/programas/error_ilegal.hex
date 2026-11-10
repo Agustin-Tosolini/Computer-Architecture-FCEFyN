@@ -1,0 +1,12 @@
+# error_ilegal.hex - generado por ensamblador.py desde error_ilegal.asm (no editar a mano)
+# Parada por error: instruccion ilegal. Lo anterior termina, lo posterior no.
+# Estado 0x05 = halted (bit 0) + error (bit 2). PC = ilegal (0x04) + 4.
+#
+# Resultado esperado con el cpu real (rv32i_model.py):
+#   estado = 0x05 (detenido por ERROR), ciclos = 5, PC = 0x00000008
+#   registros distintos de 0: x1 = 0x00000007
+#   memoria que escribe el programa: ninguna (el resto conserva lo que habia: la memoria no se borra)
+00700093    # 0x000: addi x1, x0, 7
+FFFFFFFF    # 0x004: .word 0xFFFFFFFF
+06300113    # 0x008: addi x2, x0, 99
+00000000    # 0x00C: halt

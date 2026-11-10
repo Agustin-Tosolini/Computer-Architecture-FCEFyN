@@ -1,7 +1,15 @@
-# 5 NOPs. Con el cpu_stub, 'R' termina en PC = 0x14 con 9 ciclos:
-# 5 NOPs + 1 ciclo al ver el HALT de la palabra 5 (puesto por el CLEAR) + 3 de vaciado.
-00000013    # nop (addi x0, x0, 0)
-00000013
-00000013
-00000013
-00000013
+# nops_5.hex - generado por ensamblador.py desde nops_5.asm (no editar a mano)
+# Latencia del HALT: 5 NOPs + HALT -> o_halted = 1 despues de 9 ciclos.
+# (5 NOPs + 1 ciclo en que el HALT entra a ID + 3 hasta que llega a WB.)
+# Con el cpu_stub daba PC = 0x14; con el cpu real el PC queda en HALT + 4.
+#
+# Resultado esperado con el cpu real (rv32i_model.py):
+#   estado = 0x01 (HALT), ciclos = 9, PC = 0x00000018
+#   registros distintos de 0: ninguno
+#   memoria que escribe el programa: ninguna (el resto conserva lo que habia: la memoria no se borra)
+00000013    # 0x000: nop
+00000013    # 0x004: nop
+00000013    # 0x008: nop
+00000013    # 0x00C: nop
+00000013    # 0x010: nop
+00000000    # 0x014: halt

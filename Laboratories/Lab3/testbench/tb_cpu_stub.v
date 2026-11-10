@@ -42,8 +42,9 @@ module tb_cpu_stub;
     reg  [7:0]   dbg_mem_addr = 8'd0;
     wire [31:0]  dbg_mem_data;
     wire [31:0]  pc;
-    wire [383:0] latches;
+    wire [479:0] latches;
     wire         halted;
+    wire         fault;
 
     cpu_stub dut
     (
@@ -59,7 +60,8 @@ module tb_cpu_stub;
         .o_dbg_mem_data (dbg_mem_data),
         .o_pc           (pc),
         .o_latches      (latches),
-        .o_halted       (halted)
+        .o_halted       (halted),
+        .o_fault        (fault)
     );
 
     //------------------------------------------------ Programa de prueba
@@ -167,12 +169,14 @@ module tb_cpu_stub;
         check("latch palabra 0",  latches[  0 +: 32], 32'hA000_0008);
         check("latch palabra 3",  latches[ 96 +: 32], 32'hA300_0008);
         check("latch palabra 11", latches[352 +: 32], 32'hAB00_0008);
+        check("latch palabra 14", latches[448 +: 32], 32'hAE00_0008);
 
         //---------------------------------------- 6. Correr hasta halted
         // Desde PC = 8: 2 ciclos hasta PC = 0x10 (HALT), 1 ciclo en que el
         // HALT pasa a "ID" y 3 de vaciado  ->  6 ciclos.
         run_until_halted(100);
         check("halted tras correr", {31'd0, halted}, 32'd1);
+        check("fault siempre 0 en el stub", {31'd0, fault}, 32'd0);
         check("PC final (en el HALT)", pc, 32'h0000_0010);
         check("ciclos hasta halted", n_cycles, 32'd6);
 

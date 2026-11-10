@@ -4,7 +4,7 @@
 //------------------------------------------------------------------------------
 // dump_mux — Selector del byte del volcado.  Puramente COMBINACIONAL.
 //
-// Dado un indice (i_dump_idx = 0..313) devuelve el byte del volcado que va en esa
+// Dado un indice (i_dump_idx = 0..325) devuelve el byte del volcado que va en esa
 // posicion. Para los tramos de registros y de memoria, ademas pone la
 // direccion de lectura de debug del procesador (o_dbg_reg_addr /
 // o_dbg_mem_addr); como esas lecturas son asincronicas, el dato vuelve en el
@@ -18,17 +18,17 @@
 //   0            1    cabecera 0xA5
 //   1 ..   4     4    PC
 //   5 ..   8     4    contador de ciclos
-//   9            1    estado (bit 0 = halted)
+//   9            1    estado (bit 0 = halted, bit 1 = interrumpido, bit 2 = error)
 //   10 .. 137  128    registros x0..x31   (4 bytes c/u)
-//   138 .. 185  48    latches             (byte k = i_latches[8k+7 : 8k])
-//   186 .. 313 128    memoria de datos, palabras 0..31 (4 bytes c/u)
-//   314 ..       -    fuera de rango: devuelve 0
+//   138 .. 197  60    latches             (byte k = i_latches[8k+7 : 8k])
+//   198 .. 325 128    memoria de datos, palabras 0..31 (4 bytes c/u)
+//   326 ..       -    fuera de rango: devuelve 0
 //
 // Ejemplo: idx = 10 + 4*5 + 2 = 32  ->  registro x5, byte 2 (bits 23:16).
 //------------------------------------------------------------------------------
 module dump_mux
 (
-    input  wire [8:0]    i_dump_idx,       // byte del volcado pedido (0..313)
+    input  wire [8:0]    i_dump_idx,       // byte del volcado pedido (0..325)
 
     // Valores que vienen de control_fsmd
     input  wire [31:0]   i_cycles,
@@ -36,7 +36,7 @@ module dump_mux
 
     // Valores que vienen del procesador
     input  wire [31:0]   i_pc,
-    input  wire [383:0]  i_latches,
+    input  wire [479:0]  i_latches,        // 15 palabras (params.vh, seccion 4b)
 
     output reg  [4:0]    o_dbg_reg_addr,   // registro a leer
     input  wire [31:0]   i_dbg_reg_data,
@@ -53,8 +53,8 @@ module dump_mux
                      OFF_ST    = 9'd9,
                      OFF_REG   = 9'd10,
                      OFF_LAT   = 9'd138,
-                     OFF_MEM   = 9'd186,
-                     DUMP_LEN  = 9'd314;
+                     OFF_MEM   = 9'd198,
+                     DUMP_LEN  = 9'd326;
 
     localparam [7:0] DUMP_HEADER = 8'hA5;
 
@@ -63,7 +63,7 @@ module dump_mux
     wire [8:0] off_pc  = i_dump_idx - OFF_PC;
     wire [8:0] off_cyc = i_dump_idx - OFF_CYC;
     wire [8:0] off_reg = i_dump_idx - OFF_REG;     // 0..127: [6:2] registro, [1:0] byte
-    wire [8:0] off_lat = i_dump_idx - OFF_LAT;     // 0..47
+    wire [8:0] off_lat = i_dump_idx - OFF_LAT;     // 0..59 (entra en [5:0])
     wire [8:0] off_mem = i_dump_idx - OFF_MEM;     // 0..127: [6:2] palabra,  [1:0] byte
 
     // Byte n (0 = menos significativo) de una palabra de 32 bits.
@@ -99,10 +99,10 @@ module dump_mux
             o_dump_byte    = byte_of(i_dbg_reg_data, off_reg[1:0]);
         end
 
-        else if (i_dump_idx < OFF_MEM)                  // 138..185
+        else if (i_dump_idx < OFF_MEM)                  // 138..197
             o_dump_byte = i_latches[8*off_lat[5:0] +: 8];
 
-        else if (i_dump_idx < DUMP_LEN) begin           // 186..313
+        else if (i_dump_idx < DUMP_LEN) begin           // 198..325
             o_dbg_mem_addr = {3'b000, off_mem[6:2]};
             o_dump_byte    = byte_of(i_dbg_mem_data, off_mem[1:0]);
         end

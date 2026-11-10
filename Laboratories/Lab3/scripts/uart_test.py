@@ -10,12 +10,13 @@ Uso:
   python uart_test.py COM5 echo "Hola!"      idem con otro texto
   python uart_test.py COM5 x                 paso 3: manda 'X' y espera 'K'
   python uart_test.py COM5 l prog.hex        carga el programa de prog.hex ('L') y espera 'K'
+  python uart_test.py COM5 l prog.asm        idem, ensamblando antes con ensamblador.py
   python uart_test.py COM5 l prog.hex --verificar
                                              idem, y despues compara con un 'D' (SOLO con el
                                              cpu_stub: su volcado muestra la memoria de programa)
-  python uart_test.py COM5 d                 manda 'D', recibe los 314 bytes del volcado
-                                             y los muestra ordenados
-  python uart_test.py COM5 d --raw           idem, y ademas los 314 bytes en hex
+  python uart_test.py COM5 d                 manda 'D', recibe los 326 bytes del volcado
+                                             y los muestra ordenados (latches por campo)
+  python uart_test.py COM5 d --raw           idem, y ademas los 326 bytes en hex
   python uart_test.py COM5 s                 manda 'S' (un ciclo de clock) y muestra el volcado
   python uart_test.py COM5 step              paso a paso interactivo: Enter = un 'S', muestra
                                              solo lo que cambio; 'd' = volcado completo,
@@ -24,6 +25,8 @@ Uso:
                                              volcado. Enter = mandar 'I' (interrumpir)
   python uart_test.py COM5 terminal          modo interactivo: lo que escribis se manda,
                                              lo que vuelve se muestra en hex y ASCII
+  python uart_test.py --autoprueba           compara la tabla de campos de los latches con la
+                                             de src/params.vh (no necesita la placa)
 
 En Linux el puerto es algo como /dev/ttyUSB1 (en la Basys 3 suele ser el de
 numero mas alto: el otro es el JTAG). En Windows: COM3, COM5, etc.
@@ -48,7 +51,7 @@ try:
     import serial
     import serial.tools.list_ports
 except ImportError:
-    sys.exit("Falta pyserial. Instalalo con:  pip install pyserial")
+    serial = None             # --autoprueba no lo necesita; los demas modos si
 
 BAUD = 115200
 FRAME_S = 10 / BAUD          # tiempo de un byte (start + 8 datos + stop)
@@ -121,10 +124,59 @@ def prueba_x(ser):
 
 #------------------------------------------------------------------ volcado ('D')
 # Formato (params.vh, seccion 6). Valores de 32 bits en little-endian.
-DUMP_LEN = 314
+DUMP_LEN = 326
 DUMP_HEADER = 0xA5
-OFF_PC, OFF_CYC, OFF_ST, OFF_REG, OFF_LAT, OFF_MEM = 1, 5, 9, 10, 138, 186
-N_REGS, N_LATCH_WORDS, N_MEM_WORDS = 32, 12, 32
+OFF_PC, OFF_CYC, OFF_ST, OFF_REG, OFF_LAT, OFF_MEM = 1, 5, 9, 10, 138, 198
+N_REGS, N_LATCH_WORDS, N_MEM_WORDS = 32, 15, 32
+LATCHES_W = 32 * N_LATCH_WORDS            # 480 bits
+
+# Campos de los latches (params.vh, seccion 4b): (latch, campo, bit alto, bit bajo)
+# dentro de o_latches. Cada latch ocupa palabras enteras; el resto es relleno 0.
+# El orden es el de la tabla (de mayor a menor peso).
+CAMPOS_LATCHES = [
+    ("IF/ID",  "pc",          479, 448), ("IF/ID",  "instr",       447, 416),
+    ("IF/ID",  "valid",       384, 384),
+    ("ID/EX",  "pc",          383, 352), ("ID/EX",  "rs1_data",    351, 320),
+    ("ID/EX",  "rs2_data",    319, 288), ("ID/EX",  "imm",         287, 256),
+    ("ID/EX",  "rs1",         242, 238), ("ID/EX",  "rs2",         237, 233),
+    ("ID/EX",  "rd",          232, 228), ("ID/EX",  "funct3",      227, 225),
+    ("ID/EX",  "funct7_b5",   224, 224), ("ID/EX",  "reg_write",   207, 207),
+    ("ID/EX",  "alu_src_a",   206, 206), ("ID/EX",  "alu_src_b",   205, 205),
+    ("ID/EX",  "mem_read",    204, 204), ("ID/EX",  "mem_write",   203, 203),
+    ("ID/EX",  "result_src",  202, 202), ("ID/EX",  "branch",      201, 201),
+    ("ID/EX",  "jump",        200, 200), ("ID/EX",  "jalr",        199, 199),
+    ("ID/EX",  "alu_op",      198, 197), ("ID/EX",  "halt",        196, 196),
+    ("ID/EX",  "uses_rs1",    195, 195), ("ID/EX",  "uses_rs2",    194, 194),
+    ("ID/EX",  "illegal",     193, 193), ("ID/EX",  "valid",       192, 192),
+    ("EX/MEM", "result",      191, 160), ("EX/MEM", "store_data",  159, 128),
+    ("EX/MEM", "rd",          110, 106), ("EX/MEM", "funct3",      105, 103),
+    ("EX/MEM", "reg_write",   102, 102), ("EX/MEM", "mem_read",    101, 101),
+    ("EX/MEM", "mem_write",   100, 100), ("EX/MEM", "result_src",   99,  99),
+    ("EX/MEM", "halt",         98,  98), ("EX/MEM", "illegal",      97,  97),
+    ("EX/MEM", "valid",        96,  96),
+    ("MEM/WB", "result",       95,  64), ("MEM/WB", "mem_data",     63,  32),
+    ("MEM/WB", "rd",            9,   5), ("MEM/WB", "reg_write",     4,   4),
+    ("MEM/WB", "result_src",    3,   3), ("MEM/WB", "halt",          2,   2),
+    ("MEM/WB", "illegal",       1,   1), ("MEM/WB", "valid",         0,   0),
+]
+LATCHES = ["IF/ID", "ID/EX", "EX/MEM", "MEM/WB"]
+
+
+def campos_latches(valor):
+    """Entero de 480 bits -> {"IF/ID": [(campo, ancho, valor), ...], ...}."""
+    out = {l: [] for l in LATCHES}
+    for latch, campo, hi, lo in CAMPOS_LATCHES:
+        ancho = hi - lo + 1
+        out[latch].append((campo, ancho, (valor >> lo) & ((1 << ancho) - 1)))
+    return out
+
+
+def fmt_campo(ancho, v):
+    if ancho == 1:
+        return str(v)
+    if ancho <= 5:
+        return f"{v}"                       # rd, rs1, rs2, funct3, alu_op: en decimal
+    return f"0x{v:08X}"
 
 
 def word(data, pos):
@@ -133,7 +185,7 @@ def word(data, pos):
 
 
 def decode_dump(data):
-    """Convierte los 314 bytes del volcado en un diccionario con nombre.
+    """Convierte los 326 bytes del volcado en un diccionario con nombre.
     Es la operacion inversa del dump_mux (y el embrion de state_decoder.py)."""
     if len(data) != DUMP_LEN:
         raise ValueError(f"el volcado tiene {len(data)} bytes, se esperaban {DUMP_LEN}")
@@ -144,9 +196,11 @@ def decode_dump(data):
         "cycles":  word(data, OFF_CYC),
         "halted":  bool(data[OFF_ST] & 1),           # bit 0
         "interrupted": bool(data[OFF_ST] & 2),       # bit 1: el 'R' se corto con 'I'
+        "fault":   bool(data[OFF_ST] & 4),           # bit 2: se detuvo por error
         "status":  data[OFF_ST],
         "regs":    [word(data, OFF_REG + 4 * i) for i in range(N_REGS)],
         "latches": [word(data, OFF_LAT + 4 * i) for i in range(N_LATCH_WORDS)],
+        "lat_bits": int.from_bytes(data[OFF_LAT:OFF_LAT + LATCHES_W // 8], "little"),
         "mem":     [word(data, OFF_MEM + 4 * i) for i in range(N_MEM_WORDS)],
     }
 
@@ -154,8 +208,8 @@ def decode_dump(data):
 def mostrar_dump(d):
     print(f"PC      = 0x{d['pc']:08X}")
     print(f"ciclos  = {d['cycles']}")
-    print(f"estado  = 0x{d['status']:02X}   (halted = {int(d['halted'])}, "
-          f"interrumpido = {int(d['interrupted'])})")
+    print(f"estado  = 0x{d['status']:02X}   (halted / interrumpido / error = "
+          f"{int(d['halted'])} / {int(d['interrupted'])} / {int(d['fault'])})")
 
     print("\nRegistros")
     for fila in range(8):
@@ -165,13 +219,18 @@ def mostrar_dump(d):
             celdas.append(f"x{i:<2} = 0x{d['regs'][i]:08X}")
         print("  " + "    ".join(celdas))
 
-    print("\nLatches (palabra k = bits [32k+31 : 32k] de o_latches)")
-    for fila in range(3):
-        celdas = []
-        for col in range(4):
-            k = fila * 4 + col
-            celdas.append(f"[{k:2}] 0x{d['latches'][k]:08X}")
-        print("  " + "    ".join(celdas))
+    print("\nLatches (campos de params.vh, seccion 4b)")
+    for latch, campos in campos_latches(d["lat_bits"]).items():
+        valid = dict((c, v) for c, _, v in campos)["valid"]
+        print(f"  {latch:6s}" + ("" if valid else "  (burbuja: valid = 0)"))
+        linea = "   "
+        for campo, ancho, v in campos:
+            celda = f" {campo}={fmt_campo(ancho, v)}"
+            if len(linea) + len(celda) > 78:
+                print(linea)
+                linea = "   "
+            linea += celda
+        print(linea)
 
     print("\nMemoria de datos (palabras 0..31)")
     for fila in range(8):
@@ -184,10 +243,10 @@ def mostrar_dump(d):
 
 def pedir_dump(ser, cmd=b"D"):
     """Manda un comando que responde enseguida con volcado ('D' o 'S') y devuelve los
-    bytes recibidos (314 si todo salio bien)."""
+    bytes recibidos (326 si todo salio bien)."""
     ser.reset_input_buffer()
     ser.write(cmd)
-    # 314 bytes a 115200 tardan ~27 ms; se deja margen de sobra.
+    # 326 bytes a 115200 tardan ~28 ms; se deja margen de sobra.
     old = ser.timeout
     ser.timeout = 1.0
     data = ser.read(DUMP_LEN)
@@ -215,14 +274,19 @@ def diferencias(antes, ahora):
     """Lista de lineas con lo que cambio entre dos volcados decodificados."""
     lineas = []
     for campo, fmt in (("pc", "0x{:08X}"), ("cycles", "{}"), ("halted", "{}"),
-                       ("interrupted", "{}")):
+                       ("interrupted", "{}"), ("fault", "{}")):
         if antes[campo] != ahora[campo]:
             va, vb = int(antes[campo]), int(ahora[campo])
             lineas.append(f"{campo:11} {fmt.format(va)} -> {fmt.format(vb)}")
-    for nombre, clave in (("x", "regs"), ("latch ", "latches"), ("mem ", "mem")):
+    for nombre, clave in (("x", "regs"), ("mem ", "mem")):
         for i, (a, b) in enumerate(zip(antes[clave], ahora[clave])):
             if a != b:
                 lineas.append(f"{nombre}{i:<6} 0x{a:08X} -> 0x{b:08X}")
+    ca, cb = campos_latches(antes["lat_bits"]), campos_latches(ahora["lat_bits"])
+    for latch in LATCHES:
+        for (campo, ancho, a), (_, _, b) in zip(ca[latch], cb[latch]):
+            if a != b:
+                lineas.append(f"{latch}.{campo:11} {fmt_campo(ancho, a)} -> {fmt_campo(ancho, b)}")
     return lineas
 
 
@@ -236,7 +300,7 @@ def paso_a_paso(ser):
         print(f"FALLO al leer el estado inicial: {e}")
         return False
     print(f"Estado inicial: PC = 0x{prev['pc']:08X}, ciclos = {prev['cycles']}, "
-          f"halted = {int(prev['halted'])}")
+          f"halted = {int(prev['halted'])}, error = {int(prev['fault'])}")
     try:
         while True:
             op = input("> ").strip().lower()
@@ -268,7 +332,7 @@ def paso_a_paso(ser):
 
 
 #------------------------------------------------------------------ corrida ('R')
-ESPERA_TRAS_I_S = 2.0        # despues de mandar 'I', el volcado llega en ~27 ms
+ESPERA_TRAS_I_S = 2.0        # despues de mandar 'I', el volcado llega en ~28 ms
 
 
 def correr(ser, raw=False):
@@ -276,7 +340,7 @@ def correr(ser, raw=False):
 
     Hay dos "hilos" (threads), es decir, dos cosas que pasan a la vez:
       - el principal lee el puerto de a poco (timeout corto) hasta juntar los
-        314 bytes del volcado;
+        326 bytes del volcado;
       - otro hilo se queda esperando un Enter del teclado; cuando llega, avisa
         con un Event y el principal manda la 'I'.
     Haga lo que haga el usuario, la FPGA responde UN solo volcado: o porque el
@@ -335,6 +399,9 @@ def correr(ser, raw=False):
 
     if d["interrupted"]:
         print(f"Interrumpido en PC = 0x{d['pc']:08X} despues de {d['cycles']} ciclos")
+    elif d["fault"]:
+        print(f"Detenido por ERROR en PC = 0x{d['pc']:08X}, ciclos = {d['cycles']} "
+              "(instruccion ilegal, fetch fuera de rango o acceso invalido a memoria)")
     elif d["halted"]:
         extra = "  (la 'I' llego tarde y se ignoro)" if t_I is not None else ""
         print(f"Termino (HALT) en PC = 0x{d['pc']:08X}, ciclos = {d['cycles']}{extra}")
@@ -353,7 +420,17 @@ INSTR_HALT = 0x00000000
 
 def leer_hex(ruta):
     """Lee un .hex (una palabra por linea, '#' = comentario) y devuelve la
-    lista de palabras. Corta con un mensaje claro si una linea no es valida."""
+    lista de palabras. Corta con un mensaje claro si una linea no es valida.
+    Un .asm se ensambla antes con ensamblador.py."""
+    if ruta.endswith(".asm"):
+        import os
+        sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+        from ensamblador import ensamblar, ErrorAsm
+        try:
+            with open(ruta, encoding="utf-8") as f:
+                return [ln.word for ln in ensamblar(f.read())]
+        except ErrorAsm as e:
+            sys.exit(f"{ruta}: {e}")
     palabras = []
     with open(ruta, encoding="utf-8") as f:
         for n, linea in enumerate(f, start=1):
@@ -442,18 +519,70 @@ def terminal(ser):
         print()
 
 
+def autoprueba():
+    """La tabla CAMPOS_LATCHES tiene que ser IGUAL a la de params.vh (4b), no
+    solaparse y entrar en 480 bits. Ademas decodifica un volcado armado a mano."""
+    import os
+    import re
+    ok = True
+    ruta = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "src", "params.vh")
+    tabla = []
+    with open(ruta, encoding="utf-8") as f:
+        for linea in f:
+            m = re.match(r"^//\s+(IF/ID|ID/EX|EX/MEM|MEM/WB)\s+(\w+)\s+(\d+)(?::(\d+))?\s", linea)
+            if m and m.group(2) != "relleno":
+                hi = int(m.group(3))
+                lo = int(m.group(4)) if m.group(4) else hi
+                tabla.append((m.group(1), m.group(2), hi, lo))
+    if tabla != CAMPOS_LATCHES:
+        ok = False
+        print(f"ERROR: la tabla de params.vh ({len(tabla)} campos) no coincide con "
+              f"CAMPOS_LATCHES ({len(CAMPOS_LATCHES)} campos)")
+        for a, b in zip(tabla, CAMPOS_LATCHES):
+            if a != b:
+                print(f"  params.vh {a}  /  uart_test.py {b}")
+    usados = set()
+    for latch, campo, hi, lo in CAMPOS_LATCHES:
+        bits = set(range(lo, hi + 1))
+        if bits & usados or hi >= LATCHES_W:
+            ok = False
+            print(f"ERROR: {latch}.{campo} se solapa o se sale de {LATCHES_W} bits")
+        usados |= bits
+    # Volcado de prueba: IF/ID.instr = NOP y MEM/WB con el marcador de HALT.
+    data = bytearray(DUMP_LEN)
+    data[0], data[OFF_ST] = DUMP_HEADER, 0x05
+    lat = (0x13 << 416) | 0x5
+    data[OFF_LAT:OFF_LAT + 60] = lat.to_bytes(60, "little")
+    d = decode_dump(bytes(data))
+    c = {l: dict((n, v) for n, _, v in cs) for l, cs in campos_latches(d["lat_bits"]).items()}
+    if not (c["IF/ID"]["instr"] == 0x13 and c["MEM/WB"]["valid"] == 1 and
+            c["MEM/WB"]["halt"] == 1 and c["MEM/WB"]["illegal"] == 0 and d["fault"]
+            and d["halted"] and not d["interrupted"]):
+        ok = False
+        print("ERROR: decodificacion del volcado de prueba")
+    print("PASS: uart_test (tabla de latches = params.vh)" if ok else "FAIL: uart_test")
+    return ok
+
+
 def main():
     ap = argparse.ArgumentParser(description="Prueba de la UART de la FPGA")
     ap.add_argument("--list", action="store_true", help="listar puertos serie")
     ap.add_argument("puerto", nargs="?", help="ej: COM5 o /dev/ttyUSB1")
     ap.add_argument("modo", nargs="?", choices=["echo", "x", "l", "d", "s", "r", "step", "terminal"])
     ap.add_argument("texto", nargs="?", default=None,
-                    help="modo echo: texto a mandar; modo l: archivo .hex")
+                    help="modo echo: texto a mandar; modo l: archivo .hex o .asm")
     ap.add_argument("--verificar", action="store_true",
                     help="modo l: comparar con un 'D' (solo con el cpu_stub)")
     ap.add_argument("--raw", action="store_true", help="modos d, s y r: mostrar tambien los bytes en hex")
+    ap.add_argument("--autoprueba", action="store_true",
+                    help="comparar la tabla de latches con src/params.vh y salir")
     a = ap.parse_args()
 
+    if a.autoprueba:
+        sys.exit(0 if autoprueba() else 1)
+
+    if serial is None:
+        sys.exit("Falta pyserial. Instalalo con:  pip install pyserial")
     if a.list or not a.puerto:
         listar()
         return

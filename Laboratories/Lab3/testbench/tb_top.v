@@ -11,8 +11,11 @@
 //   [ uart "PC" ] --tx--> i_rx [ top: uart > intf > debug_unit > cpu_stub ]
 //                 <--rx-- o_tx
 //
+// El top se instancia con USE_CPU_STUB = 1: este testbench prueba el PROTOCOLO
+// de la debug_unit con el cpu_stub (el cpu real se prueba en tb_top_cpu.v).
+//
 // En las pruebas 1 a 21 el testbench le escribe valores al cpu_stub
-// directamente con referencias jerarquicas (dut.u_cpu.pc = ...), un recurso
+// directamente con referencias jerarquicas (dut.g_stub.u_cpu.pc = ...), un recurso
 // valido solo en simulacion. Desde la prueba 22 la memoria se carga como en la
 // placa: con el comando 'L' por la UART.
 //
@@ -35,8 +38,8 @@
 //      y sin reset.
 //   4. 'X' otra vez -> sigue funcionando.
 //   5. Boton de reset -> tambien resetea el procesador (OR de reset).
-//   6. 'D' recien reseteado -> 314 bytes: PC = 0, estado = 0, memoria en 0.
-//   7. 'D' con PC, memoria y halted forzados -> 314 bytes con esos valores;
+//   6. 'D' recien reseteado -> 326 bytes: PC = 0, estado = 0, memoria en 0.
+//   7. 'D' con PC, memoria y halted forzados -> 326 bytes con esos valores;
 //      durante el volcado los leds muestran el estado DUMP (8).
 //   8. 'X' y 'D' -> PC = 0 y halted = 0 otra vez; la memoria se conserva.
 //   9. 'S' paso a paso hasta el HALT: PC +4 por paso, ciclos +1, el PC se
@@ -94,7 +97,7 @@ module tb_top;
     localparam [7:0] CMD_INT   = 8'h49;   // 'I'
     localparam [7:0] CMD_LOAD  = 8'h4C;   // 'L'
     localparam [7:0] RSP_ACK   = 8'h4B;   // 'K'
-    localparam       DUMP_LEN  = 314;
+    localparam       DUMP_LEN  = 326;
 
     //------------------------------------------------ Clock
     reg clk = 1'b0;
@@ -110,6 +113,7 @@ module tb_top;
     (
         .CLK_FREQ       (CLK_FREQ),
         .BAUD_RATE      (BAUD_RATE),
+        .USE_CPU_STUB   (1),
         .STUB_INIT_NOPS (INIT_NOPS)
     )
     dut
@@ -272,7 +276,7 @@ module tb_top;
     task set_stub_pc(input [31:0] v);
         begin
             @(negedge clk);
-            dut.u_cpu.pc = v;
+            dut.g_stub.u_cpu.pc = v;
             #1;
             check("PC del stub (forzado)", dut.pc, v);
         end
@@ -282,7 +286,7 @@ module tb_top;
     task set_stub_mem(input [7:0] addr, input [31:0] v);
         begin
             @(negedge clk);
-            dut.u_cpu.imem[addr] = v;
+            dut.g_stub.u_cpu.imem[addr] = v;
             if (addr < 32) mem_model[addr] = v;
         end
     endtask
@@ -291,8 +295,8 @@ module tb_top;
     task set_stub_halted;
         begin
             @(negedge clk);
-            dut.u_cpu.halting   = 1'b1;
-            dut.u_cpu.drain_cnt = 2'd3;
+            dut.g_stub.u_cpu.halting   = 1'b1;
+            dut.g_stub.u_cpu.drain_cnt = 2'd3;
             #1;
             check("halted del stub (forzado)", {31'd0, dut.halted}, 32'd1);
         end
@@ -322,7 +326,7 @@ module tb_top;
             for (k = 0; k < 32; k = k + 1) begin                    // registros
                 put_word(e, reg_model(k[4:0], pc_v));  e = e + 4;
             end
-            for (k = 0; k < 12; k = k + 1) begin                    // latches
+            for (k = 0; k < 15; k = k + 1) begin                    // latches
                 put_word(e, latch_model(k[3:0], pc_v)); e = e + 4;
             end
             for (k = 0; k < 32; k = k + 1) begin                    // memoria
@@ -331,7 +335,7 @@ module tb_top;
         end
     endtask
 
-    // Recibe 314 bytes y los compara con "expected". Solo muestra los primeros
+    // Recibe 326 bytes y los compara con "expected". Solo muestra los primeros
     // errores. Despues verifica que no llegue ni un byte de mas.
     integer dump_errors;
     integer en_before;                    // cpu_enable_cycles antes de un comando
@@ -365,7 +369,7 @@ module tb_top;
     endtask
 
     // Manda un comando que responde con volcado ('D', 'S' o 'R') y verifica los
-    // 314 bytes contra el volcado esperado (armado con el modelo).
+    // 326 bytes contra el volcado esperado (armado con el modelo).
     task check_cmd_dump(input [7:0] cmd, input [8*32-1:0] name, input [31:0] pc_v,
                         input [31:0] cycles_v, input [7:0] status_v);
         begin
@@ -378,7 +382,7 @@ module tb_top;
     // Para un volcado que ya viene en camino y cuyo PC/ciclos no se conocen de
     // antemano (corrida cortada con 'I'): cuando llega la cabecera el procesador
     // ya esta congelado, asi que se toman PC y ciclos del DUT, se arma el
-    // volcado esperado con el modelo y se comparan los 314 bytes. Quien llama
+    // volcado esperado con el modelo y se comparan los 326 bytes. Quien llama
     // verifica que snap_pc y snap_cycles sean coherentes (PC = 4 * ciclos, ...).
     reg [31:0] snap_pc, snap_cycles;
     task check_dump_snapshot(input [8*32-1:0] name, input [7:0] status_v);
@@ -468,10 +472,10 @@ module tb_top;
             imem_errors = 0;
             for (w = 0; w < 256; w = w + 1) begin
                 imem_exp = (w < n && w != 255) ? prog[w] : 32'h0000_0000;
-                if (dut.u_cpu.imem[w] !== imem_exp) begin
+                if (dut.g_stub.u_cpu.imem[w] !== imem_exp) begin
                     if (imem_errors < 6)
                         $display("ERROR: %0s: imem[%0d] = %h, esperado %h",
-                                 name, w, dut.u_cpu.imem[w], imem_exp);
+                                 name, w, dut.g_stub.u_cpu.imem[w], imem_exp);
                     imem_errors = imem_errors + 1;
                 end
             end
@@ -487,7 +491,7 @@ module tb_top;
         begin
             @(negedge clk);
             for (k = 0; k < 256; k = k + 1) begin
-                dut.u_cpu.imem[k] = 32'h0000_0013;
+                dut.g_stub.u_cpu.imem[k] = 32'h0000_0013;
                 if (k < 32) mem_model[k] = 32'h0000_0013;
             end
         end
@@ -697,8 +701,8 @@ module tb_top;
                 // flanco la FSM ve las dos cosas a la vez.
                 wait (dut.rx_empty == 1'b0);
                 @(negedge clk);
-                dut.u_cpu.halting   = 1'b1;
-                dut.u_cpu.drain_cnt = 2'd3;
+                dut.g_stub.u_cpu.halting   = 1'b1;
+                dut.g_stub.u_cpu.drain_cnt = 2'd3;
             end
         join
         check_dump_snapshot("empate HALT / I", 8'h01);   // gana el HALT

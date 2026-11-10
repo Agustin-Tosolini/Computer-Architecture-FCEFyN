@@ -1,4 +1,12 @@
-# Ejemplo de 3 instrucciones (una palabra hex de 32 bits por linea)
-00500093    # addi x1, x0, 5
-00308113    # addi x2, x1, 3
-00000000    # HALT
+# ejemplo_3.hex - generado por ensamblador.py desde ejemplo_3.asm (no editar a mano)
+# Ejemplo minimo: dos addi encadenados y HALT.
+# El segundo addi usa x1 del ciclo anterior (forwarding EX/MEM -> EX).
+# Ciclos: 2 instrucciones + 4 (llenado y vaciado) = 6. PC = HALT (0x08) + 4.
+#
+# Resultado esperado con el cpu real (rv32i_model.py):
+#   estado = 0x01 (HALT), ciclos = 6, PC = 0x0000000C
+#   registros distintos de 0: x1 = 0x00000005, x2 = 0x00000008
+#   memoria que escribe el programa: ninguna (el resto conserva lo que habia: la memoria no se borra)
+00500093    # 0x000: addi x1, x0, 5
+00308113    # 0x004: addi x2, x1, 3
+00000000    # 0x008: halt

@@ -6,7 +6,7 @@
 //
 // Idea: se arma en el testbench el volcado ESPERADO byte por byte, a partir
 // del formato de params.vh y con codigo distinto al del modulo (bucles que
-// recorren registros/latches/memoria). Despues se recorre idx = 0..313 y se
+// recorren registros/latches/memoria). Despues se recorre idx = 0..325 y se
 // compara la salida del dump_mux contra ese volcado esperado.
 //
 // Los "registros" y la "memoria" del procesador se simulan con funciones:
@@ -14,9 +14,9 @@
 // un error de orden (little-endian) o de direccion se nota enseguida.
 //
 // Pruebas:
-//   1. Los 314 bytes del volcado, en orden.
+//   1. Los 326 bytes del volcado, en orden.
 //   2. Direcciones de debug correctas en los tramos de registros y memoria.
-//   3. Fuera de rango (idx >= 314): byte 0 y direcciones 0.
+//   3. Fuera de rango (idx >= 326): byte 0 y direcciones 0.
 //------------------------------------------------------------------------------
 module tb_dump_mux;
 
@@ -25,7 +25,7 @@ module tb_dump_mux;
     reg  [31:0]  cycles   = 32'hC1C2_C3C4;
     reg  [7:0]   status   = 8'h01;              // halted = 1
     reg  [31:0]  pc       = 32'hA1A2_A3A4;
-    reg  [383:0] latches;
+    reg  [479:0] latches;
     wire [4:0]   dbg_reg_addr;
     wire [31:0]  dbg_reg_data;
     wire [7:0]   dbg_mem_addr;
@@ -62,7 +62,7 @@ module tb_dump_mux;
     );
 
     //------------------------------------------------ Volcado esperado
-    reg [7:0] expected [0:313];
+    reg [7:0] expected [0:325];
     integer   i, k, n;
     integer   errors = 0;
 
@@ -77,7 +77,7 @@ module tb_dump_mux;
 
     initial begin
         // latches: byte k = 0x80 + k  (el byte 0 es el menos significativo)
-        for (k = 0; k < 48; k = k + 1)
+        for (k = 0; k < 60; k = k + 1)
             latches[8*k +: 8] = 8'h80 + k;
 
         // armado del volcado esperado, tramo por tramo
@@ -89,19 +89,19 @@ module tb_dump_mux;
         for (k = 0; k < 32; k = k + 1) begin               // registros
             put_word(n, reg_val(k[4:0]));    n = n + 4;
         end
-        for (k = 0; k < 48; k = k + 1) begin               // latches
+        for (k = 0; k < 60; k = k + 1) begin               // latches
             expected[n] = latches[8*k +: 8]; n = n + 1;
         end
         for (k = 0; k < 32; k = k + 1) begin               // memoria
             put_word(n, mem_val(k[7:0]));    n = n + 4;
         end
-        if (n != 314) begin
+        if (n != 326) begin
             $display("ERROR en el testbench: el volcado esperado tiene %0d bytes", n);
             errors = errors + 1;
         end
 
-        //---------------------------------------- 1 y 2. Los 314 bytes
-        for (i = 0; i < 314; i = i + 1) begin
+        //---------------------------------------- 1 y 2. Los 326 bytes
+        for (i = 0; i < 326; i = i + 1) begin
             idx = i[8:0];
             #1;
             if (dbg_byte !== expected[i]) begin
@@ -120,10 +120,10 @@ module tb_dump_mux;
                 $display("ERROR: idx %0d: dbg_reg_addr deberia ser 0", i);
                 errors = errors + 1;
             end
-            if (i >= 186) begin
-                if (dbg_mem_addr !== (i - 186) / 4) begin
+            if (i >= 198) begin
+                if (dbg_mem_addr !== (i - 198) / 4) begin
                     $display("ERROR: idx %0d: dbg_mem_addr %0d, esperado %0d",
-                             i, dbg_mem_addr, (i - 186) / 4);
+                             i, dbg_mem_addr, (i - 198) / 4);
                     errors = errors + 1;
                 end
             end
@@ -134,7 +134,7 @@ module tb_dump_mux;
         end
 
         //---------------------------------------- 3. Fuera de rango
-        for (i = 314; i < 512; i = i + 1) begin
+        for (i = 326; i < 512; i = i + 1) begin
             idx = i[8:0];
             #1;
             if (dbg_byte !== 8'h00 || dbg_reg_addr !== 5'd0 || dbg_mem_addr !== 8'd0) begin
@@ -143,7 +143,7 @@ module tb_dump_mux;
             end
         end
 
-        if (errors == 0) $display("PASS: dump_mux arma los 314 bytes en orden");
+        if (errors == 0) $display("PASS: dump_mux arma los 326 bytes en orden");
         else             $display("FAIL: %0d errores", errors);
         $finish;
     end

@@ -142,9 +142,12 @@ buscando secuencialmente; todavía no ejecuta este flujo de programa.
 | HALT — propia | `halt` | Solicita detener el ingreso de instrucciones y completar las anteriores antes de indicar halted. |
 
 HALT se codifica como `0x00000000` por decisión del proyecto: **no es una
-instrucción estándar de RV32I**. La escritura `halt` en assembler requiere que
-nuestro ensamblador reconozca ese nombre. Su parada está planificada; el top
-actual solamente activa la salida de reconocimiento `o_id_halt`.
+instrucción estándar de RV32I**. Nuestro ensamblador (`scripts/ensamblador.py`)
+reconoce el nombre `halt`. El cpu la detecta en ID, deja de buscar
+instrucciones y activa `o_halted` cuando el HALT llega a WB: con 5 NOPs + HALT,
+después de 9 ciclos. El PC queda en la dirección del HALT + 4. Una instrucción
+no soportada (o un fetch fuera de la memoria) se detiene igual, pero además
+activa `o_fault` (estado 0x05 en el volcado).
 
 ## NOP: no hacer nada
 
@@ -166,5 +169,7 @@ El total es 10 operaciones entre registros + 9 con inmediato + 5 cargas +
 Con el HALT propio son **33 entradas**; NOP es un alias de ADDI.
 
 No incluimos, por ejemplo, MUL, DIV, AUIPC ni los saltos BLT/BGE/BLTU/BGEU.
-Reconocer una instrucción en ID no significa que toda su ejecución ya esté
-implementada o probada.
+Todas están implementadas y probadas en simulación: `testbench/tb_cpu_isa.v`
+(cpu solo) y `testbench/tb_top_cpu.v` (por UART) ejecutan los programas de
+`scripts/programas/` y comparan, ciclo a ciclo, con el modelo de referencia
+`scripts/rv32i_model.py`. `alu.asm` y `memoria.asm` cubren los casos borde.
