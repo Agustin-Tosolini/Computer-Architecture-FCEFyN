@@ -16,6 +16,12 @@ Instalación y uso: [`docs/manual_depurador.md`](docs/manual_depurador.md).
 
 Decisiones de diseño (cpu, debug unit, integración, depurador y respuestas a
 las preguntas de la consigna): [`docs/decisiones_de_diseno.md`](docs/decisiones_de_diseno.md).
+
+**Defensa:** documento de estudio en [`docs/estudio_defensa.md`](docs/estudio_defensa.md).
+Diagramas: [sistema completo](docs/img/sistema_completo.png),
+[pipeline del cpu](docs/img/CPU_completo.png), [debug unit](docs/img/B_completo.png) y
+[máquina de estados](docs/img/debug_unit_fsm.png) (los dos primeros se generan con
+`docs/img/fuentes/diagramas.py`).
 Contrato entre cpu y debug_unit, y formato del volcado: [`src/params.vh`](src/params.vh).
 
 ---

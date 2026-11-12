@@ -1,0 +1,276 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="3300" height="1950" viewBox="0 0 3300 1950" role="img">
+<rect width="3300" height="1950" fill="#FFFFFF"/>
+<text x="60" y="72" font-family="Liberation Sans, Arial, Helvetica, sans-serif" font-size="40" text-anchor="start" fill="#3F3E3B" font-weight="bold">Sistema completo — PC (parte C) ↔ UART ↔ Debug Unit (parte B) ↔ cpu (parte A)</text>
+<text x="60" y="112" font-family="Liberation Sans, Arial, Helvetica, sans-serif" font-size="22" text-anchor="start" fill="#6B6862" font-weight="normal">Qué corre en la PC, qué viaja por el cable y qué hay en la FPGA. Los números salen del código (src/params.vh y los tests).</text>
+<rect x="40" y="160" width="1240" height="1320" rx="16" fill="#FBFBFA" stroke="#A8A49B" stroke-width="2.5"/>
+<path d="M 40 176 Q 40 160 56 160 L 100 160 L 100 204 L 40 204 Z" fill="#A8A49B"/>
+<text x="58" y="191" font-family="Liberation Mono, DejaVu Sans Mono, monospace" font-size="24" text-anchor="start" fill="#FFFFFF" font-weight="bold">PC</text>
+<text x="1256" y="202" font-family="Liberation Sans, Arial, Helvetica, sans-serif" font-size="18" text-anchor="end" fill="#6B6862" font-weight="normal" font-style="italic">Python 3 · scripts/ (Linux Mint)</text>
+<rect x="90" y="240" width="1140" height="380" rx="14" fill="#EEEAF6" stroke="#6A5A9A" stroke-width="2.5"/>
+<text x="660.0" y="280" font-family="Liberation Sans, Arial, Helvetica, sans-serif" font-size="28" text-anchor="middle" fill="#46397A" font-weight="bold">Depurador gráfico (GUI)</text>
+<text x="660.0" y="308" font-family="Liberation Sans, Arial, Helvetica, sans-serif" font-size="18" text-anchor="middle" fill="#46397A" font-weight="normal" font-style="italic">scripts/gui/depurador.py · app/</text>
+<text x="660" y="345.0" font-family="Liberation Mono, DejaVu Sans Mono, monospace" font-size="17" text-anchor="middle" fill="#46397A" font-weight="normal">editor · listado · registros · memoria · latches · log</text>
+<text x="660" y="367.95" font-family="Liberation Mono, DejaVu Sans Mono, monospace" font-size="17" text-anchor="middle" fill="#46397A" font-weight="normal">Cargar (L) · Reset (X) · Paso (S) · Correr (R) · Interrumpir (I) · Volcar (D)</text>
+<rect x="110" y="420" width="340" height="170" rx="14" fill="#E3F3F1" stroke="#2B7A78" stroke-width="2.5"/>
+<text x="280" y="460" font-family="Liberation Mono, DejaVu Sans Mono, monospace" font-size="21" text-anchor="middle" fill="#1A5654" font-weight="bold">ensamblador.py</text>
+<text x="280" y="500.0" font-family="Liberation Mono, DejaVu Sans Mono, monospace" font-size="16" text-anchor="middle" fill="#1A5654" font-weight="normal">.asm → palabras</text>
+<text x="280" y="521.6" font-family="Liberation Mono, DejaVu Sans Mono, monospace" font-size="16" text-anchor="middle" fill="#1A5654" font-weight="normal">etiquetas, pseudo-instr.</text>
+<rect x="490" y="420" width="340" height="170" rx="14" fill="#F9ECE7" stroke="#A2472C" stroke-width="2.5"/>
+<text x="660" y="460" font-family="Liberation Mono, DejaVu Sans Mono, monospace" font-size="21" text-anchor="middle" fill="#7E2E17" font-weight="bold">decodificador.py</text>
+<text x="660" y="500.0" font-family="Liberation Mono, DejaVu Sans Mono, monospace" font-size="16" text-anchor="middle" fill="#7E2E17" font-weight="normal">326 bytes → Estado</text>
+<text x="660" y="521.6" font-family="Liberation Mono, DejaVu Sans Mono, monospace" font-size="16" text-anchor="middle" fill="#7E2E17" font-weight="normal">latches campo por campo</text>
+<rect x="870" y="420" width="340" height="170" rx="14" fill="#FBF1DC" stroke="#A9792A" stroke-width="2.5"/>
+<text x="1040" y="460" font-family="Liberation Mono, DejaVu Sans Mono, monospace" font-size="21" text-anchor="middle" fill="#6E4C10" font-weight="bold">desensamblador.py</text>
+<text x="1040" y="500.0" font-family="Liberation Mono, DejaVu Sans Mono, monospace" font-size="16" text-anchor="middle" fill="#6E4C10" font-weight="normal">palabra → texto</text>
+<text x="1040" y="521.6" font-family="Liberation Mono, DejaVu Sans Mono, monospace" font-size="16" text-anchor="middle" fill="#6E4C10" font-weight="normal">(listado, latches)</text>
+<rect x="90" y="690" width="540" height="160" rx="14" fill="#F3F2EF" stroke="#7A776F" stroke-width="2.5"/>
+<text x="360.0" y="730" font-family="Liberation Sans, Arial, Helvetica, sans-serif" font-size="28" text-anchor="middle" fill="#3F3D3A" font-weight="bold">hilo_serie.py</text>
+<text x="360.0" y="758" font-family="Liberation Sans, Arial, Helvetica, sans-serif" font-size="18" text-anchor="middle" fill="#3F3D3A" font-weight="normal" font-style="italic">Trabajador en un QThread</text>
+<text x="360" y="790.0" font-family="Liberation Mono, DejaVu Sans Mono, monospace" font-size="16" text-anchor="middle" fill="#3F3D3A" font-weight="normal">la ventana nunca espera al puerto</text>
+<text x="360" y="811.6" font-family="Liberation Mono, DejaVu Sans Mono, monospace" font-size="16" text-anchor="middle" fill="#3F3D3A" font-weight="normal">pedidos y respuestas por señales</text>
+<rect x="690" y="690" width="540" height="160" rx="14" fill="#F3F2EF" stroke="#7A776F" stroke-width="2.5"/>
+<text x="960.0" y="730" font-family="Liberation Sans, Arial, Helvetica, sans-serif" font-size="28" text-anchor="middle" fill="#3F3D3A" font-weight="bold">protocolo.py</text>
+<text x="960.0" y="758" font-family="Liberation Sans, Arial, Helvetica, sans-serif" font-size="18" text-anchor="middle" fill="#3F3D3A" font-weight="normal" font-style="italic">clase Enlace</text>
+<text x="960" y="790.0" font-family="Liberation Mono, DejaVu Sans Mono, monospace" font-size="16" text-anchor="middle" fill="#3F3D3A" font-weight="normal">cargar · reset · paso · correr · volcar</text>
+<text x="960" y="811.6" font-family="Liberation Mono, DejaVu Sans Mono, monospace" font-size="16" text-anchor="middle" fill="#3F3D3A" font-weight="normal">timeouts y errores claros</text>
+<rect x="90" y="910" width="540" height="180" rx="14" fill="#E3F4EB" stroke="#2E7D64" stroke-width="2.5"/>
+<text x="360.0" y="950" font-family="Liberation Sans, Arial, Helvetica, sans-serif" font-size="28" text-anchor="middle" fill="#145C47" font-weight="bold">fpga_simulada.py</text>
+<text x="360.0" y="978" font-family="Liberation Sans, Arial, Helvetica, sans-serif" font-size="18" text-anchor="middle" fill="#145C47" font-weight="normal" font-style="italic">modo demo, sin placa</text>
+<text x="360" y="1010.0" font-family="Liberation Mono, DejaVu Sans Mono, monospace" font-size="16" text-anchor="middle" fill="#145C47" font-weight="normal">habla el mismo protocolo</text>
+<text x="360" y="1031.6" font-family="Liberation Mono, DejaVu Sans Mono, monospace" font-size="16" text-anchor="middle" fill="#145C47" font-weight="normal">byte a byte</text>
+<rect x="690" y="910" width="540" height="180" rx="14" fill="#E8EFF9" stroke="#3D5F8F" stroke-width="2.5"/>
+<text x="960.0" y="950" font-family="Liberation Sans, Arial, Helvetica, sans-serif" font-size="28" text-anchor="middle" fill="#23426E" font-weight="bold">transporte.py</text>
+<text x="960.0" y="978" font-family="Liberation Sans, Arial, Helvetica, sans-serif" font-size="18" text-anchor="middle" fill="#23426E" font-weight="normal" font-style="italic">PuertoSerie (pyserial)</text>
+<text x="960" y="1010.0" font-family="Liberation Mono, DejaVu Sans Mono, monospace" font-size="16" text-anchor="middle" fill="#23426E" font-weight="normal">115200 8N1 · /dev/ttyUSB1</text>
+<text x="960" y="1031.6" font-family="Liberation Mono, DejaVu Sans Mono, monospace" font-size="16" text-anchor="middle" fill="#23426E" font-weight="normal">★ = la Basys 3 (FTDI)</text>
+<rect x="90" y="1160" width="540" height="170" rx="14" fill="#FBF1DC" stroke="#A9792A" stroke-width="2.5"/>
+<text x="360.0" y="1200" font-family="Liberation Sans, Arial, Helvetica, sans-serif" font-size="28" text-anchor="middle" fill="#6E4C10" font-weight="bold">rv32i_model.py</text>
+<text x="360.0" y="1228" font-family="Liberation Sans, Arial, Helvetica, sans-serif" font-size="18" text-anchor="middle" fill="#6E4C10" font-weight="normal" font-style="italic">modelo de referencia</text>
+<text x="360" y="1255.0" font-family="Liberation Mono, DejaVu Sans Mono, monospace" font-size="16" text-anchor="middle" fill="#6E4C10" font-weight="normal">ISA + tiempos del pipeline</text>
+<text x="360" y="1276.6" font-family="Liberation Mono, DejaVu Sans Mono, monospace" font-size="16" text-anchor="middle" fill="#6E4C10" font-weight="normal">valores esperados de los tests</text>
+<rect x="690" y="1160" width="540" height="170" rx="14" fill="#F3F2EF" stroke="#7A776F" stroke-width="2.5" stroke-dasharray="10 7"/>
+<text x="960" y="1205" font-family="Liberation Mono, DejaVu Sans Mono, monospace" font-size="22" text-anchor="middle" fill="#3F3D3A" font-weight="bold">uart_test.py</text>
+<text x="960" y="1245.0" font-family="Liberation Mono, DejaVu Sans Mono, monospace" font-size="16" text-anchor="middle" fill="#3F3D3A" font-weight="normal">la misma comunicación por consola</text>
+<text x="960" y="1266.6" font-family="Liberation Mono, DejaVu Sans Mono, monospace" font-size="16" text-anchor="middle" fill="#3F3D3A" font-weight="normal">modos x · l · d · s · r · step</text>
+<text x="110" y="1400.0" font-family="Liberation Sans, Arial, Helvetica, sans-serif" font-size="17" text-anchor="start" fill="#6B6862" font-weight="normal" font-style="italic">Tests: 883 pytest (scripts/gui/tests) · testbenches autoverificados ·</text>
+<text x="110" y="1422.95" font-family="Liberation Sans, Arial, Helvetica, sans-serif" font-size="17" text-anchor="start" fill="#6B6862" font-weight="normal" font-style="italic">pruebas de mutación (scripts/run_all_tests.sh, scripts/mutaciones.py).</text>
+<polyline points="360,620 360,690" fill="none" stroke="#3F3E3B" stroke-width="2.4" stroke-linejoin="round"/>
+<polygon points="360,690 354.1,677 365.9,677" fill="#3F3E3B"/>
+<polygon points="360,620 354.1,633 365.9,633" fill="#3F3E3B"/>
+<text x="372" y="662" font-family="Liberation Mono, DejaVu Sans Mono, monospace" font-size="17" text-anchor="start" fill="#1F1E1C" font-weight="normal" font-style="italic">señales</text>
+<polyline points="630,770 690,770" fill="none" stroke="#3F3E3B" stroke-width="2.4" stroke-linejoin="round"/>
+<polygon points="690,770 677,764.1 677,775.9" fill="#3F3E3B"/>
+<polyline points="960,850 960,880 360,880 360,910" fill="none" stroke="#3F3E3B" stroke-width="2.4" stroke-linejoin="round"/>
+<polygon points="360,910 354.1,897 365.9,897" fill="#3F3E3B"/>
+<text x="520" y="872" font-family="Liberation Mono, DejaVu Sans Mono, monospace" font-size="17" text-anchor="start" fill="#1F1E1C" font-weight="normal" font-style="italic">un transporte u otro</text>
+<polyline points="960,880 960,910" fill="none" stroke="#3F3E3B" stroke-width="2.4" stroke-linejoin="round"/>
+<polygon points="960,910 954.1,897 965.9,897" fill="#3F3E3B"/>
+<polyline points="360,1160 360,1090" fill="none" stroke="#3F3E3B" stroke-width="2.4" stroke-linejoin="round"/>
+<polygon points="360,1090 354.1,1103 365.9,1103" fill="#3F3E3B"/>
+<polyline points="1230,950 1591,950" fill="none" stroke="#3F3E3B" stroke-width="2.4" stroke-linejoin="round"/>
+<polygon points="1591,950 1578,944.1 1578,955.9" fill="#3F3E3B"/>
+<text x="1240" y="938" font-family="Liberation Mono, DejaVu Sans Mono, monospace" font-size="17" text-anchor="start" fill="#1F1E1C" font-weight="normal" font-style="italic">'L' N palabras · 'X' · 'D' · 'S' · 'R' · 'I'</text>
+<polyline points="1591,1040 1230,1040" fill="none" stroke="#3F3E3B" stroke-width="2.4" stroke-linejoin="round"/>
+<polygon points="1230,1040 1243,1034.1 1243,1045.9" fill="#3F3E3B"/>
+<text x="1240" y="1068" font-family="Liberation Mono, DejaVu Sans Mono, monospace" font-size="17" text-anchor="start" fill="#1F1E1C" font-weight="normal" font-style="italic">'K' · volcado de 326 bytes (~28 ms)</text>
+<rect x="1300" y="700" width="210" height="130" rx="14" fill="#F3F2EF" stroke="#7A776F" stroke-width="2.5"/>
+<text x="1405.0" y="740" font-family="Liberation Sans, Arial, Helvetica, sans-serif" font-size="22" text-anchor="middle" fill="#3F3D3A" font-weight="bold">USB-UART</text>
+<text x="1405" y="780.0" font-family="Liberation Mono, DejaVu Sans Mono, monospace" font-size="16" text-anchor="middle" fill="#3F3D3A" font-weight="normal">FTDI en la</text>
+<text x="1405" y="801.6" font-family="Liberation Mono, DejaVu Sans Mono, monospace" font-size="16" text-anchor="middle" fill="#3F3D3A" font-weight="normal">Basys 3</text>
+<text x="1300" y="1120.0" font-family="Liberation Sans, Arial, Helvetica, sans-serif" font-size="17" text-anchor="start" fill="#6B6862" font-weight="normal" font-style="italic">115200 baudios, 8N1</text>
+<text x="1300" y="1142.95" font-family="Liberation Sans, Arial, Helvetica, sans-serif" font-size="17" text-anchor="start" fill="#6B6862" font-weight="normal" font-style="italic">1 byte = 10 bits ≈ 87 µs</text>
+<text x="1300" y="1165.9" font-family="Liberation Sans, Arial, Helvetica, sans-serif" font-size="17" text-anchor="start" fill="#6B6862" font-weight="normal" font-style="italic">pedido → respuesta</text>
+<rect x="1600" y="160" width="1660" height="1320" rx="16" fill="#FFFFFF" stroke="#7A776F" stroke-width="2.5"/>
+<path d="M 1600 176 Q 1600 160 1616 160 L 1810 160 L 1810 204 L 1600 204 Z" fill="#7A776F"/>
+<text x="1618" y="191" font-family="Liberation Mono, DejaVu Sans Mono, monospace" font-size="24" text-anchor="start" fill="#FFFFFF" font-weight="bold">FPGA Basys 3</text>
+<text x="3236" y="202" font-family="Liberation Sans, Arial, Helvetica, sans-serif" font-size="18" text-anchor="end" fill="#6B6862" font-weight="normal" font-style="italic">top.v — un solo clock i_clk de 100 MHz</text>
+<rect x="1591" y="941" width="18" height="18" fill="#FFFFFF" stroke="#3F3E3B" stroke-width="2.4"/>
+<text x="1614" y="938" font-family="Liberation Mono, DejaVu Sans Mono, monospace" font-size="19" text-anchor="start" fill="#3F3E3B" font-weight="bold">i_rx</text>
+<rect x="1591" y="1031" width="18" height="18" fill="#FFFFFF" stroke="#3F3E3B" stroke-width="2.4"/>
+<text x="1614" y="1028" font-family="Liberation Mono, DejaVu Sans Mono, monospace" font-size="19" text-anchor="start" fill="#3F3E3B" font-weight="bold">o_tx</text>
+<rect x="1680" y="250" width="360" height="150" rx="14" fill="#EEEAF6" stroke="#6A5A9A" stroke-width="2.5"/>
+<text x="1860.0" y="290" font-family="Liberation Sans, Arial, Helvetica, sans-serif" font-size="24" text-anchor="middle" fill="#46397A" font-weight="bold">reset_gen</text>
+<text x="1860" y="330.0" font-family="Liberation Mono, DejaVu Sans Mono, monospace" font-size="16" text-anchor="middle" fill="#46397A" font-weight="normal">encendido + botón</text>
+<text x="1860" y="351.6" font-family="Liberation Mono, DejaVu Sans Mono, monospace" font-size="16" text-anchor="middle" fill="#46397A" font-weight="normal">(sincronizado) + locked</text>
+<polygon points="2070,312 2149,312 2163,325 2149,338 2070,338" fill="#FFFFFF" stroke="#6A5A9A" stroke-width="2.2"/>
+<text x="2082" y="331" font-family="Liberation Mono, DejaVu Sans Mono, monospace" font-size="18" text-anchor="start" fill="#46397A" font-weight="bold">reset</text>
+<text x="2200" y="300" font-family="Liberation Sans, Arial, Helvetica, sans-serif" font-size="17" text-anchor="start" fill="#46397A" font-weight="normal" font-style="italic">reset global: UART, intf, debug_unit y cpu</text>
+<text x="2200" y="325" font-family="Liberation Sans, Arial, Helvetica, sans-serif" font-size="17" text-anchor="start" fill="#46397A" font-weight="normal" font-style="italic">cpu_rst = reset OR cpu_reset ('X' y 'L')</text>
+<text x="2200" y="350" font-family="Liberation Sans, Arial, Helvetica, sans-serif" font-size="17" text-anchor="start" fill="#46397A" font-weight="normal" font-style="italic">clk_wiz: previsto (hoy i_clk directo, locked = 1)</text>
+<rect x="1680" y="700" width="300" height="400" rx="14" fill="#E8EFF9" stroke="#3D5F8F" stroke-width="2.5"/>
+<text x="1830.0" y="740" font-family="Liberation Sans, Arial, Helvetica, sans-serif" font-size="28" text-anchor="middle" fill="#23426E" font-weight="bold">uart</text>
+<text x="1830.0" y="768" font-family="Liberation Sans, Arial, Helvetica, sans-serif" font-size="18" text-anchor="middle" fill="#23426E" font-weight="normal" font-style="italic">uart.v</text>
+<text x="1830" y="820.0" font-family="Liberation Mono, DejaVu Sans Mono, monospace" font-size="16" text-anchor="middle" fill="#23426E" font-weight="normal">baud_rate_generator</text>
+<text x="1830" y="841.6" font-family="Liberation Mono, DejaVu Sans Mono, monospace" font-size="16" text-anchor="middle" fill="#23426E" font-weight="normal">÷54 · ×16 por bit</text>
+<text x="1830" y="863.2" font-family="Liberation Mono, DejaVu Sans Mono, monospace" font-size="16" text-anchor="middle" fill="#23426E" font-weight="normal">(tick = enable)</text>
+<text x="1830" y="884.8" font-family="Liberation Mono, DejaVu Sans Mono, monospace" font-size="16" text-anchor="middle" fill="#23426E" font-weight="normal"></text>
+<text x="1830" y="906.4" font-family="Liberation Mono, DejaVu Sans Mono, monospace" font-size="16" text-anchor="middle" fill="#23426E" font-weight="normal">rx_fsmd</text>
+<text x="1830" y="928.0" font-family="Liberation Mono, DejaVu Sans Mono, monospace" font-size="16" text-anchor="middle" fill="#23426E" font-weight="normal">sincronizador 2 FF</text>
+<text x="1830" y="949.6" font-family="Liberation Mono, DejaVu Sans Mono, monospace" font-size="16" text-anchor="middle" fill="#23426E" font-weight="normal"></text>
+<text x="1830" y="971.2" font-family="Liberation Mono, DejaVu Sans Mono, monospace" font-size="16" text-anchor="middle" fill="#23426E" font-weight="normal">tx_fsmd</text>
+<polyline points="1609,950 1680,950" fill="none" stroke="#3F3E3B" stroke-width="2.4" stroke-linejoin="round"/>
+<polygon points="1680,950 1667,944.1 1667,955.9" fill="#3F3E3B"/>
+<polyline points="1680,1040 1609,1040" fill="none" stroke="#3F3E3B" stroke-width="2.4" stroke-linejoin="round"/>
+<polygon points="1609,1040 1622,1034.1 1622,1045.9" fill="#3F3E3B"/>
+<rect x="2050" y="700" width="240" height="400" rx="14" fill="#E3F3F1" stroke="#2B7A78" stroke-width="2.5"/>
+<text x="2170.0" y="740" font-family="Liberation Sans, Arial, Helvetica, sans-serif" font-size="28" text-anchor="middle" fill="#1A5654" font-weight="bold">intf</text>
+<text x="2170.0" y="768" font-family="Liberation Sans, Arial, Helvetica, sans-serif" font-size="18" text-anchor="middle" fill="#1A5654" font-weight="normal" font-style="italic">intf.v</text>
+<text x="2170" y="830.0" font-family="Liberation Mono, DejaVu Sans Mono, monospace" font-size="16" text-anchor="middle" fill="#1A5654" font-weight="normal">rx_intf</text>
+<text x="2170" y="851.6" font-family="Liberation Mono, DejaVu Sans Mono, monospace" font-size="16" text-anchor="middle" fill="#1A5654" font-weight="normal">buffer de 1 byte</text>
+<text x="2170" y="873.2" font-family="Liberation Mono, DejaVu Sans Mono, monospace" font-size="16" text-anchor="middle" fill="#1A5654" font-weight="normal"></text>
+<text x="2170" y="894.8" font-family="Liberation Mono, DejaVu Sans Mono, monospace" font-size="16" text-anchor="middle" fill="#1A5654" font-weight="normal">tx_intf</text>
+<text x="2170" y="916.4" font-family="Liberation Mono, DejaVu Sans Mono, monospace" font-size="16" text-anchor="middle" fill="#1A5654" font-weight="normal">1 byte + full</text>
+<polyline points="1980,830 2050,830" fill="none" stroke="#3F3E3B" stroke-width="4" stroke-linejoin="round"/>
+<polygon points="2050,830 2037,824.1 2037,835.9" fill="#3F3E3B"/>
+<line x1="2010" y1="839" x2="2024" y2="821" stroke="#3F3E3B" stroke-width="2.2"/>
+<text x="2017" y="816" font-family="Liberation Mono, DejaVu Sans Mono, monospace" font-size="17" text-anchor="middle" fill="#3F3E3B" font-weight="normal">8</text>
+<text x="1986" y="856" font-family="Liberation Mono, DejaVu Sans Mono, monospace" font-size="17" text-anchor="start" fill="#1F1E1C" font-weight="normal" font-style="italic">dout</text>
+<polyline points="2050,1000 1980,1000" fill="none" stroke="#3F3E3B" stroke-width="4" stroke-linejoin="round"/>
+<polygon points="1980,1000 1993,994.1 1993,1005.9" fill="#3F3E3B"/>
+<line x1="2006" y1="1009" x2="2020" y2="991" stroke="#3F3E3B" stroke-width="2.2"/>
+<text x="2013" y="986" font-family="Liberation Mono, DejaVu Sans Mono, monospace" font-size="17" text-anchor="middle" fill="#3F3E3B" font-weight="normal">8</text>
+<text x="1986" y="1026" font-family="Liberation Mono, DejaVu Sans Mono, monospace" font-size="17" text-anchor="start" fill="#1F1E1C" font-weight="normal" font-style="italic">din</text>
+<rect x="2360" y="520" width="520" height="900" rx="16" fill="#FBFBFA" stroke="#A8A49B" stroke-width="2.5"/>
+<path d="M 2360 536 Q 2360 520 2376 520 L 2540 520 L 2540 564 L 2360 564 Z" fill="#A8A49B"/>
+<text x="2378" y="551" font-family="Liberation Mono, DejaVu Sans Mono, monospace" font-size="24" text-anchor="start" fill="#FFFFFF" font-weight="bold">debug_unit</text>
+<rect x="2400" y="600" width="440" height="380" rx="14" fill="#FBF1DC" stroke="#A9792A" stroke-width="2.5"/>
+<text x="2620.0" y="640" font-family="Liberation Sans, Arial, Helvetica, sans-serif" font-size="28" text-anchor="middle" fill="#6E4C10" font-weight="bold">control_fsmd</text>
+<text x="2620.0" y="668" font-family="Liberation Sans, Arial, Helvetica, sans-serif" font-size="18" text-anchor="middle" fill="#6E4C10" font-weight="normal" font-style="italic">FSM + registros</text>
+<text x="2620" y="710.0" font-family="Liberation Mono, DejaVu Sans Mono, monospace" font-size="16" text-anchor="middle" fill="#6E4C10" font-weight="normal">IDLE · LOAD_LEN · LOAD_WORD</text>
+<text x="2620" y="731.6" font-family="Liberation Mono, DejaVu Sans Mono, monospace" font-size="16" text-anchor="middle" fill="#6E4C10" font-weight="normal">WRITE · CLEAR · RESET · ACK</text>
+<text x="2620" y="753.2" font-family="Liberation Mono, DejaVu Sans Mono, monospace" font-size="16" text-anchor="middle" fill="#6E4C10" font-weight="normal">RUN · STEP · DUMP</text>
+<text x="2620" y="774.8" font-family="Liberation Mono, DejaVu Sans Mono, monospace" font-size="16" text-anchor="middle" fill="#6E4C10" font-weight="normal"></text>
+<text x="2620" y="796.4" font-family="Liberation Mono, DejaVu Sans Mono, monospace" font-size="16" text-anchor="middle" fill="#6E4C10" font-weight="normal">cycles (32 bits)</text>
+<text x="2620" y="818.0" font-family="Liberation Mono, DejaVu Sans Mono, monospace" font-size="16" text-anchor="middle" fill="#6E4C10" font-weight="normal">interrupted</text>
+<text x="2620" y="839.6" font-family="Liberation Mono, DejaVu Sans Mono, monospace" font-size="16" text-anchor="middle" fill="#6E4C10" font-weight="normal">estado = {fault, interrupted, halted}</text>
+<rect x="2400" y="1030" width="440" height="340" rx="14" fill="#F9ECE7" stroke="#A2472C" stroke-width="2.5"/>
+<text x="2620.0" y="1070" font-family="Liberation Sans, Arial, Helvetica, sans-serif" font-size="28" text-anchor="middle" fill="#7E2E17" font-weight="bold">dump_mux</text>
+<text x="2620.0" y="1098" font-family="Liberation Sans, Arial, Helvetica, sans-serif" font-size="18" text-anchor="middle" fill="#7E2E17" font-weight="normal" font-style="italic">combinacional</text>
+<text x="2620" y="1140.0" font-family="Liberation Mono, DejaVu Sans Mono, monospace" font-size="16" text-anchor="middle" fill="#7E2E17" font-weight="normal">dump_idx 0…325 → byte</text>
+<text x="2620" y="1161.6" font-family="Liberation Mono, DejaVu Sans Mono, monospace" font-size="16" text-anchor="middle" fill="#7E2E17" font-weight="normal">A5 · PC · ciclos · estado</text>
+<text x="2620" y="1183.2" font-family="Liberation Mono, DejaVu Sans Mono, monospace" font-size="16" text-anchor="middle" fill="#7E2E17" font-weight="normal">x0..x31 · latches (60 B)</text>
+<text x="2620" y="1204.8" font-family="Liberation Mono, DejaVu Sans Mono, monospace" font-size="16" text-anchor="middle" fill="#7E2E17" font-weight="normal">mem[0..31] (128 B)</text>
+<text x="2620" y="1226.4" font-family="Liberation Mono, DejaVu Sans Mono, monospace" font-size="16" text-anchor="middle" fill="#7E2E17" font-weight="normal">volcado "al vuelo":</text>
+<text x="2620" y="1248.0" font-family="Liberation Mono, DejaVu Sans Mono, monospace" font-size="16" text-anchor="middle" fill="#7E2E17" font-weight="normal">sin buffer</text>
+<polyline points="2290,830 2400,830" fill="none" stroke="#3F3E3B" stroke-width="4" stroke-linejoin="round"/>
+<polygon points="2400,830 2387,824.1 2387,835.9" fill="#3F3E3B"/>
+<line x1="2360" y1="839" x2="2374" y2="821" stroke="#3F3E3B" stroke-width="2.2"/>
+<text x="2367" y="816" font-family="Liberation Mono, DejaVu Sans Mono, monospace" font-size="17" text-anchor="middle" fill="#3F3E3B" font-weight="normal">8</text>
+<text x="2296" y="856" font-family="Liberation Mono, DejaVu Sans Mono, monospace" font-size="17" text-anchor="start" fill="#1F1E1C" font-weight="normal" font-style="italic">r_data, rd</text>
+<polyline points="2400,930 2290,930" fill="none" stroke="#3F3E3B" stroke-width="4" stroke-linejoin="round"/>
+<polygon points="2290,930 2303,924.1 2303,935.9" fill="#3F3E3B"/>
+<line x1="2316" y1="939" x2="2330" y2="921" stroke="#3F3E3B" stroke-width="2.2"/>
+<text x="2323" y="916" font-family="Liberation Mono, DejaVu Sans Mono, monospace" font-size="17" text-anchor="middle" fill="#3F3E3B" font-weight="normal">8</text>
+<text x="2296" y="956" font-family="Liberation Mono, DejaVu Sans Mono, monospace" font-size="17" text-anchor="start" fill="#1F1E1C" font-weight="normal" font-style="italic">w_data, wr</text>
+<polyline points="2560,980 2560,1030" fill="none" stroke="#3F3E3B" stroke-width="4" stroke-linejoin="round"/>
+<polygon points="2560,1030 2554.1,1017 2565.9,1017" fill="#3F3E3B"/>
+<line x1="2551" y1="997" x2="2569" y2="983" stroke="#3F3E3B" stroke-width="2.2"/>
+<text x="2574" y="996" font-family="Liberation Mono, DejaVu Sans Mono, monospace" font-size="17" text-anchor="start" fill="#3F3E3B" font-weight="normal">9</text>
+<polyline points="2700,1030 2700,980" fill="none" stroke="#3F3E3B" stroke-width="4" stroke-linejoin="round"/>
+<polygon points="2700,980 2694.1,993 2705.9,993" fill="#3F3E3B"/>
+<line x1="2691" y1="1027" x2="2709" y2="1013" stroke="#3F3E3B" stroke-width="2.2"/>
+<text x="2714" y="1026" font-family="Liberation Mono, DejaVu Sans Mono, monospace" font-size="17" text-anchor="start" fill="#3F3E3B" font-weight="normal">8</text>
+<rect x="2940" y="520" width="280" height="900" rx="14" fill="#E3F4EB" stroke="#2E7D64" stroke-width="2.5"/>
+<text x="3080.0" y="560" font-family="Liberation Sans, Arial, Helvetica, sans-serif" font-size="28" text-anchor="middle" fill="#145C47" font-weight="bold">cpu</text>
+<text x="3080.0" y="588" font-family="Liberation Sans, Arial, Helvetica, sans-serif" font-size="18" text-anchor="middle" fill="#145C47" font-weight="normal" font-style="italic">cpu.v (parte A)</text>
+<text x="3080" y="640.0" font-family="Liberation Mono, DejaVu Sans Mono, monospace" font-size="16" text-anchor="middle" fill="#145C47" font-weight="normal">IF · ID · EX</text>
+<text x="3080" y="661.6" font-family="Liberation Mono, DejaVu Sans Mono, monospace" font-size="16" text-anchor="middle" fill="#145C47" font-weight="normal">MEM · WB</text>
+<text x="3080" y="683.2" font-family="Liberation Mono, DejaVu Sans Mono, monospace" font-size="16" text-anchor="middle" fill="#145C47" font-weight="normal"></text>
+<text x="3080" y="704.8" font-family="Liberation Mono, DejaVu Sans Mono, monospace" font-size="16" text-anchor="middle" fill="#145C47" font-weight="normal">instr_mem</text>
+<text x="3080" y="726.4" font-family="Liberation Mono, DejaVu Sans Mono, monospace" font-size="16" text-anchor="middle" fill="#145C47" font-weight="normal">256 × 32</text>
+<text x="3080" y="748.0" font-family="Liberation Mono, DejaVu Sans Mono, monospace" font-size="16" text-anchor="middle" fill="#145C47" font-weight="normal"></text>
+<text x="3080" y="769.6" font-family="Liberation Mono, DejaVu Sans Mono, monospace" font-size="16" text-anchor="middle" fill="#145C47" font-weight="normal">data_mem</text>
+<text x="3080" y="791.2" font-family="Liberation Mono, DejaVu Sans Mono, monospace" font-size="16" text-anchor="middle" fill="#145C47" font-weight="normal">32 × 32</text>
+<text x="3080" y="812.8" font-family="Liberation Mono, DejaVu Sans Mono, monospace" font-size="16" text-anchor="middle" fill="#145C47" font-weight="normal"></text>
+<text x="3080" y="834.4" font-family="Liberation Mono, DejaVu Sans Mono, monospace" font-size="16" text-anchor="middle" fill="#145C47" font-weight="normal">reg_file</text>
+<text x="3080" y="856.0" font-family="Liberation Mono, DejaVu Sans Mono, monospace" font-size="16" text-anchor="middle" fill="#145C47" font-weight="normal">32 × 32</text>
+<text x="3080" y="877.6" font-family="Liberation Mono, DejaVu Sans Mono, monospace" font-size="16" text-anchor="middle" fill="#145C47" font-weight="normal"></text>
+<text x="3080" y="899.2" font-family="Liberation Mono, DejaVu Sans Mono, monospace" font-size="16" text-anchor="middle" fill="#145C47" font-weight="normal">forwarding</text>
+<text x="3080" y="920.8" font-family="Liberation Mono, DejaVu Sans Mono, monospace" font-size="16" text-anchor="middle" fill="#145C47" font-weight="normal">stall · flush</text>
+<text x="3080" y="942.4" font-family="Liberation Mono, DejaVu Sans Mono, monospace" font-size="16" text-anchor="middle" fill="#145C47" font-weight="normal">HALT · error</text>
+<polyline points="2840,650 2940,650" fill="none" stroke="#3F3E3B" stroke-width="2.4" stroke-linejoin="round"/>
+<polygon points="2940,650 2927,644.1 2927,655.9" fill="#3F3E3B"/>
+<text x="2846" y="674" font-family="Liberation Mono, DejaVu Sans Mono, monospace" font-size="17" text-anchor="start" fill="#1F1E1C" font-weight="normal" font-style="italic">enable</text>
+<polyline points="2840,720 2940,720" fill="none" stroke="#3F3E3B" stroke-width="2.4" stroke-linejoin="round"/>
+<polygon points="2940,720 2927,714.1 2927,725.9" fill="#3F3E3B"/>
+<text x="2846" y="744" font-family="Liberation Mono, DejaVu Sans Mono, monospace" font-size="17" text-anchor="start" fill="#1F1E1C" font-weight="normal" font-style="italic">cpu_reset</text>
+<polyline points="2840,800 2940,800" fill="none" stroke="#3F3E3B" stroke-width="4" stroke-linejoin="round"/>
+<polygon points="2940,800 2927,794.1 2927,805.9" fill="#3F3E3B"/>
+<line x1="2900" y1="809" x2="2914" y2="791" stroke="#3F3E3B" stroke-width="2.2"/>
+<text x="2907" y="786" font-family="Liberation Mono, DejaVu Sans Mono, monospace" font-size="17" text-anchor="middle" fill="#3F3E3B" font-weight="normal">32</text>
+<text x="2846" y="824" font-family="Liberation Mono, DejaVu Sans Mono, monospace" font-size="17" text-anchor="start" fill="#1F1E1C" font-weight="normal" font-style="italic">imem_we/addr/data</text>
+<polyline points="2940,900 2840,900" fill="none" stroke="#3F3E3B" stroke-width="2.4" stroke-linejoin="round"/>
+<polygon points="2840,900 2853,894.1 2853,905.9" fill="#3F3E3B"/>
+<text x="2846" y="924" font-family="Liberation Mono, DejaVu Sans Mono, monospace" font-size="17" text-anchor="start" fill="#1F1E1C" font-weight="normal" font-style="italic">halted, fault</text>
+<polyline points="2940,1120 2840,1120" fill="none" stroke="#3F3E3B" stroke-width="4" stroke-linejoin="round"/>
+<polygon points="2840,1120 2853,1114.1 2853,1125.9" fill="#3F3E3B"/>
+<line x1="2866" y1="1129" x2="2880" y2="1111" stroke="#3F3E3B" stroke-width="2.2"/>
+<text x="2873" y="1106" font-family="Liberation Mono, DejaVu Sans Mono, monospace" font-size="17" text-anchor="middle" fill="#3F3E3B" font-weight="normal">480</text>
+<text x="2846" y="1144" font-family="Liberation Mono, DejaVu Sans Mono, monospace" font-size="17" text-anchor="start" fill="#1F1E1C" font-weight="normal" font-style="italic">latches</text>
+<polyline points="2840,1200 2940,1200" fill="none" stroke="#3F3E3B" stroke-width="4" stroke-linejoin="round"/>
+<polygon points="2940,1200 2927,1194.1 2927,1205.9" fill="#3F3E3B"/>
+<line x1="2900" y1="1209" x2="2914" y2="1191" stroke="#3F3E3B" stroke-width="2.2"/>
+<text x="2907" y="1186" font-family="Liberation Mono, DejaVu Sans Mono, monospace" font-size="17" text-anchor="middle" fill="#3F3E3B" font-weight="normal">5</text>
+<text x="2846" y="1224" font-family="Liberation Mono, DejaVu Sans Mono, monospace" font-size="17" text-anchor="start" fill="#1F1E1C" font-weight="normal" font-style="italic">dbg_reg_addr</text>
+<polyline points="2940,1260 2840,1260" fill="none" stroke="#3F3E3B" stroke-width="4" stroke-linejoin="round"/>
+<polygon points="2840,1260 2853,1254.1 2853,1265.9" fill="#3F3E3B"/>
+<line x1="2866" y1="1269" x2="2880" y2="1251" stroke="#3F3E3B" stroke-width="2.2"/>
+<text x="2873" y="1246" font-family="Liberation Mono, DejaVu Sans Mono, monospace" font-size="17" text-anchor="middle" fill="#3F3E3B" font-weight="normal">32</text>
+<text x="2846" y="1284" font-family="Liberation Mono, DejaVu Sans Mono, monospace" font-size="17" text-anchor="start" fill="#1F1E1C" font-weight="normal" font-style="italic">regs / mem / pc</text>
+<polyline points="2840,1330 2940,1330" fill="none" stroke="#3F3E3B" stroke-width="4" stroke-linejoin="round"/>
+<polygon points="2940,1330 2927,1324.1 2927,1335.9" fill="#3F3E3B"/>
+<line x1="2900" y1="1339" x2="2914" y2="1321" stroke="#3F3E3B" stroke-width="2.2"/>
+<text x="2907" y="1316" font-family="Liberation Mono, DejaVu Sans Mono, monospace" font-size="17" text-anchor="middle" fill="#3F3E3B" font-weight="normal">8</text>
+<text x="2846" y="1354" font-family="Liberation Mono, DejaVu Sans Mono, monospace" font-size="17" text-anchor="start" fill="#1F1E1C" font-weight="normal" font-style="italic">dbg_mem_addr</text>
+<rect x="2611" y="151" width="18" height="18" fill="#FFFFFF" stroke="#3F3E3B" stroke-width="2.4"/>
+<text x="2620" y="142" font-family="Liberation Mono, DejaVu Sans Mono, monospace" font-size="19" text-anchor="middle" fill="#3F3E3B" font-weight="bold">o_leds[7:0]</text>
+<polyline points="2620,600 2620,169" fill="none" stroke="#3F3E3B" stroke-width="4" stroke-linejoin="round"/>
+<polygon points="2620,169 2614.1,182 2625.9,182" fill="#3F3E3B"/>
+<line x1="2611" y1="216" x2="2629" y2="202" stroke="#3F3E3B" stroke-width="2.2"/>
+<text x="2634" y="215" font-family="Liberation Mono, DejaVu Sans Mono, monospace" font-size="17" text-anchor="start" fill="#3F3E3B" font-weight="normal">8</text>
+<text x="2630" y="470" font-family="Liberation Mono, DejaVu Sans Mono, monospace" font-size="17" text-anchor="start" fill="#1F1E1C" font-weight="normal" font-style="italic">{3'b000, halted, estado FSM}</text>
+<text x="60" y="1530" font-family="Liberation Sans, Arial, Helvetica, sans-serif" font-size="26" text-anchor="start" fill="#3F3E3B" font-weight="bold">Una sesión típica, de punta a punta</text>
+<circle cx="80" cy="1573" r="14" fill="#B4531A"/>
+<text x="80" y="1578.5" font-family="Liberation Sans, Arial, Helvetica, sans-serif" font-size="16" text-anchor="middle" fill="#FFFFFF" font-weight="bold">1</text>
+<text x="110" y="1580" font-family="Liberation Sans, Arial, Helvetica, sans-serif" font-size="19" text-anchor="start" fill="#3F3E3B" font-weight="normal">Se escribe el programa en ensamblador (o se abre un ejemplo) en la GUI.</text>
+<circle cx="80" cy="1611" r="14" fill="#B4531A"/>
+<text x="80" y="1616.5" font-family="Liberation Sans, Arial, Helvetica, sans-serif" font-size="16" text-anchor="middle" fill="#FFFFFF" font-weight="bold">2</text>
+<text x="110" y="1618" font-family="Liberation Sans, Arial, Helvetica, sans-serif" font-size="19" text-anchor="start" fill="#3F3E3B" font-weight="normal">ensamblador.py lo traduce a palabras de 32 bits (etiquetas, pseudo-instrucciones).</text>
+<circle cx="80" cy="1649" r="14" fill="#B4531A"/>
+<text x="80" y="1654.5" font-family="Liberation Sans, Arial, Helvetica, sans-serif" font-size="16" text-anchor="middle" fill="#FFFFFF" font-weight="bold">3</text>
+<text x="110" y="1656" font-family="Liberation Sans, Arial, Helvetica, sans-serif" font-size="19" text-anchor="start" fill="#3F3E3B" font-weight="normal">'L' + N + palabras: control_fsmd arma cada palabra y la escribe en instr_mem (con enable = 0);</text>
+<text x="110" y="1694" font-family="Liberation Sans, Arial, Helvetica, sans-serif" font-size="19" text-anchor="start" fill="#3F3E3B" font-weight="normal">CLEAR pone HALT en el resto, RESET reinicia el cpu (registros y PC en 0) y responde 'K'.</text>
+<circle cx="80" cy="1725" r="14" fill="#B4531A"/>
+<text x="80" y="1730.5" font-family="Liberation Sans, Arial, Helvetica, sans-serif" font-size="16" text-anchor="middle" fill="#FFFFFF" font-weight="bold">4</text>
+<text x="110" y="1732" font-family="Liberation Sans, Arial, Helvetica, sans-serif" font-size="19" text-anchor="start" fill="#3F3E3B" font-weight="normal">'S' (un ciclo de enable) o 'R' (enable = !halted hasta el HALT; 'I' interrumpe).</text>
+<circle cx="80" cy="1763" r="14" fill="#B4531A"/>
+<text x="80" y="1768.5" font-family="Liberation Sans, Arial, Helvetica, sans-serif" font-size="16" text-anchor="middle" fill="#FFFFFF" font-weight="bold">5</text>
+<text x="110" y="1770" font-family="Liberation Sans, Arial, Helvetica, sans-serif" font-size="19" text-anchor="start" fill="#3F3E3B" font-weight="normal">control_fsmd pasa a DUMP: dump_mux arma cada byte del volcado mientras el cpu está congelado.</text>
+<circle cx="80" cy="1801" r="14" fill="#B4531A"/>
+<text x="80" y="1806.5" font-family="Liberation Sans, Arial, Helvetica, sans-serif" font-size="16" text-anchor="middle" fill="#FFFFFF" font-weight="bold">6</text>
+<text x="110" y="1808" font-family="Liberation Sans, Arial, Helvetica, sans-serif" font-size="19" text-anchor="start" fill="#3F3E3B" font-weight="normal">La PC recibe 326 bytes, decodificador.py los convierte y la GUI muestra los cambios.</text>
+<text x="2000" y="1530" font-family="Liberation Sans, Arial, Helvetica, sans-serif" font-size="26" text-anchor="start" fill="#3F3E3B" font-weight="bold">Referencias</text>
+<rect x="2000" y="1552" width="60" height="24" rx="5" fill="#EEEAF6" stroke="#6A5A9A" stroke-width="2"/>
+<text x="2080" y="1570" font-family="Liberation Sans, Arial, Helvetica, sans-serif" font-size="18" text-anchor="start" fill="#3F3E3B" font-weight="normal">interfaz de usuario / reset</text>
+<rect x="2000" y="1588" width="60" height="24" rx="5" fill="#F3F2EF" stroke="#7A776F" stroke-width="2"/>
+<text x="2080" y="1606" font-family="Liberation Sans, Arial, Helvetica, sans-serif" font-size="18" text-anchor="start" fill="#3F3E3B" font-weight="normal">control y comunicación (PC)</text>
+<rect x="2000" y="1624" width="60" height="24" rx="5" fill="#E8EFF9" stroke="#3D5F8F" stroke-width="2"/>
+<text x="2080" y="1642" font-family="Liberation Sans, Arial, Helvetica, sans-serif" font-size="18" text-anchor="start" fill="#3F3E3B" font-weight="normal">UART</text>
+<rect x="2000" y="1660" width="60" height="24" rx="5" fill="#E3F3F1" stroke="#2B7A78" stroke-width="2"/>
+<text x="2080" y="1678" font-family="Liberation Sans, Arial, Helvetica, sans-serif" font-size="18" text-anchor="start" fill="#3F3E3B" font-weight="normal">buffers / ensamblador</text>
+<rect x="2000" y="1696" width="60" height="24" rx="5" fill="#FBF1DC" stroke="#A9792A" stroke-width="2"/>
+<text x="2080" y="1714" font-family="Liberation Sans, Arial, Helvetica, sans-serif" font-size="18" text-anchor="start" fill="#3F3E3B" font-weight="normal">control_fsmd / modelo</text>
+<rect x="2000" y="1732" width="60" height="24" rx="5" fill="#F9ECE7" stroke="#A2472C" stroke-width="2"/>
+<text x="2080" y="1750" font-family="Liberation Sans, Arial, Helvetica, sans-serif" font-size="18" text-anchor="start" fill="#3F3E3B" font-weight="normal">volcado / decodificador</text>
+<rect x="2000" y="1768" width="60" height="24" rx="5" fill="#E3F4EB" stroke="#2E7D64" stroke-width="2"/>
+<text x="2080" y="1786" font-family="Liberation Sans, Arial, Helvetica, sans-serif" font-size="18" text-anchor="start" fill="#3F3E3B" font-weight="normal">procesador / FPGA simulada</text>
+<polyline points="2580,1564 2660,1564" fill="none" stroke="#3F3E3B" stroke-width="4" stroke-linejoin="round"/>
+<polygon points="2660,1564 2647,1558.1 2647,1569.9" fill="#3F3E3B"/>
+<line x1="2620" y1="1573" x2="2634" y2="1555" stroke="#3F3E3B" stroke-width="2.2"/>
+<text x="2627" y="1550" font-family="Liberation Mono, DejaVu Sans Mono, monospace" font-size="17" text-anchor="middle" fill="#3F3E3B" font-weight="normal">32</text>
+<text x="2680" y="1570" font-family="Liberation Sans, Arial, Helvetica, sans-serif" font-size="18" text-anchor="start" fill="#3F3E3B" font-weight="normal">bus y su ancho en bits</text>
+<text x="2580" y="1606" font-family="Liberation Sans, Arial, Helvetica, sans-serif" font-size="18" text-anchor="start" fill="#3F3E3B" font-weight="normal">Comandos: un byte ASCII. Respuestas:</text>
+<text x="2580" y="1634" font-family="Liberation Sans, Arial, Helvetica, sans-serif" font-size="18" text-anchor="start" fill="#3F3E3B" font-weight="normal">'K' (L, X) o volcado (D, S, R/I).</text>
+<text x="2580" y="1662" font-family="Liberation Sans, Arial, Helvetica, sans-serif" font-size="18" text-anchor="start" fill="#3F3E3B" font-weight="normal">Estado: 0x01 HALT · 0x05 error ·</text>
+<text x="2580" y="1690" font-family="Liberation Sans, Arial, Helvetica, sans-serif" font-size="18" text-anchor="start" fill="#3F3E3B" font-weight="normal">0x02 interrumpido.</text>
+</svg>
