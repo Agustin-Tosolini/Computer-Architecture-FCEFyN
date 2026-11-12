@@ -12,7 +12,7 @@ listado en la sección 7.
 Documentos relacionados: [`decisiones_de_diseno.md`](decisiones_de_diseno.md)
 (las 50 decisiones numeradas), [`instrucciones_cpu.md`](instrucciones_cpu.md),
 [`manual_depurador.md`](manual_depurador.md) y
-[`../CHECKLIST_placa.md`](../CHECKLIST_placa.md).
+[`CHECKLIST_placa.md`](CHECKLIST_placa.md).
 
 ---
 
@@ -69,7 +69,7 @@ Documentos relacionados: [`decisiones_de_diseno.md`](decisiones_de_diseno.md)
 
 ### Una sesión típica, de punta a punta
 
-![Sistema completo](img/sistema_completo.png)
+![Sistema completo](informe/img/sistema_completo.png)
 
 1. **Escribir** el programa en ensamblador en la GUI (o abrir un ejemplo).
 2. **Ensamblar:** `ensamblador.py` lo traduce a palabras de 32 bits (resuelve etiquetas y pseudo-instrucciones).
@@ -435,9 +435,9 @@ Un byte que no es comando se descarta, sin respuesta.
 
 **Formato del volcado** (326 bytes, little-endian): `0xA5` · PC (4) · ciclos (4) · estado (1) · x0..x31 (128) · latches (60) · memoria de datos (128). **Estado:** bit 0 = detenido, bit 1 = interrumpido, bit 2 = error.
 
-**Recorrido del diagrama de estados** (`docs/img/debug_unit_fsm.png`), como para explicarlo con el diagrama en pantalla:
+**Recorrido del diagrama de estados** (`docs/informe/img/debug_unit_fsm.png`), como para explicarlo con el diagrama en pantalla:
 
-![FSM de la Debug Unit](img/debug_unit_fsm.png)
+![FSM de la Debug Unit](informe/img/debug_unit_fsm.png)
 
 - **IDLE:** espera un byte. Lo lee siempre (`rd`). Según cuál sea va a RESET (`'X'`), LOAD_LEN (`'L'`), STEP (`'S'`), RUN (`'R'`) o DUMP (`'D'`). Cualquier otro byte, incluida una `'I'` acá, se descarta.
 - **LOAD_LEN:** recibe N en 2 bytes, el menos significativo primero. Si N = 0 va directo a CLEAR; si no, a LOAD_WORD.
@@ -566,36 +566,36 @@ Un byte que no es comando se descarta, sin respuesta.
 
 ## 3. Diagramas y cómo explicarlos
 
-### 3.1 Sistema completo (`img/sistema_completo.png`)
+### 3.1 Sistema completo (`informe/img/sistema_completo.png`)
 
-![Sistema completo](img/sistema_completo.png)
+![Sistema completo](informe/img/sistema_completo.png)
 
 **Guion (1 minuto):** "A la izquierda está la PC: la GUI arma el programa con nuestro ensamblador y habla con la placa a través de un hilo aparte y la clase `Enlace` del protocolo. Puede usar el puerto serie real o una FPGA simulada. Por el cable viajan comandos de un byte (`L`, `X`, `D`, `S`, `R`, `I`) a 115200 baudios. En la FPGA, la UART con sobremuestreo ×16 y los buffers de un byte pasan cada byte a la Debug Unit: `control_fsmd` es la máquina de estados del protocolo, y `dump_mux` arma el volcado. Del otro lado está el cpu, que se controla con enable, reset y la carga de la memoria de programa, y se lee por el puerto de debug. Abajo, la sesión típica numerada."
 
-### 3.2 Datapath del pipeline (`img/CPU_completo.png`)
+### 3.2 Datapath del pipeline (`informe/img/CPU_completo.png`)
 
-![CPU](img/CPU_completo.png)
+![CPU](informe/img/CPU_completo.png)
 
 **Guion (1 minuto):** "Son las 5 etapas, separadas por los 4 registros de pipeline (las barras naranjas, con sus campos). En IF, el PC busca en la memoria de programa y se suma 4. En ID, `control_unit` decodifica, se leen dos registros y se arma el inmediato. En EX están los multiplexores de forwarding (A y B), la ALU y la decisión de los saltos: si se toma, la línea roja cambia el PC y se limpian IF/ID e ID/EX. En MEM está la memoria de datos, y en WB se elige entre el resultado y el dato leído y se escribe el banco (línea violeta). Las líneas azules son el forwarding desde EX/MEM y desde WB. Abajo, la `hazard_unit` (stall de load-use y flush), la `forwarding_unit` y la lógica de HALT y de clock enable."
 
-### 3.3 Diagrama de estados de la Debug Unit (`img/debug_unit_fsm.png`)
+### 3.3 Diagrama de estados de la Debug Unit (`informe/img/debug_unit_fsm.png`)
 
 **Guion (1 minuto):** "En IDLE se espera un comando. `'X'` va a RESET, que da un ciclo de reset al cpu, y a ACK, que manda `'K'`. `'L'` recibe la cantidad en LOAD_LEN, arma cada palabra en LOAD_WORD, la escribe en WRITE, completa con HALT en CLEAR y termina en RESET y ACK. `'S'` da un ciclo de enable en STEP y manda el volcado en DUMP. `'R'` va a RUN, donde el enable es `!halted`, hasta que el procesador se detiene o llega `'I'`. Las salidas que controlan al procesador son Moore; las del handshake con la UART son Mealy."
 
-### 3.4 Apartado B (`img/B_completo.png`)
+### 3.4 Apartado B (`informe/img/B_completo.png`)
 
 El top con todas las señales y sus anchos, y el recorrido de un `'S'` en 8 pasos. Útil si preguntan por un nombre o un ancho de señal concreto.
 
 ### 3.5 Estado de los diagramas
 
+Todas las imágenes están en `docs/informe/img/`.
+
 | Diagrama | Estado |
 |---|---|
-| `sistema_completo` | **Nuevo**, generado con `docs/img/fuentes/diagramas.py` |
-| `CPU_completo` (en `docs/img/` y `docs/informe/img/`) | **Rehecho** con el mismo estilo; refleja 480 bits, `o_fault` y HALT en 9 ciclos |
+| `sistema_completo` | **Nuevo**, generado con `docs/informe/img/fuentes/diagramas.py` |
+| `CPU_completo` | **Rehecho** con el mismo estilo; refleja 480 bits, `o_fault` y HALT en 9 ciclos |
 | `B_completo` | **Corregido** (326 bytes, 480 bits, `fault`, CLEAR, registros con sus nombres, `clk_wiz` marcado como previsto, módulos de la parte C) |
 | `debug_unit_fsm` | Coincide con el código, sin cambios |
-| `informe/img/diagrama_cpu_completa.png` | **No usar**: dice "integración pendiente" y una memoria de datos de 256 × 32 |
-| `informe/img/diagrama_if_id.png` | Solo para la prueba aislada de IF/ID |
 
 ---
 

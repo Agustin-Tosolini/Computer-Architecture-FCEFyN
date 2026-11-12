@@ -1,28 +1,26 @@
 #!/usr/bin/env python3
 """
 diagramas.py - Genera los diagramas de la documentacion con el mismo estilo que
-docs/img/B_completo.svg:
+docs/informe/img/B_completo.svg:
 
-    docs/img/CPU_completo.svg        datapath del cpu (5 etapas, latches, riesgos)
-    docs/img/sistema_completo.svg    PC (parte C) <-> UART <-> debug_unit <-> cpu
+    docs/informe/img/CPU_completo.svg        datapath del cpu (5 etapas, latches, riesgos)
+    docs/informe/img/sistema_completo.svg    PC (parte C) <-> UART <-> debug_unit <-> cpu
 
-    python3 docs/img/fuentes/diagramas.py
+    python3 docs/informe/img/fuentes/diagramas.py
     (si esta PySide6, por ejemplo con scripts/gui/.venv/bin/python, tambien
-     genera los .png; ademas copia el del cpu a docs/informe/img/)
+     genera los .png)
 
 Los numeros que aparecen (tamanos, ciclos, offsets) salen del codigo y de los
 tests; si cambian, hay que cambiarlos aca.
 """
 import os
-import shutil
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from svgdiag import (AZUL_FWD, GRIS, Lienzo, PALETA, ROJO_SALTO, TINTA,  # noqa: E402
                      VIOLETA_WB)
 
-IMG = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))          # docs/img
-INFORME = os.path.join(os.path.dirname(IMG), "informe", "img")
+IMG = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))          # docs/informe/img
 
 
 # ============================================================== CPU
@@ -445,11 +443,6 @@ def main():
         png = svg[:-4] + ".png"
         if a_png(svg, png, 3300):
             print("generado:", os.path.relpath(png, os.path.dirname(IMG)))
-    # El informe usa informe/img/CPU_completo.*
-    for ext in (".svg", ".png"):
-        origen = os.path.join(IMG, "CPU_completo" + ext)
-        if os.path.exists(origen):
-            shutil.copy(origen, os.path.join(INFORME, "CPU_completo" + ext))
 
 
 if __name__ == "__main__":

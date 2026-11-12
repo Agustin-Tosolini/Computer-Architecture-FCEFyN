@@ -6,22 +6,22 @@ Debug Unit; protocolo completo: `'L'`, `'X'`, `'D'`, `'S'`, `'R'` e `'I'`.**
 `top` = `reset_gen` + `uart` + `intf` + `debug_unit` (`control_fsmd` + `dump_mux`) + `cpu`.
 
 Todas las pruebas dan `PASS` en simulación (`bash scripts/run_all_tests.sh`).
-Falta validar en Vivado (timing y recursos) y en la placa: `CHECKLIST_placa.md`.
+Falta validar en Vivado (timing y recursos) y en la placa: [`docs/CHECKLIST_placa.md`](docs/CHECKLIST_placa.md).
 
 **Depurador gráfico (parte C):** `bash scripts/gui/lanzar_depurador.sh`, o
 "Depurador TP RISC-V" en el menú. Funciona con la placa o en modo simulado.
 Instalación y uso: [`docs/manual_depurador.md`](docs/manual_depurador.md).
 
-![Depurador](docs/img/depurador_corrida.png)
+![Depurador](docs/informe/img/depurador_corrida.png)
 
 Decisiones de diseño (cpu, debug unit, integración, depurador y respuestas a
 las preguntas de la consigna): [`docs/decisiones_de_diseno.md`](docs/decisiones_de_diseno.md).
 
 **Defensa:** documento de estudio en [`docs/estudio_defensa.md`](docs/estudio_defensa.md).
-Diagramas: [sistema completo](docs/img/sistema_completo.png),
-[pipeline del cpu](docs/img/CPU_completo.png), [debug unit](docs/img/B_completo.png) y
-[máquina de estados](docs/img/debug_unit_fsm.png) (los dos primeros se generan con
-`docs/img/fuentes/diagramas.py`).
+Diagramas: [sistema completo](docs/informe/img/sistema_completo.png),
+[pipeline del cpu](docs/informe/img/CPU_completo.png), [debug unit](docs/informe/img/B_completo.png) y
+[máquina de estados](docs/informe/img/debug_unit_fsm.png) (los dos primeros se generan con
+`docs/informe/img/fuentes/diagramas.py`).
 Contrato entre cpu y debug_unit, y formato del volcado: [`src/params.vh`](src/params.vh).
 
 ---
@@ -162,7 +162,7 @@ lee (o escribe a medias) una palabra que no inicializó.
 
 ## Probar en la placa (Linux)
 
-Ver **`CHECKLIST_placa.md`** (valores esperados con el cpu real).
+Ver **[`docs/CHECKLIST_placa.md`](docs/CHECKLIST_placa.md)** (valores esperados con el cpu real).
 
 ```
 python3 scripts/uart_test.py --list
@@ -181,7 +181,7 @@ iniciar sesión.
 
 ## Próximo paso
 
-Probar en la placa con `CHECKLIST_placa.md`. Revisar en Vivado **WNS ≥ 0** con
+Probar en la placa con `docs/CHECKLIST_placa.md`. Revisar en Vivado **WNS ≥ 0** con
 el cpu real y que las dos memorias (programa y datos) salgan como **RAM
 distribuida** (LUTRAM), no como miles de flip-flops.
 Pendientes: `clk_wiz` y frecuencia, panel de LEDs/7 segmentos y las funciones

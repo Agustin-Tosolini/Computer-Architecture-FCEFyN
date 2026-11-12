@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-capturas.py - Genera las capturas de pantalla del manual (docs/img/) usando la
+capturas.py - Genera las capturas de pantalla del manual (docs/informe/img/) usando la
 propia aplicacion en modo demo (FPGA simulada). No necesita la placa.
 
     scripts/gui/.venv/bin/python scripts/gui/capturas.py
@@ -17,7 +17,7 @@ from PySide6.QtWidgets import QApplication
 from app import tema
 from app.ventana_principal import VentanaPrincipal
 
-DESTINO = os.path.join(rutas.LAB, "docs", "img")
+DESTINO = os.path.join(rutas.LAB, "docs", "informe", "img")
 
 
 def esperar(cond, ms=4000):

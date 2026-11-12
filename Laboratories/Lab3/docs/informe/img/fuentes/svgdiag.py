@@ -1,6 +1,6 @@
 """
 svgdiag.py - Mini biblioteca para dibujar los diagramas de bloques con el
-MISMO estilo que docs/img/B_completo.svg (colores, fuentes, puertos, buses con
+MISMO estilo que docs/informe/img/B_completo.svg (colores, fuentes, puertos, buses con
 su ancho en bits, circulos numerados y leyenda).
 
 La usa diagramas.py. Coordenadas en pixeles de un lienzo de 3300 x 2330.

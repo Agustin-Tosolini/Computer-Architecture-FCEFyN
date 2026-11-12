@@ -53,7 +53,7 @@ Para abrirla desde una terminal: `bash scripts/gui/lanzar_depurador.sh`.
 
 ## 2. Recorrido por la ventana
 
-![Paso a paso](img/depurador_paso_a_paso.png)
+![Paso a paso](informe/img/depurador_paso_a_paso.png)
 
 | Zona | Qué hay |
 |---|---|
@@ -92,7 +92,7 @@ aplicación sigue respondiendo; para seguir, conectar de nuevo.
 - **Ensamblar** (`Ctrl+B`): arma el listado. Si hay un error, la línea se
   pinta de rojo con un ◆ y el mensaje dice qué pasa:
 
-  ![Error de ensamblado](img/depurador_error_asm.png)
+  ![Error de ensamblado](informe/img/depurador_error_asm.png)
 
 - **Cargar** (`Ctrl+L`): ensambla y manda el programa con `'L'`. La FPGA
   resetea el procesador: registros en 0, PC = 0. **La memoria de datos NO se
@@ -123,14 +123,14 @@ se traduce cada una):
 | Volcar | `Ctrl+D` | Trae el estado sin ejecutar (`'D'`) |
 | Reset | `Ctrl+Shift+R` | Reset del procesador (`'X'`): el programa y la memoria de datos se conservan |
 
-![Corrida completa](img/depurador_corrida.png)
+![Corrida completa](informe/img/depurador_corrida.png)
 
 Al cerrar la ventana durante una corrida se manda `'I'` antes de salir: la
 placa nunca queda en RUN.
 
 ### Latches
 
-![Latches](img/depurador_latches.png)
+![Latches](informe/img/depurador_latches.png)
 
 Un árbol con los 4 latches (IF/ID, ID/EX, EX/MEM, MEM/WB) y cada campo de la
 tabla de `src/params.vh` (sección 4b):
@@ -146,7 +146,7 @@ salvo al terminar por HALT. El aviso naranja lo recuerda.
 
 ### Log
 
-![Interrumpido y log](img/depurador_interrumpido_log.png)
+![Interrumpido y log](informe/img/depurador_interrumpido_log.png)
 
 - Hora, nivel (**info**, **aviso**, **error**) y mensaje, con colores.
 - **Filtro** por nivel, **Limpiar** y **Guardar…**.
@@ -191,7 +191,7 @@ Corre todos los tests de Python (unos 35 s):
 | `test_captura_rtl.py` | Volcados **reales** del top simulado con Icarus Verilog (`tests/hdl/tb_captura.v`), decodificados campo por campo, incluidos los 480 bits de latches. Se saltea si no está `iverilog` |
 | `test_gui.py` | La interfaz sin pantalla (pytest-qt): conexión, carga, pasos, corrida, interrupción, botones, errores, log |
 
-Las capturas de este manual se regeneran con:
+Las capturas de este manual (en `docs/informe/img/`) se regeneran con:
 
 ```bash
 QT_QPA_PLATFORM=offscreen scripts/gui/.venv/bin/python scripts/gui/capturas.py

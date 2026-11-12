@@ -388,7 +388,7 @@ Los archivos del proyecto final se agregarán manualmente en Vivado.
 Esta sección reúne el historial y las decisiones del apartado B (antes en
 `CAMBIOS.md`). Las rutas son las del repo: `src/debug_unit/` (antes `rtl/`),
 `testbench/` (antes `sim/`), `scripts/` (antes `sw/`), `src/params.vh` (antes
-`docs/params.vh`) y `docs/img/` (antes `docs/diagramas/`). Donde un número
+`docs/params.vh`) y `docs/informe/img/` (antes `docs/diagramas/`). Donde un número
 cambió con la integración (314 → 326 bytes, etc.) se aclara entre corchetes.
 
 ### Historial
@@ -454,7 +454,7 @@ en lugar de un cable implícito de 1 bit.
 | `control_fsmd.v` | Estado **RUN**. En IDLE, `'R'` → RUN. En RUN, `o_cpu_enable = !i_halted` (**Mealy**) y `o_rd = !i_rx_empty` (todo byte se consume). Sale a DUMP con `dump_idx = 0` cuando `i_halted = 1` o cuando llega `'I'` (0x49). Nuevo registro **`interrupted`**: 1 si la corrida se cortó con `'I'`; vuelve a 0 con el reset global, con `'X'` y al empezar `'R'` o `'S'`. `o_status = {6'd0, interrupted, halted}` [hoy `{5'd0, fault, interrupted, halted}`, decisión 33] |
 | `tb_top.v` | Pruebas 12 a 22: `'R'` hasta el HALT (mismo volcado que S7, exactamente 7 ciclos de enable), `'R'` ya detenido (0 ciclos), `'I'` fuera de RUN, programa sin HALT cortado con `'I'` (status 0x02, PC = 4 × ciclos, ciclos = ciclos de enable), otros bytes durante RUN ignorados, `'I'` en medio de un volcado, continuar con otro `'R'`, `'S'`/`'X'`/`'R'` borran el bit, y empate HALT/`'I'` (gana el HALT) |
 | `scripts/uart_test.py` | Modo `r`: manda `'R'` y espera el volcado; Enter manda `'I'`. Ctrl+C también manda `'I'` para no dejar la placa en RUN. El decodificador muestra el bit `interrumpido` |
-| `docs/img/debug_unit_fsm` | RUN con `cpu_enable = !halted`, flecha `'I'` → DUMP, lazo "otro byte" en RUN y borrado del bit en `'R'`, `'S'` y RESET |
+| `docs/informe/img/debug_unit_fsm` | RUN con `cpu_enable = !halted`, flecha `'I'` → DUMP, lazo "otro byte" en RUN y borrado del bit en `'R'`, `'S'` y RESET |
 
 **Paso 3e — comando `'L'` (cargar programa)**
 
@@ -465,7 +465,7 @@ en lugar de un cable implícito de 1 bit.
 | `scripts/uart_test.py` | Modo `l archivo.hex` (una palabra hex por línea, `#` = comentario): recorta a 256 palabras y avisa; espera `'K'`. `--verificar` compara con un `'D'` (solo con el stub) |
 | `scripts/programas/` | Nuevo: `ejemplo_3.hex` y `nops_5.hex` |
 | `src/params.vh` | Comportamiento de `'L'` y significado de `'K'` |
-| `docs/img/debug_unit_fsm` | Estado CLEAR, flecha N = 0 y `idx` en lugar de `addr` |
+| `docs/informe/img/debug_unit_fsm` | Estado CLEAR, flecha N = 0 y `idx` en lugar de `addr` |
 
 ### Decisiones del apartado B
 
