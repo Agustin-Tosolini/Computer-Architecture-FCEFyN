@@ -67,9 +67,19 @@ DUMP (LD3) y CLEAR (LD0 + LD3) duran milisegundos o microsegundos: no se llegan 
 - [ ] Proyecto de Vivado con todos los `src/debug_unit/*.v` y `src/cpu/**/*.v`
       en *Design Sources* (incluido `cpu_stub.v`), los `testbench/*.v` solo en
       *Simulation Sources*. **No** agregar `src/params.vh`. Sin `echo_ctrl.v`.
-- [ ] Módulo superior: `top` (`USE_CPU_STUB = 0`, el valor por defecto).
-      Constraints: `constrains/top.xdc`.
-- [ ] En *Hierarchy* aparece `top → g_cpu.u_cpu (cpu)`, no `cpu_stub`.
+- [ ] IP del clock: `src/ip/clk_wiz_0.xci` agregado al proyecto (*Add Sources →
+      Add or create design sources*), generado (*Generate Output Products*) y
+      sin el candado de "IP locked" (si aparece: *Reports → Report IP Status →
+      Upgrade Selected*).
+- [ ] Módulo superior: `top` (`USE_CPU_STUB = 0` y `USE_CLK_WIZ = 1`, los
+      valores por defecto). Constraints: `constrains/top.xdc` (el `create_clock`
+      sigue en 10 ns: es el pin de entrada).
+- [ ] En *Hierarchy* aparece `top → g_clk_wiz.u_clk_wiz (clk_wiz_0)` y
+      `top → g_cpu.u_cpu (cpu)`, no `cpu_stub`.
+- [ ] `CLK_FREQ` de `top.v` = 70 000 000 = `clk_out1` del `clk_wiz_0`. Si no
+      coinciden, la UART no anda (bloque B: no llega el eco / bytes basura).
+- [ ] *Report Clocks* (o *Report Clock Networks*): `sys_clk_pin` 10 ns y
+      `clk_out1_clk_wiz_0` **14,286 ns (70 MHz)**, generado por el MMCM.
 - [ ] *Generate Bitstream* sin errores.
 - [ ] **Timing** con el cpu real: en *Design Runs* (fila `impl_1`), o en
       *Open Implemented Design → Report Timing Summary*:
@@ -79,11 +89,17 @@ DUMP (LD3) y CLEAR (LD0 + LD3) duran milisegundos o microsegundos: no se llegan 
   - Usar los números de **implementación**, no los de síntesis.
   - Los avisos `no_input_delay` / `no_output_delay` sobre `i_rx`, `i_reset`,
     `o_tx`, `o_leds` son normales (señales asincrónicas).
+  - El clock que importa es **`clk_out1_clk_wiz_0`** (70 MHz); `sys_clk_pin`
+    casi no tiene caminos propios (solo la entrada del MMCM).
+  - A 100 MHz, sin `clk_wiz`, daba WNS = −3,111 ns (camino crítico
+    `u_id_ex/o_rs1_reg[2]` → `u_pc/o_pc_reg[30]`, 21 niveles); por eso se bajó
+    a 70 MHz (`decisiones_de_diseno.md`, sección 13).
   - Si el WNS da negativo: anotar el camino crítico (*Timing → Intra-Clock
-    Paths → sys_clk_pin → Setup*, doble clic en el primero). El sospechoso es
-    EX: forwarding → ALU (resta) → decisión del salto → PC / flush. Se
-    resuelve bajando la frecuencia con el `clk_wiz` o comparando `rs1 == rs2`
-    sin pasar por la ALU.
+    Paths → clk_out1_clk_wiz_0 → Setup*, doble clic en el primero). El
+    sospechoso es EX: forwarding → ALU (resta) → decisión del salto → PC /
+    flush. Se resuelve bajando más la frecuencia con el `clk_wiz` (y
+    `CLK_FREQ`) o comparando `rs1 == rs2` sin pasar por la ALU.
+  - [ ] Anotar el WNS final a 70 MHz en `decisiones_de_diseno.md` (sección 13).
 - [ ] **Recursos** (*Report Utilization*, después de la implementación):
   - [ ] Memoria de programa (`instr_mem`, 256 × 32): **LUT as Distributed RAM**
         (del orden de 100–150 LUTs), no flip-flops.
@@ -169,7 +185,8 @@ de datos no se borra). Además, en cada programa:
 - [ ] `$T l scripts/programas/loop_infinito.hex` y `$T r` → LD1 + LD2
       prendidos (RUN). Esperar ~2 s y Enter →
       `Interrumpido en PC = 0x00000008` (o 0x0C o 0x10) `después de N ciclos`,
-      estado 0x02, **x1 = 3, mem[2] = 3**. N ≈ 100 millones por segundo.
+      estado 0x02, **x1 = 3, mem[2] = 3**. N ≈ 70 millones por segundo
+      (clock de 70 MHz: en ~2 s, N ≈ 140 millones).
 - [ ] `$T d` → estado sigue en 0x02
 - [ ] `$T s` → estado 0x00, ciclos + 1
 - [ ] `$T r` + Enter otra vez → los ciclos siguen subiendo desde donde quedaron
@@ -251,6 +268,6 @@ volcado) y el estado de los LEDs. Para comparar con la simulación:
 5. El reset (`'X'`, `'L'` o btnC) borra registros y pipeline; **no** borra
    las memorias (son RAM). La de programa la limpia el CLEAR de `'L'`; la de
    datos conserva lo del programa anterior: cada programa inicializa lo que usa.
-6. `cycles` es de 32 bits: da la vuelta a los ~43 s de corrida continua.
+6. `cycles` es de 32 bits: a 70 MHz da la vuelta a los ~61 s de corrida continua.
    El PC no cuenta ciclos con el cpu real (no vale "PC = 4 · N").
 7. Sin timeout en `'L'`: una carga cortada se recupera con el botón (bloque I).

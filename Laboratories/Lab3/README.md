@@ -33,9 +33,14 @@ src/                    fuentes de diseño (Design Sources en Vivado)
   params.vh             CONTRATO: anchos, interfaz cpu <-> debug_unit, campos de
                         los latches, protocolo (solo documentación: ningún módulo
                         lo incluye; NO agregarlo a Vivado como fuente)
+  ip/
+    clk_wiz_0.xci       Clocking Wizard (MMCM): 100 MHz del pin -> 70 MHz para
+                        todo el diseño, con salida locked (solo Vivado)
   debug_unit/
     top.v               módulo superior: pines de la Basys 3.
                         Parámetro USE_CPU_STUB: 0 = cpu real (placa), 1 = cpu_stub
+                        Parámetro USE_CLK_WIZ: 1 = clk_wiz (placa), 0 = clk = i_clk
+                        (simulación). CLK_FREQ = 70 MHz (= salida del clk_wiz)
     reset_gen.v         reset global: encendido + botón + locked
     uart.v              wrapper: baud_rate_generator + rx_fsmd + tx_fsmd
     intf.v              wrapper: rx_intf + tx_intf
@@ -86,12 +91,18 @@ docs/
 - *Design Sources*: todos los `src/debug_unit/*.v` y `src/cpu/**/*.v`
   (incluido `cpu_stub.v`: el `generate` lo nombra aunque no lo use).
   `cpu_if_id_test.v` es opcional. **No** agregar `src/params.vh`.
+- IP: `src/ip/clk_wiz_0.xci` (*Add Sources → Add or create design sources*) y
+  después *Generate Output Products*. Genera los 70 MHz de todo el diseño.
 - *Simulation Sources*: los `testbench/*.v`. Los testbenches que leen
   vectores buscan `testbench/vectores/` relativo a la carpeta donde corre la
   simulación; en Vivado conviene pasar la ruta absoluta con
   `-testplusarg VEC=/ruta/a/Lab3/testbench/vectores/`.
 - Constraints: `constrains/top.xdc`. Módulo superior de síntesis: **`top`**
-  (con `USE_CPU_STUB = 0`, el valor por defecto).
+  (con `USE_CPU_STUB = 0` y `USE_CLK_WIZ = 1`, los valores por defecto).
+  El `create_clock` del xdc sigue en 10 ns: describe el pin; Vivado deduce
+  solo el clock de 70 MHz del MMCM.
+- Icarus Verilog no simula el IP de Xilinx: todo lo que instancia `top` en
+  simulación pasa `USE_CLK_WIZ = 0` y `CLK_FREQ = 100_000_000` (clock de 10 ns).
 
 ## Simular
 
@@ -181,9 +192,9 @@ iniciar sesión.
 
 ## Próximo paso
 
-Probar en la placa con `docs/CHECKLIST_placa.md`. Revisar en Vivado **WNS ≥ 0** con
-el cpu real y que las dos memorias (programa y datos) salgan como **RAM
+Probar en la placa con `docs/CHECKLIST_placa.md`. Revisar en Vivado **WNS ≥ 0** a
+70 MHz (`clk_wiz`; a 100 MHz daba WNS = −3,111 ns) con el cpu real y que las dos memorias (programa y datos) salgan como **RAM
 distribuida** (LUTRAM), no como miles de flip-flops.
-Pendientes: `clk_wiz` y frecuencia, panel de LEDs/7 segmentos y las funciones
+Pendientes: WNS final a 70 MHz, panel de LEDs/7 segmentos y las funciones
 extra del depurador (fase 3: comparación con el modelo, vista del pipeline,
 diagrama de ciclos, historial, exportar, tema oscuro).

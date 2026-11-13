@@ -9,8 +9,8 @@
 //      la FPGA se configura. Asi todo arranca en un estado conocido sin tener
 //      que apretar el boton.
 //   2. Mientras se aprieta el boton (i_btn).
-//   3. Mientras el clock no es estable (i_locked = 0). Hoy i_locked se ata a 1
-//      en el top; cuando se agregue el clk_wiz se conecta a su salida "locked".
+//   3. Mientras el clock no es estable (i_locked = 0): el top conecta aca la
+//      salida "locked" del clk_wiz (en simulacion, con USE_CLK_WIZ = 0, vale 1).
 //
 // El boton es asincronico respecto del clock: pasa por dos flip-flops antes de
 // usarse (mismo sincronizador que la linea rx de la UART). No hace falta

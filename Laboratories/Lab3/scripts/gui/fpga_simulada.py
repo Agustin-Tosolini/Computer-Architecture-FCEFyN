@@ -15,7 +15,7 @@ Limitaciones (a proposito, documentadas en la interfaz):
     reset). Solo al terminar por HALT se manda el patron real de parada (el
     marcador del HALT en MEM/WB), que es conocido.
   * Un programa sin fin "corre" a VELOCIDAD ciclos por segundo (la placa hace
-    100 millones): al llegar la 'I' se calcula el estado en ese ciclo.
+    70 millones, a 70 MHz): al llegar la 'I' se calcula el estado en ese ciclo.
 
 Mismos metodos que transporte.PuertoSerie:
     escribir(bytes), leer(n, timeout), vaciar_entrada(), cerrar()

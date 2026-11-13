@@ -13,7 +13,7 @@ module tx_fsmd #
     parameter STOP_BITS = 1     // bits de stop
 )
 (
-    input  wire                 i_clk,        // reloj del sistema (100 MHz)
+    input  wire                 i_clk,        // reloj del sistema (clk, 70 MHz)
     input  wire                 i_reset,
     input  wire                 i_s_tick,     // tick del baud rate generator
     input  wire                 i_tx_start,   // pulso de 1 ciclo: transmitir i_din

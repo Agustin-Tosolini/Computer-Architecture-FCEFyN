@@ -12,7 +12,7 @@
 //------------------------------------------------------------------------------
 module uart #
 (
-    parameter CLK_FREQ     = 100_000_000,
+    parameter CLK_FREQ     = 70_000_000,    // = clk_out1 del clk_wiz (top.v)
     parameter BAUD_RATE    = 115200,
     parameter OVERSAMP     = 16,
     parameter DATA_BITS    = 8,

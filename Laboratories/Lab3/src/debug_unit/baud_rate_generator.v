@@ -7,15 +7,17 @@
 //
 //   N = CLK_FREQ / (BAUD_RATE * OVERSAMP), redondeado al entero mas cercano.
 //
+//    70 MHz, 115200 baud, 16x  ->  N = 38   (baud real 115132, error -0.06 %)
 //   100 MHz, 115200 baud, 16x  ->  N = 54   (baud real 115741, error +0.47 %)
 //   100 MHz,   9600 baud, 16x  ->  N = 651  (baud real   9601, error +0.01 %)
 //
-// El error tiene que quedar por debajo de ~2 %. Si se cambia el clock con el
-// clk_wiz, CLK_FREQ tiene que ser la frecuencia REAL que llega a i_clk.
+// El error tiene que quedar por debajo de ~2 %. CLK_FREQ tiene que ser la
+// frecuencia REAL que llega a i_clk de este modulo: en la placa, la salida del
+// clk_wiz (70 MHz), no los 100 MHz del pin.
 //------------------------------------------------------------------------------
 module baud_rate_generator #
 (
-    parameter CLK_FREQ  = 100_000_000,
+    parameter CLK_FREQ  = 70_000_000,     // = clk_out1 del clk_wiz (top.v)
     parameter BAUD_RATE = 115200,
     parameter OVERSAMP  = 16
 )

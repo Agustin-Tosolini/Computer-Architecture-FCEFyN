@@ -314,7 +314,7 @@ def sistema():
              17, GRIS, italica=True)
 
     # ---------------------------------------------------- FPGA
-    L.marco(1600, 160, 1660, 1320, "FPGA Basys 3", "top.v — un solo clock i_clk de 100 MHz")
+    L.marco(1600, 160, 1660, 1320, "FPGA Basys 3", "top.v — un solo clock: clk_wiz_0, 100 → 70 MHz")
     L.pin(1600, 950, "i_rx", "der")
     L.pin(1600, 1040, "o_tx", "der")
     L.caja(1680, 250, 360, 150, "violeta", "reset_gen", None, tam_nombre=24)
@@ -325,11 +325,11 @@ def sistema():
             italica=True)
     L.texto(2200, 325, "cpu_rst = reset OR cpu_reset ('X' y 'L')", 17, PALETA["violeta"][2],
             italica=True)
-    L.texto(2200, 350, "clk_wiz: previsto (hoy i_clk directo, locked = 1)", 17,
+    L.texto(2200, 350, "clk_wiz_0 (MMCM): i_clk 100 MHz → clk 70 MHz, locked", 17,
             PALETA["violeta"][2], italica=True)
 
     L.caja(1680, 700, 300, 400, "azul", "uart", "uart.v")
-    L.lineas(1830, 820, ["baud_rate_generator", "÷54 · ×16 por bit", "(tick = enable)", "",
+    L.lineas(1830, 820, ["baud_rate_generator", "÷38 · ×16 por bit", "(tick = enable)", "",
                          "rx_fsmd", "sincronizador 2 FF", "", "tx_fsmd"], 16,
              PALETA["azul"][2], "middle", mono=True)
     L.flecha([(1609, 950), (1680, 950)])

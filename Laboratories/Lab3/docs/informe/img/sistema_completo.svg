@@ -83,7 +83,7 @@
 <rect x="1600" y="160" width="1660" height="1320" rx="16" fill="#FFFFFF" stroke="#7A776F" stroke-width="2.5"/>
 <path d="M 1600 176 Q 1600 160 1616 160 L 1810 160 L 1810 204 L 1600 204 Z" fill="#7A776F"/>
 <text x="1618" y="191" font-family="Liberation Mono, DejaVu Sans Mono, monospace" font-size="24" text-anchor="start" fill="#FFFFFF" font-weight="bold">FPGA Basys 3</text>
-<text x="3236" y="202" font-family="Liberation Sans, Arial, Helvetica, sans-serif" font-size="18" text-anchor="end" fill="#6B6862" font-weight="normal" font-style="italic">top.v — un solo clock i_clk de 100 MHz</text>
+<text x="3236" y="202" font-family="Liberation Sans, Arial, Helvetica, sans-serif" font-size="18" text-anchor="end" fill="#6B6862" font-weight="normal" font-style="italic">top.v — un solo clock: clk_wiz_0, 100 → 70 MHz</text>
 <rect x="1591" y="941" width="18" height="18" fill="#FFFFFF" stroke="#3F3E3B" stroke-width="2.4"/>
 <text x="1614" y="938" font-family="Liberation Mono, DejaVu Sans Mono, monospace" font-size="19" text-anchor="start" fill="#3F3E3B" font-weight="bold">i_rx</text>
 <rect x="1591" y="1031" width="18" height="18" fill="#FFFFFF" stroke="#3F3E3B" stroke-width="2.4"/>
@@ -96,12 +96,12 @@
 <text x="2082" y="331" font-family="Liberation Mono, DejaVu Sans Mono, monospace" font-size="18" text-anchor="start" fill="#46397A" font-weight="bold">reset</text>
 <text x="2200" y="300" font-family="Liberation Sans, Arial, Helvetica, sans-serif" font-size="17" text-anchor="start" fill="#46397A" font-weight="normal" font-style="italic">reset global: UART, intf, debug_unit y cpu</text>
 <text x="2200" y="325" font-family="Liberation Sans, Arial, Helvetica, sans-serif" font-size="17" text-anchor="start" fill="#46397A" font-weight="normal" font-style="italic">cpu_rst = reset OR cpu_reset ('X' y 'L')</text>
-<text x="2200" y="350" font-family="Liberation Sans, Arial, Helvetica, sans-serif" font-size="17" text-anchor="start" fill="#46397A" font-weight="normal" font-style="italic">clk_wiz: previsto (hoy i_clk directo, locked = 1)</text>
+<text x="2200" y="350" font-family="Liberation Sans, Arial, Helvetica, sans-serif" font-size="17" text-anchor="start" fill="#46397A" font-weight="normal" font-style="italic">clk_wiz_0 (MMCM): i_clk 100 MHz → clk 70 MHz, locked</text>
 <rect x="1680" y="700" width="300" height="400" rx="14" fill="#E8EFF9" stroke="#3D5F8F" stroke-width="2.5"/>
 <text x="1830.0" y="740" font-family="Liberation Sans, Arial, Helvetica, sans-serif" font-size="28" text-anchor="middle" fill="#23426E" font-weight="bold">uart</text>
 <text x="1830.0" y="768" font-family="Liberation Sans, Arial, Helvetica, sans-serif" font-size="18" text-anchor="middle" fill="#23426E" font-weight="normal" font-style="italic">uart.v</text>
 <text x="1830" y="820.0" font-family="Liberation Mono, DejaVu Sans Mono, monospace" font-size="16" text-anchor="middle" fill="#23426E" font-weight="normal">baud_rate_generator</text>
-<text x="1830" y="841.6" font-family="Liberation Mono, DejaVu Sans Mono, monospace" font-size="16" text-anchor="middle" fill="#23426E" font-weight="normal">÷54 · ×16 por bit</text>
+<text x="1830" y="841.6" font-family="Liberation Mono, DejaVu Sans Mono, monospace" font-size="16" text-anchor="middle" fill="#23426E" font-weight="normal">÷38 · ×16 por bit</text>
 <text x="1830" y="863.2" font-family="Liberation Mono, DejaVu Sans Mono, monospace" font-size="16" text-anchor="middle" fill="#23426E" font-weight="normal">(tick = enable)</text>
 <text x="1830" y="884.8" font-family="Liberation Mono, DejaVu Sans Mono, monospace" font-size="16" text-anchor="middle" fill="#23426E" font-weight="normal"></text>
 <text x="1830" y="906.4" font-family="Liberation Mono, DejaVu Sans Mono, monospace" font-size="16" text-anchor="middle" fill="#23426E" font-weight="normal">rx_fsmd</text>

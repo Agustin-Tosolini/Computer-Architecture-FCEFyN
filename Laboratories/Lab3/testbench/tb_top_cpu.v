@@ -76,7 +76,8 @@ module tb_top_cpu;
 
     top #
     (
-        .CLK_FREQ     (CLK_FREQ),
+        .CLK_FREQ     (CLK_FREQ),      // explicito: el default del top es 70 MHz
+        .USE_CLK_WIZ  (0),             // iverilog no simula el IP: clk = i_clk
         .BAUD_RATE    (BAUD_RATE),
         .USE_CPU_STUB (0)              // el cpu real (igual que en la placa)
     )

@@ -3,7 +3,9 @@
 ## Pines tomados del master XDC de la Basys 3 (los mismos que en uart_alu.xdc).
 ## =============================================================================
 
-## Clock 100 MHz
+## Clock 100 MHz del pin W5. Solo entra al clk_wiz_0 (MMCM), que genera los
+## 70 MHz de todo el diseno. Este create_clock describe el PIN y queda en 10 ns:
+## Vivado deduce solo el clock generado (clk_out1_clk_wiz_0).
 set_property -dict { PACKAGE_PIN W5   IOSTANDARD LVCMOS33 } [get_ports i_clk]
 create_clock -add -name sys_clk_pin -period 10.00 -waveform {0 5} [get_ports i_clk]
 

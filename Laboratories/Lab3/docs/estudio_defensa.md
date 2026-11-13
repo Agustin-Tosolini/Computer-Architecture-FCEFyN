@@ -47,11 +47,11 @@ Documentos relacionados: [`decisiones_de_diseno.md`](decisiones_de_diseno.md)
 
 | Qué | Valor | De dónde sale |
 |---|---|---|
-| Clock | 100 MHz (sin `clk_wiz` todavía) | `top.v`, `top.xdc` (10 ns) |
+| Clock | **70 MHz** (`clk_wiz_0`, MMCM, desde los 100 MHz del pin W5) | `top.v`, `top.xdc` (pin: 10 ns), `src/ip/clk_wiz_0.xci` |
 | Baud rate | **115200**, 8N1 | `params.vh` |
 | Sobremuestreo | **×16** (16 ticks por bit) | `baud_rate_generator.v` |
-| Divisor | **54** = round(100 000 000 / (115200 · 16)) → baud real 115 741, error **+0,47 %** | `baud_rate_generator.v` |
-| Un byte por UART | 10 bits ≈ **86,8 µs** ≈ 8680 ciclos | cálculo |
+| Divisor | **38** = round(70 000 000 / (115200 · 16)) = round(37,98) → baud real 115 132, error **−0,06 %** (a 100 MHz era 54, +0,47 %) | `baud_rate_generator.v` |
+| Un byte por UART | 10 bits ≈ **86,8 µs** ≈ 6080 ciclos (a 70 MHz) | cálculo |
 | Volcado | **326 bytes** ≈ **28,3 ms** | `params.vh` §6 |
 | Latches | **480 bits** = 15 palabras (381 bits reales) | `params.vh` §4b |
 | Memoria de programa | **256 × 32** (1 KiB), RAM distribuida, lectura asincrónica | `instr_mem.v` |
@@ -62,10 +62,10 @@ Documentos relacionados: [`decisiones_de_diseno.md`](decisiones_de_diseno.md)
 | Stall load-use | **1 ciclo** | `hazard_unit.v`, `tb_cpu_isa` A6 |
 | Penalidad de salto tomado | **2 ciclos** (se resuelve en EX) | `hazard_unit.v`, `tb_cpu_isa` A7 |
 | Fórmula de ciclos | instrucciones + 4 + stalls + 2 × saltos tomados | `rv32i_model.py` |
-| Contador de ciclos | 32 bits → da la vuelta a los ~43 s | `control_fsmd.v` |
+| Contador de ciclos | 32 bits → a 70 MHz da la vuelta a los ~61 s | `control_fsmd.v` |
 | Estado del volcado | 0x01 HALT · 0x05 error · 0x02 interrumpido | `params.vh` §6 |
-| Frecuencia final | `[COMPLETAR: frecuencia final]` | Vivado |
-| WNS | `[COMPLETAR: WNS a la frecuencia final]` | Vivado |
+| Frecuencia final | **70 MHz** (a 100 MHz: WNS −3,111 ns → f_max ≈ 76 MHz) | Vivado, `decisiones_de_diseno.md` §13 |
+| WNS | `[COMPLETAR: WNS a 70 MHz]` | Vivado |
 
 ### Una sesión típica, de punta a punta
 
@@ -335,25 +335,27 @@ Las instrucciones anteriores terminan; la que falla y las siguientes no tienen e
 - **Skew:** diferencia en el momento en que el clock llega a distintos flip-flops. Si es grande puede violar setup o hold. En la FPGA el clock va por una red global (BUFG) con poco skew; por eso no hay que generar ni cortar clocks con lógica.
 
 **En nuestro TP.**
-- Un solo clock de 100 MHz (período de 10 ns), `create_clock` en el xdc.
+- Un solo clock: **70 MHz** (período 14,29 ns), generado por el `clk_wiz_0` a partir de los 100 MHz del pin. El `create_clock` del xdc sigue en 10 ns (describe el pin); Vivado deduce solo el clock del MMCM (`clk_out1_clk_wiz_0`).
 - **Caminos críticos probables** (a confirmar con Vivado):
   1. EX: forwarding → resta de la ALU → `zero` → decisión del salto → próximo PC y flush;
   2. MEM: dirección → chequeo de rango → error → flush y PC;
   3. `o_halted`, que es combinacional y llega al enable de más de mil flip-flops (el banco de registros solo tiene 1024): mucho fan-out.
-- Resultado: `[COMPLETAR: WNS / TNS / WHS / THS a 100 MHz]`, `[COMPLETAR: camino crítico real: origen, destino, niveles de lógica, retardo]`.
-- **`clk_wiz` (MMCM):** genera otra frecuencia a partir de los 100 MHz: f_out = f_in · M / (D · O), con f_VCO = f_in · M / D dentro del rango del VCO (en Artix-7 -1, 600 a 1200 MHz `[COMPLETAR: confirmar en la hoja de datos]`). Su salida `locked` indica que el clock es estable; mientras vale 0 el sistema tiene que estar en reset. **En nuestro TP todavía no está**: `reset_gen` ya tiene la entrada `i_locked`, hoy atada a 1. `[COMPLETAR: frecuencia final y valores M, D y O si se agrega]`.
-- **`CLK_FREQ` tiene que coincidir con el clock real:** el divisor de la UART se calcula con ese parámetro. Si el clock fuera de 50 MHz pero `CLK_FREQ` siguiera en 100 MHz, la UART transmitiría a la mitad de velocidad (57600) y la PC recibiría basura.
+- **Resultado a 100 MHz (sin `clk_wiz`): no cumple.** WNS = −3,111 ns, TNS = −919,6 ns (375 endpoints), WHS = +0,136 ns (hold OK). Camino crítico: `u_id_ex/o_rs1_reg[2]` → `u_pc/o_pc_reg[30]` (forwarding → ALU → decisión del salto → próximo PC), 21 niveles de lógica, 13,02 ns, 70 % cableado. f_max ≈ 1 / (10 + 3,111) ns ≈ 76 MHz → se eligió **70 MHz** (~1,2 ns de margen).
+- Resultado a 70 MHz: `[COMPLETAR: WNS / TNS / WHS / THS a 70 MHz]`, `[COMPLETAR: camino crítico a 70 MHz]`.
+- **`clk_wiz` (MMCM):** genera otra frecuencia a partir de los 100 MHz: f_out = f_in · M / (D · O), con f_VCO = f_in · M / D dentro del rango del VCO (en Artix-7 -1, 600 a 1200 MHz `[COMPLETAR: confirmar en la hoja de datos]`). Su salida `locked` indica que el clock es estable; mientras vale 0 el sistema está en reset (`locked` → `reset_gen.i_locked`). **En nuestro TP:** M = 49,875, D = 5, O = 14,25 → f_VCO = 997,5 MHz, f_out = 70,000 MHz (valores del `.xci`; `[COMPLETAR: confirmar con report_clocks]`). Sin entrada de reset; `i_clk` solo entra al MMCM y todo el diseño usa `clk_out1`.
+- **`CLK_FREQ` tiene que coincidir con el clock real:** el divisor de la UART se calcula con ese parámetro. Hoy `CLK_FREQ` = 70 000 000. Ejemplo del error: si el clock fuera de 50 MHz pero `CLK_FREQ` siguiera en 100 MHz, la UART transmitiría a la mitad de velocidad (57600) y la PC recibiría basura.
 
 **Preguntas probables**
 
-- *¿Cuál es el camino crítico?* — `[COMPLETAR]`. Lo esperable es el del salto en EX (forwarding + ALU + decisión).
+- *¿Cuál es el camino crítico?* — El del salto en EX: `u_id_ex/o_rs1_reg[2]` → `u_pc/o_pc_reg[30]` (forwarding + ALU + decisión del salto + próximo PC), 21 niveles, 13,02 ns. 70 % es cableado.
 - *¿Cómo se elige la frecuencia?* — Se sintetiza, se mira el WNS, y si es negativo se baja la frecuencia con el `clk_wiz` hasta que cumpla (o se acorta el camino crítico).
 - *¿Qué es el skew y qué consecuencias tiene?* — Que el clock llegue a destiempo: puede hacer que un flip-flop capture un dato viejo o uno nuevo antes de tiempo. Se evita usando la red de clock dedicada y no generando clocks con lógica.
 
 **Repreguntas y trampas**
 
 - *"¿Un WNS positivo es malo?"* — No: si es positivo, todo cumple (el nombre confunde).
-- *"¿Por qué no subir a 200 MHz?"* — Porque el camino crítico (ALU + salto + forwarding en un ciclo) no entra en 5 ns `[COMPLETAR con el dato real]`.
+- *"¿Por qué no 100 MHz?"* — Porque el camino crítico (forwarding + ALU + salto en un ciclo) tarda ≈ 13,1 ns y no entra en 10 ns (WNS −3,111 ns). Entra en los 14,29 ns de 70 MHz.
+- *"¿Por qué 70 y no 75 MHz?"* — A 75 MHz (13,33 ns) quedarían ~0,2 ns sobre la estimación, y el MMCM agrega incertidumbre (jitter y error de fase) y el ruteo cambia entre corridas. 70 MHz deja ~1,2 ns.
 - *"¿Cómo acortarían el camino crítico?"* — Comparar `rs1 == rs2` directamente (sin pasar por la resta de la ALU), resolver los saltos en ID o agregar una etapa más.
 
 ### 2.10 Memorias en FPGA
@@ -392,17 +394,17 @@ Las instrucciones anteriores terminan; la que falla y las siguientes no tienen e
 **En nuestro TP** (`uart` = `baud_rate_generator` + `rx_fsmd` + `tx_fsmd`, más `intf`):
 - **115200 baudios:** un volcado de 326 bytes tarda ≈ 28 ms (a 9600 baudios serían ≈ 0,34 s). El puente USB-UART de la Basys 3 lo soporta sin problemas (decisión 1).
 - **Sobremuestreo ×16:** el generador da 16 *ticks* por bit. El receptor detecta el flanco de bajada del start, cuenta 8 ticks para ubicarse en la **mitad** del bit (y verificar que sigue en 0, si no fue ruido) y después toma cada bit cada 16 ticks, justo en el centro.
-- **Divisor:** N = round(100 MHz / (115200 · 16)) = round(54,25) = **54**. Baud real = 100 MHz / (54 · 16) = 115 741 → error **+0,47 %**. El límite tolerable es del orden del 2 %. Se **redondea** en lugar de truncar (decisión 2).
+- **Divisor:** N = round(70 MHz / (115200 · 16)) = round(37,98) = **38**. Baud real = 70 MHz / (38 · 16) = 115 132 → error **−0,06 %** (a 100 MHz era 54, +0,47 %). Truncando daría 37 → +2,6 %, fuera del límite. El límite tolerable es del orden del 2 %. Se **redondea** en lugar de truncar (decisión 2).
 - **FSMD de Rx:** IDLE → START (medio bit) → DATA (8 bits) → STOP → DONE (1 ciclo, `rx_done` Moore). **FSMD de Tx:** arma la trama completa `{stop, dato, start}` en un registro y la desplaza cada 16 ticks.
 - **`intf`:** dos buffers de 1 byte. `rx_intf` guarda el byte recibido y avisa `rx_empty = 0`; la Debug Unit lo consume con `rd`. `tx_intf` acepta un byte con `wr` cuando `tx_full = 0`.
 - **Metaestabilidad:** `i_rx` cambia sin relación con el clock de la FPGA. Si cambia justo en la ventana de setup/hold, el flip-flop puede quedar un tiempo en un valor intermedio (metaestable). Solución: **sincronizador de 2 flip-flops** (`rx_meta`, `rx_sync`, que arrancan en 1); el botón de reset tiene otro.
 
 **Preguntas probables**
 
-- *¿Cómo calculan el divisor?* — Frecuencia / (baud × 16), redondeado: 54. El error queda en 0,47 %.
+- *¿Cómo calculan el divisor?* — Frecuencia / (baud × 16), redondeado: 70 MHz / 1 843 200 = 37,98 → 38. El error queda en −0,06 %.
 - *¿Por qué ×16?* — Para muestrear en el centro de cada bit, lejos de los flancos, y tolerar diferencias de velocidad entre los dos lados.
 - *¿Qué es la metaestabilidad y cómo la evitan?* — Un flip-flop que muestrea una señal asincrónica puede quedar indeciso. Dos flip-flops en cascada le dan un ciclo entero para resolverse antes de llegar a la FSM.
-- *¿Por qué alcanza un buffer de 1 byte?* — Porque la FSM consume cada byte al ciclo siguiente y el próximo tarda ≈ 8680 ciclos en llegar. Y el protocolo es pedido → respuesta.
+- *¿Por qué alcanza un buffer de 1 byte?* — Porque la FSM consume cada byte al ciclo siguiente y el próximo tarda ≈ 6080 ciclos en llegar (a 70 MHz). Y el protocolo es pedido → respuesta.
 
 **Repreguntas y trampas**
 
@@ -443,7 +445,7 @@ Un byte que no es comando se descarta, sin respuesta.
 - **LOAD_LEN:** recibe N en 2 bytes, el menos significativo primero. Si N = 0 va directo a CLEAR; si no, a LOAD_WORD.
 - **LOAD_WORD:** junta 4 bytes en el registro `word` con un desplazamiento a la derecha (`word = {byte, word[31:8]}`): el primero termina en [7:0], es decir little-endian. Con el 4.º pasa a WRITE.
 - **WRITE:** un ciclo con `imem_we = 1` (salida Moore): escribe `word` en la palabra `idx`, salvo la 255, que siempre se escribe como HALT. Si faltan palabras vuelve a LOAD_WORD; si no, va a CLEAR. Las palabras desde la 256 se consumen pero no se escriben.
-- **CLEAR:** escribe HALT en las palabras que quedan hasta la 255, una por ciclo (como mucho 256 ciclos ≈ 2,6 µs).
+- **CLEAR:** escribe HALT en las palabras que quedan hasta la 255, una por ciclo (como mucho 256 ciclos ≈ 3,7 µs a 70 MHz).
 - **RESET:** un ciclo con `cpu_reset = 1`. Pone en 0 el contador de ciclos y el bit de interrumpido.
 - **ACK:** manda `'K'` apenas el transmisor está libre y vuelve a IDLE.
 - **STEP:** un ciclo con `cpu_enable = 1` y pasa a DUMP.
@@ -594,7 +596,7 @@ Todas las imágenes están en `docs/informe/img/`.
 |---|---|
 | `sistema_completo` | **Nuevo**, generado con `docs/informe/img/fuentes/diagramas.py` |
 | `CPU_completo` | **Rehecho** con el mismo estilo; refleja 480 bits, `o_fault` y HALT en 9 ciclos |
-| `B_completo` | **Corregido** (326 bytes, 480 bits, `fault`, CLEAR, registros con sus nombres, `clk_wiz` marcado como previsto, módulos de la parte C) |
+| `B_completo` | **Corregido** (326 bytes, 480 bits, `fault`, CLEAR, registros con sus nombres, `clk_wiz_0` a 70 MHz conectado, módulos de la parte C) |
 | `debug_unit_fsm` | Coincide con el código, sin cambios |
 
 ---
@@ -636,9 +638,9 @@ Verificado leyendo el código actual y pasándole Verilator al top completo (sin
 | **El tick del baud rate no es un clock** | pulso usado como enable | `baud_rate_generator.v:41`; `rx_fsmd.v:95,115,132`; `tx_fsmd.v:249` | ✔ |
 | **No se corta el clock** (lo prohíbe la consigna) | `step = i_enable && !o_halted` | `cpu.v:22` | ✔ |
 | **Clock enable en todo el estado del cpu** (si no, "pausa" no congela) | PC, latches, banco, escritura de datos y `halting` con `step` | `cpu.v:138, 145, 169, 182, 236, 263, 302`; `reg_file.v:37`; `data_mem.v:82` | ✔ |
-| **Reset sincrónico y coherente** | ningún `posedge reset`; reset global registrado | `reset_gen.v:58`; `top.v:186` | ✔ |
-| **`locked` del `clk_wiz` al reset** | `locked = 0` → reset | `top.v:96` (atado a 1: no hay `clk_wiz`) | dudoso / pendiente |
-| **`CLK_FREQ` igual al clock real** (si no, falla la UART) | 100 MHz y `-period 10.00` | `top.v:34`; `top.xdc:8` | ✔ |
+| **Reset sincrónico y coherente** | ningún `posedge reset`; reset global registrado | `reset_gen.v:58`; `top.v:220` | ✔ |
+| **`locked` del `clk_wiz` al reset** | `locked = 0` → reset | `top.v:130` (`i_locked (locked)`) | ✔ |
+| **`CLK_FREQ` igual al clock real** (si no, falla la UART) | 70 MHz = `clk_out1` del `clk_wiz_0` (el pin sigue con `-period 10.00`) | `top.v:49`; `top.xdc:10`; `clk_wiz_0.xci` | ✔ |
 
 ### Calidad del Verilog
 
@@ -681,11 +683,11 @@ Verificado leyendo el código actual y pasándole Verilator al top completo (sin
 | Qué mira | Estado |
 |---|---|
 | Warnings críticos: multi-driven, latch, timing loop, "RAM implemented as registers", reloj sin constraint | `[COMPLETAR]` — esperados: ninguno. También se esperan avisos de I/O sin constraint (`i_rx`, `i_reset`, `o_tx`, `o_leds`) y de `cpu_if_id_test` (módulo sin instanciar) |
-| WNS ≥ 0 a la frecuencia final | `[COMPLETAR]` |
+| WNS ≥ 0 a la frecuencia final (70 MHz) | `[COMPLETAR]` |
 
 ### Puntos dudosos (a confirmar; ninguno es un error grave)
 
-1. **Sin `clk_wiz`:** si el WNS cumple a 100 MHz, se defiende así. Si se agrega, conectar `locked` y actualizar `CLK_FREQ`.
+1. **`clk_wiz` a 70 MHz:** a 100 MHz no cumplía (WNS −3,111 ns). Falta confirmar que a 70 MHz el WNS da ≥ 0.
 2. **Inferencia de la memoria de datos:** si sale como flip-flops, escribirla como 4 memorias de 8 bits.
 3. **Timing sin medir:** el camino del salto y el fan-out de `o_halted`.
 4. **Comentarios viejos en el xdc** ("paso 1 (eco)", "LEDs → último byte recibido") y I/O sin constraints: propuesta, `set_false_path` para los puertos asincrónicos.
@@ -742,7 +744,7 @@ Verificado leyendo el código actual y pasándole Verilator al top completo (sin
 
 ### Hoja de repaso (10 minutos antes de entrar)
 
-**Números:** 100 MHz · 115200 8N1 · ×16 · divisor 54 (+0,47 %) · 1 byte ≈ 87 µs · volcado 326 B ≈ 28 ms · latches 480 bits (381 reales) · programa 256 × 32 · datos 32 × 32 = 128 B · HALT: 9 ciclos con 5 NOPs (N + 4) · PC = HALT + 4 · stall 1 · salto 2 · ciclos = N + 4 + stalls + 2 × saltos · estado 0x01 / 0x05 / 0x02 · 12/12 mutaciones · frecuencia `[COMPLETAR]` · WNS `[COMPLETAR]`.
+**Números:** 70 MHz (clk_wiz; a 100 MHz WNS −3,111 ns) · 115200 8N1 · ×16 · divisor 38 (−0,06 %) · 1 byte ≈ 87 µs · volcado 326 B ≈ 28 ms · latches 480 bits (381 reales) · programa 256 × 32 · datos 32 × 32 = 128 B · HALT: 9 ciclos con 5 NOPs (N + 4) · PC = HALT + 4 · stall 1 · salto 2 · ciclos = N + 4 + stalls + 2 × saltos · estado 0x01 / 0x05 / 0x02 · 12/12 mutaciones · WNS a 70 MHz `[COMPLETAR]`.
 
 **Las 15 preguntas más probables:**
 
@@ -768,9 +770,9 @@ Verificado leyendo el código actual y pasándole Verilator al top completo (sin
 
 Datos que hay que sacar de Vivado o de la placa (todos de **implementación**, no de síntesis):
 
-1. **Timing a 100 MHz:** WNS, TNS, WHS y THS, y si dice "All user specified timing constraints are met" (secciones 1, 2.9 y 5).
-2. **Camino crítico real:** origen, destino, niveles de lógica, retardo total, y qué parte es lógica y qué parte es ruteo (2.9 y 6). Frecuencia máxima ≈ 1 / (10 ns − WNS).
-3. **Frecuencia final**, y si se agrega el `clk_wiz`: los valores M, D y O, el rango del VCO de Artix-7 y el WNS nuevo (1 y 2.9).
+1. **Timing a 70 MHz:** WNS, TNS, WHS y THS, y si dice "All user specified timing constraints are met" (secciones 1, 2.9 y 5).
+2. **Camino crítico real:** origen, destino, niveles de lógica, retardo total, y qué parte es lógica y qué parte es ruteo (2.9 y 6). Frecuencia máxima ≈ 1 / (período − WNS) (a 70 MHz, período = 14,29 ns).
+3. **`clk_wiz`:** confirmar M = 49,875, D = 5, O = 14,25 (f_VCO = 997,5 MHz) con `report_clocks`, el rango del VCO de Artix-7 en la hoja de datos y el WNS a 70 MHz (1 y 2.9).
 4. **Recursos:** LUT, FF, LUTRAM, BRAM e IO (Utilization). Que `instr_mem` y `data_mem` salgan como LUTRAM (2.10 y 5).
 5. **Warnings críticos de Vivado:** multi-driven, latch, timing loop, "RAM implemented as registers", reloj sin constraint (5).
 6. **Resultados en la placa:** `CHECKLIST_placa.md` (2.15).

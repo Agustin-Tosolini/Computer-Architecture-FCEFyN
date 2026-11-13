@@ -376,7 +376,8 @@ Estado de lo que quedaba pendiente:
    amplió el contrato, decisión 34). `--verificar` solo sirve con el stub.
 3. Sintetizar y probar en placa: inferencia de memorias, recursos, timing y
    finalización de HALT (`CHECKLIST_placa.md`). **Pendiente.**
-4. Revisar frecuencia y clk_wiz al final, como acordó el equipo. **Pendiente.**
+4. ~~Revisar frecuencia y clk_wiz al final, como acordó el equipo~~: hecho, 70 MHz
+   con `clk_wiz_0` (sección 13). Falta confirmar el WNS final en Vivado.
 5. Diagnóstico de errores: resuelto en parte con `o_fault` (decisión 33); la
    causa exacta no se distingue. Centralizar las constantes en params.vh sigue
    sin hacerse: hoy documenta el contrato, pero ningún módulo lo incluye.
@@ -469,10 +470,10 @@ en lugar de un cable implícito de 1 bit.
 
 ### Decisiones del apartado B
 
-1. **Baud rate 115200.** Un volcado de 314 bytes [hoy 326] tarda unos 27 ms [hoy 28 ms]; a 9600 baud tardaría 0,33 s. Con 100 MHz el divisor es 54, con un error de +0,47 % (el límite es de alrededor del 2 %).
-2. **Redondeo del divisor.** Con truncamiento, algunos clocks dan un error de baud innecesariamente grande. Este cambio importa cuando se cambie la frecuencia con el `clk_wiz`.
+1. **Baud rate 115200.** Un volcado de 314 bytes [hoy 326] tarda unos 27 ms [hoy 28 ms]; a 9600 baud tardaría 0,33 s. Con 100 MHz el divisor es 54, con un error de +0,47 % (el límite es de alrededor del 2 %). [Hoy, a 70 MHz: divisor 38, error −0,06 %; decisión 51.]
+2. **Redondeo del divisor.** Con truncamiento, algunos clocks dan un error de baud innecesariamente grande. Este cambio importa cuando se cambie la frecuencia con el `clk_wiz`. [A 70 MHz: 37,98 se redondea a 38 (−0,06 %); truncando daría 37 (+2,6 %, fuera del límite).]
 3. **Valores iniciales en `tx_fsmd`.** Antes la línea TX quedaba en 0 hasta el primer reset. Eso es una condición de *break*, y la PC lee basura.
-4. **`reset_gen`.** El sistema arranca en un estado conocido sin tocar el botón. Además ya tiene la entrada `i_locked`, preparada para el `clk_wiz`.
+4. **`reset_gen`.** El sistema arranca en un estado conocido sin tocar el botón. Además ya tiene la entrada `i_locked`, preparada para el `clk_wiz`. [Hoy conectada al `locked` del `clk_wiz_0`: decisión 53.]
 5. **Reset global vs. reset del procesador.** `reset` resetea todo, incluida la UART. `cpu_reset` (comando `'X'`) resetea solo el procesador, así la comunicación no se corta y la `debug_unit` puede responder `'K'`. En el `top` se combinan: `cpu_rst = reset | cpu_reset`.
 6. **`cpu_stub` con la misma latencia de HALT que el pipeline real.** El PC se congela al ver el HALT y `o_halted` sube 3 ciclos habilitados después. Así la `debug_unit` no queda dependiendo de que `halted` llegue al instante. [Con la integración el cpu real se ajustó a esa misma cuenta: decisión 28.]
 7. **Truco del stub: el puerto de debug de la memoria de datos lee la memoria de programa.** El contrato no permite leer la memoria de programa, y sin este truco no habría forma de verificar `'L'` hasta tener el `cpu` real. [Sigue valiendo para `tb_top`; con el cpu real `--verificar` no sirve.]
@@ -488,10 +489,10 @@ en lugar de un cable implícito de 1 bit.
 17. **Interrupción con un byte específico (`'I'`), no con cualquier byte.** Un byte de ruido o un comando mandado por error no corta la corrida. Durante RUN todo byte se lee (`rd`), así el buffer de 1 byte nunca queda ocupado y la `'I'` siempre puede entrar. Fuera de RUN, `'I'` no es comando y se descarta.
 18. **Si `'I'` y `halted` llegan en el mismo ciclo, gana el HALT.** El programa terminó solo, y el volcado lo dice (status 0x01). En cualquier caso la PC recibe **un solo** volcado por cada `'R'`. Una `'I'` que llega tarde se ignora.
 19. **Bit `interrupted` en el byte de estado (bit 1).** Distingue "terminó" (0x01) de "lo corté" (0x02) sin que la PC tenga que adivinar. `'D'` no lo cambia (muestra cómo quedó la última ejecución). `'R'`, `'S'` y `'X'` lo borran.
-20. **`cycles` es de 32 bits.** A 100 MHz da la vuelta a los ~43 s de corrida continua. Para los programas del TP alcanza de sobra.
-21. **En la `debug_unit` vive una sola palabra a la vez.** No hay buffer del programa: la palabra se arma en el registro `word` y se escribe apenas está completa. La PC manda todo seguido y el buffer de 1 byte alcanza, porque la FSM consume cada byte al ciclo siguiente y el próximo tarda ~8680 ciclos en llegar.
+20. **`cycles` es de 32 bits.** A 100 MHz da la vuelta a los ~43 s de corrida continua [hoy, a 70 MHz: ~61 s]. Para los programas del TP alcanza de sobra.
+21. **En la `debug_unit` vive una sola palabra a la vez.** No hay buffer del programa: la palabra se arma en el registro `word` y se escribe apenas está completa. La PC manda todo seguido y el buffer de 1 byte alcanza, porque la FSM consume cada byte al ciclo siguiente y el próximo tarda ~8680 ciclos en llegar [hoy, a 70 MHz: ~6080].
 22. **Durante `'L'` ningún byte es comando.** La FSM consume siempre exactamente 3 + 4N bytes; un 0x58 dentro de una palabra es un dato. Por eso, aun con N > 256, se consumen todas las palabras: cortar antes haría que el resto se interprete como comandos.
-23. **CLEAR: después de un `'L'` la memoria tiene exactamente el programa y el resto es HALT.** No quedan restos de programas anteriores, y un salto a memoria "vacía" se detiene. Cuesta como mucho 256 ciclos (2,6 µs). Con N = 0 la memoria queda toda en HALT (sirve como "borrar programa").
+23. **CLEAR: después de un `'L'` la memoria tiene exactamente el programa y el resto es HALT.** No quedan restos de programas anteriores, y un salto a memoria "vacía" se detiene. Cuesta como mucho 256 ciclos (2,6 µs) [hoy, a 70 MHz: 3,7 µs]. Con N = 0 la memoria queda toda en HALT (sirve como "borrar programa").
 24. **La palabra 255 siempre es HALT.** Un programa que se pasa del final de la memoria termina. Si alguien manda 256 palabras o más, la que cae en la 255 se reemplaza por HALT y las siguientes se descartan: el error se atribuye al usuario, no rompe el sistema. El script además recorta a 256 y avisa. Esto no detiene un loop infinito (`j .`): para eso está `'I'`.
 25. **Sin timeout en la carga.** Se asume que la PC y la UART funcionan; si una carga se cortara a la mitad, se recupera con el botón de reset.
 26. **`'K'` confirma un reset terminado**, sea por `'X'` o al final de un `'L'` (los dos pasan por RESET → ACK). Sin checksum por ahora.
@@ -610,10 +611,82 @@ Interfaz (hilo principal, app/)                Trabajador (QThread, hilo_serie.p
 41. **La interfaz nunca toca el puerto serie.** Un `Trabajador` en un `QThread` atiende los pedidos de a uno (las señales entre hilos se encolan), así nunca se mezclan dos respuestas y la ventana no se congela. Interrumpir es la excepción: activa un `threading.Event` que `Enlace.correr()` mira cada 0,1 s mientras espera el volcado del `'R'`, y entonces manda la `'I'`. Al cerrar la ventana durante una corrida se manda `'I'` antes de salir.
 42. **Un "transporte" intercambiable.** `Enlace` no sabe si habla con la placa o con la FPGA simulada. La simulada habla el mismo protocolo byte por byte (imita a `control_fsmd`: carga con CLEAR, `'K'`, bytes ignorados durante RUN) y usa el modelo de referencia; así los tests del protocolo y el modo demo prueban el mismo código que se usa con la placa.
 43. **Modo simulado sin latches.** El modelo calcula registros, memoria, PC y ciclos, pero no los 480 bits de los latches ciclo a ciclo: se mandan como burbujas (salvo el patrón conocido al terminar por HALT) y la interfaz lo avisa. Un modelo de latches bit a bit, verificado contra el RTL, queda para la fase 3.
-44. **Programa sin fin en modo simulado:** "corre" a 2000 ciclos por segundo (la placa hace 100 millones); al llegar la `'I'` se calcula el estado en ese ciclo. Para eso `rv32i_model.ejecutar` recibió dos parámetros opcionales: `mem_inicial` (la RAM conserva lo del programa anterior) y `verificar_estable` (un contador sin fin nunca se estabiliza). Su comportamiento por defecto no cambió.
+44. **Programa sin fin en modo simulado:** "corre" a 2000 ciclos por segundo (la placa hace 70 millones); al llegar la `'I'` se calcula el estado en ese ciclo. Para eso `rv32i_model.ejecutar` recibió dos parámetros opcionales: `mem_inicial` (la RAM conserva lo del programa anterior) y `verificar_estable` (un contador sin fin nunca se estabiliza). Su comportamiento por defecto no cambió.
 45. **Constantes duplicadas, pero verificadas.** `decodificador.py`, `campos_latches.py` y `uart_test.py` repiten el formato del volcado (ningún módulo lee params.vh en tiempo de ejecución, igual que el RTL). `tests/test_constantes.py` lee `src/params.vh` y exige que todo coincida.
 46. **Pseudo-instrucciones en el ensamblador compartido** (`mv`, `li`, `beqz`, `bnez`, `call`, `ret`, además de `nop` y `j`). Se agregaron a `scripts/ensamblador.py` (lo usan el modelo, `uart_test.py` y la GUI) en lugar de duplicarlo; `li` ocupa 1 o 2 palabras según el valor, y el listado muestra la expansión. Las instrucciones RISC-V que no están en la consigna (`mul`, `blt`, `auipc`…) dan un error explícito; para probar una instrucción ilegal está `.word`.
 47. **Ejemplos nuevos en `scripts/gui/programas/`**, no en `scripts/programas/`: el generador de vectores de la integración (`rv32i_model.py --generar`) toma esa carpeta y escribiría en `testbench/vectores/`. Cada uno tiene su resultado esperado calculado a mano (`# ESPERADO:`); `generar_programas.py` lo verifica contra el modelo y escribe los `.hex`.
 48. **Volcados reales en los tests sin tocar `testbench/`.** `scripts/gui/tests/hdl/tb_captura.v` es un testbench propio que corre el top con el cpu real, guarda los bytes del volcado y los valores internos del diseño; `test_captura_rtl.py` exige que el decodificador los interprete igual, campo por campo (los 480 bits de latches incluidos).
 49. **Errores siempre en la ventana.** Los errores esperables (timeout, cabecera mala, cable desconectado) se convierten en excepciones propias con mensajes en castellano y llegan a la interfaz por señales: log, barra de estado y un cuadro que no bloquea. Un gancho global (`sys.excepthook` y `threading.excepthook`) manda cualquier error inesperado al log (`~/.local/state/tp_riscv/depurador.log`) y a un diálogo. Si se desenchufa la placa estando quieta, un temporizador lo detecta mirando la lista de puertos.
 50. **Propuesta de hardware (no implementada):** guardar el PC también en EX/MEM y MEM/WB dentro del volcado (2 palabras más: 544 bits, 334 bytes) permitiría saber con certeza qué instrucción hay en MEM y WB. Sin eso, la vista del pipeline (fase 3) lo reconstruye con el historial de pasos o con el modelo, y muestra "?" cuando no hay certeza.
+
+## 13. Frecuencia de trabajo: clk_wiz a 70 MHz
+
+### Por qué hubo que bajar la frecuencia
+
+A 100 MHz (sin `clk_wiz`, `i_clk` directo) la implementación **no cumple
+timing**:
+
+| Medida | Valor a 100 MHz |
+|---|---|
+| WNS | −3,111 ns |
+| TNS | −919,6 ns (375 endpoints fallando) |
+| WHS | +0,136 ns (hold OK) |
+| Camino crítico | `u_id_ex/o_rs1_reg[2]` → `u_pc/o_pc_reg[30]` |
+| Niveles de lógica | 21 |
+| Retardo del camino | 13,02 ns (70 % cableado, 30 % lógica) |
+
+El camino crítico es el esperado: forwarding → ALU (comparación) → decisión de
+salto → mux del próximo PC, todo en EX y en un solo ciclo (P&H 4.8: el salto se
+resuelve en EX).
+
+### Decisiones
+
+51. **70 MHz con el Clocking Wizard (`clk_wiz_0`, MMCM).** La frecuencia máxima
+    estimada es f_max ≈ 1 / (10 ns − WNS) = 1 / 13,11 ns ≈ **76 MHz**. Con
+    70 MHz (período 14,29 ns) quedan ≈ 1,2 ns de margen sobre la estimación, que
+    cubren la incertidumbre que agrega el MMCM (jitter y error de fase) y los
+    cambios de ruteo entre corridas. 75 MHz habría dejado ~0,2 ns: demasiado
+    justo. El divisor de la UART queda en **38**: baud real =
+    70 MHz / (38 · 16) = 115 132, error **−0,06 %** (antes +0,47 %).
+52. **Un solo clock: `i_clk` solo entra al `clk_wiz`.** Todo el diseño (uart,
+    intf, debug_unit, cpu y reset_gen) usa su salida `clk`, así no hay cruces
+    entre dominios de reloj. El `create_clock` de `top.xdc` sigue en 10 ns:
+    describe el pin de entrada, y Vivado deduce solo el clock generado por el
+    MMCM (`clk_out1_clk_wiz_0`).
+53. **`locked` al `reset_gen`.** Mientras el MMCM no engancha (`locked = 0`), el
+    clock de salida no es confiable y todo el sistema queda en reset. El
+    `clk_wiz` no tiene entrada de reset (`USE_RESET = false`): arranca solo al
+    configurar la FPGA y no hay nada que lo tenga que reiniciar.
+54. **`CLK_FREQ` por defecto = 70 000 000 y comentario bien visible en `top.v`.**
+    Tiene que coincidir siempre con `clk_out1`; si no, la UART calcula mal el
+    divisor. Los testbenches que instancian `top` (`tb_top`, `tb_top_cpu`,
+    `tb_captura`) pasan `CLK_FREQ = 100_000_000` en forma explícita porque su
+    clock es de 10 ns, y no dependen del valor por defecto.
+55. **Parámetro `USE_CLK_WIZ` (1 = placa, 0 = simulación).** Icarus Verilog no
+    puede simular el IP de Xilinx. Con `USE_CLK_WIZ = 0` el `generate` hace
+    `clk = i_clk` y `locked = 1`. iverilog no elabora la rama no elegida, así que
+    no hace falta un modelo de `clk_wiz_0` para simular. `run_all_tests.sh`
+    compila el `top` suelto con `-Ptop.USE_CLK_WIZ=0`.
+56. **Lo que cambia con la frecuencia:** un byte por UART sigue tardando ≈ 87 µs
+    (depende del baud, no del clock), pero son ≈ 6080 ciclos en vez de 8680; el
+    contador de ciclos de 32 bits da la vuelta a los ≈ 61 s en vez de 43 s; un
+    `'R'` sin fin avanza ≈ 70 millones de ciclos por segundo.
+
+### Parámetros del MMCM
+
+Valores del `.xci` (`src/ip/clk_wiz_0.xci`); confirmarlos en el resumen del
+Clocking Wizard o con `report_clocks` después de implementar.
+
+| Parámetro | Valor |
+|---|---|
+| Entrada | 100 MHz (`clk_in1`, pin W5) |
+| M (`CLKFBOUT_MULT_F`) | 49,875 `[COMPLETAR: confirmar]` |
+| D (`DIVCLK_DIVIDE`) | 5 `[COMPLETAR: confirmar]` |
+| O (`CLKOUT0_DIVIDE_F`) | 14,25 `[COMPLETAR: confirmar]` |
+| f_VCO = f_in · M / D | 997,5 MHz (rango del VCO en Artix-7 -1: 600 a 1200 MHz `[COMPLETAR: confirmar en DS181]`) |
+| f_out = f_VCO / O | 70,000 MHz |
+| Jitter / error de fase (`clk_out1`) | 253,5 ps / 293,8 ps |
+| WNS a 70 MHz | `[COMPLETAR: WNS final]` |
+| TNS / WHS / THS a 70 MHz | `[COMPLETAR]` |
+| Camino crítico a 70 MHz | `[COMPLETAR: origen, destino, niveles de lógica, retardo]` |
+

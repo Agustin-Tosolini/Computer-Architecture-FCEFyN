@@ -31,7 +31,9 @@ module tb_captura;
     wire line_pc_to_fpga, line_fpga_to_pc;
     wire [7:0] leds;
 
-    top #(.CLK_FREQ(CLK_FREQ), .BAUD_RATE(BAUD_RATE), .USE_CPU_STUB(0)) dut
+    // CLK_FREQ explicito (el default del top es 70 MHz) y sin clk_wiz (iverilog
+    // no simula el IP de Xilinx): clk = i_clk, de 10 ns.
+    top #(.CLK_FREQ(CLK_FREQ), .USE_CLK_WIZ(0), .BAUD_RATE(BAUD_RATE), .USE_CPU_STUB(0)) dut
     (
         .i_clk(clk), .i_reset(1'b0), .i_rx(line_pc_to_fpga), .o_tx(line_fpga_to_pc), .o_leds(leds)
     );
