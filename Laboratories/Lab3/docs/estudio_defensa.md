@@ -506,7 +506,8 @@ Un byte que no es comando se descarta, sin respuesta.
 - **`rv32i_model.py` (modelo de referencia):** ejecuta el programa por su cuenta (sin el RTL) y calcula los tiempos del pipeline con la fórmula de la sección 2.2: qué registros y qué memoria hay después de **cada** ciclo, el PC y cuándo se detiene. Sirve para los tests y para el modo demo.
 - **GUI** (PySide6): la comunicación va en **otro hilo** (la ventana nunca espera al puerto); pedidos y respuestas viajan por señales de Qt.
 - **Modo demo:** una FPGA simulada que habla **el mismo protocolo, byte por byte**, usando el modelo. Limitación: no simula los latches (se ven como burbujas, salvo al terminar).
-- **Cómo la GUI sabe qué instrucción hay en cada etapa:** IF = la palabra del programa en la dirección del PC; ID = el campo `instr` de IF/ID; EX = la palabra en la dirección `pc` de ID/EX. EX/MEM y MEM/WB no guardan el PC: para saber qué hay en MEM y WB hace falta el volcado del ciclo anterior (EX/MEM copia lo que había en EX) o el modelo de tiempos, y si no hay certeza se muestra "?". La vista completa del pipeline es de la fase 3 `[COMPLETAR si se implementa antes de la defensa]`.
+- **Cómo la GUI sabe qué instrucción hay en cada etapa** (vista del pipeline, decisiones 57 a 61): IF = la palabra del programa en la dirección del PC; ID = el campo `instr` de IF/ID; EX = la palabra en la dirección `pc` de ID/EX. EX/MEM y MEM/WB no guardan el PC. Con dos volcados consecutivos es exacto: MEM ahora = EX antes y WB ahora = MEM antes, porque esos dos latches avanzan en todo flanco (el stall y el flush solo tocan IF/ID e ID/EX). Si no, se simula desde el reset con `pipeline_sim.py` (verificado bit a bit contra el RTL) y se usa solo si los 480 bits coinciden. Si no hay certeza se muestra "?" con el motivo.
+- **Indicadores:** flecha de forwarding, cartel de STALL y de FLUSH, calculados con la misma lógica que `forwarding_unit` y `hazard_unit`. Son ideales para la demo (sección 4).
 
 **Preguntas probables**
 
@@ -612,6 +613,8 @@ Todas las imágenes están en `docs/informe/img/`.
 5. **(30 s) Verificación.** Testbenches contra un modelo independiente, ciclo a ciclo, y 12 de 12 mutaciones detectadas. Frecuencia y WNS: `[COMPLETAR]`.
 
 **Demo en vivo** (menú *Ejemplos → Demostraciones*):
+
+Durante toda la demo dejá abierta la **vista del pipeline** (la franja de arriba) y la pestaña **Listado**: muestra la instrucción de cada etapa, la flecha azul de forwarding y los carteles de STALL y FLUSH. Las capturas de referencia están en `docs/informe/img/pipeline_*.png`.
 
 | Programa | Qué hacer | Qué decir |
 |---|---|---|
@@ -776,4 +779,4 @@ Datos que hay que sacar de Vivado o de la placa (todos de **implementación**, n
 4. **Recursos:** LUT, FF, LUTRAM, BRAM e IO (Utilization). Que `instr_mem` y `data_mem` salgan como LUTRAM (2.10 y 5).
 5. **Warnings críticos de Vivado:** multi-driven, latch, timing loop, "RAM implemented as registers", reloj sin constraint (5).
 6. **Resultados en la placa:** `CHECKLIST_placa.md` (2.15).
-7. **Vista del pipeline en la GUI:** si se implementa antes de la defensa (2.14).
+7. ~~Vista del pipeline en la GUI~~: implementada (decisiones 57 a 61).

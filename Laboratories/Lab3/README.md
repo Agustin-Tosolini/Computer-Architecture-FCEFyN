@@ -10,7 +10,7 @@ Falta validar en Vivado (timing y recursos) y en la placa: [`docs/CHECKLIST_plac
 
 **Depurador gráfico (parte C):** `bash scripts/gui/lanzar_depurador.sh`, o
 "Depurador TP RISC-V" en el menú. Funciona con la placa o en modo simulado.
-Instalación y uso: [`docs/manual_depurador.md`](docs/manual_depurador.md).
+Instalación y uso: [`docs/manual_depurador.md`](docs/manual_depurador.md). Incluye una **vista del pipeline**: qué instrucción hay en cada etapa, forwarding, stall y flush ([cómo leerla](docs/manual_depurador.md#vista-del-pipeline)).
 
 ![Depurador](docs/informe/img/depurador_corrida.png)
 
@@ -196,5 +196,5 @@ Probar en la placa con `docs/CHECKLIST_placa.md`. Revisar en Vivado **WNS ≥ 0*
 70 MHz (`clk_wiz`; a 100 MHz daba WNS = −3,111 ns) con el cpu real y que las dos memorias (programa y datos) salgan como **RAM
 distribuida** (LUTRAM), no como miles de flip-flops.
 Pendientes: WNS final a 70 MHz, panel de LEDs/7 segmentos y las funciones
-extra del depurador (fase 3: comparación con el modelo, vista del pipeline,
-diagrama de ciclos, historial, exportar, tema oscuro).
+extra del depurador (fase 3: comparación con el modelo, diagrama de ciclos,
+historial, exportar, tema oscuro). La vista del pipeline ya está hecha.

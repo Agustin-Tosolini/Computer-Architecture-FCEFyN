@@ -152,6 +152,10 @@ class Resultado:
         self.termina = True
         self.instrucciones = 0   # instrucciones ejecutadas (sin contar HALT)
         self.pc_bucle = None     # sin fin: direccion donde quedo dando vueltas
+        self.traza = []          # (pc, e): cada instruccion ejecutada y el ciclo e en
+                                 # que esta en EX (incluye el HALT/ilegal y el acceso
+                                 # que falla). Despues de k ciclos, la instruccion con
+                                 # e = k+1 esta en ID/EX, e = k en EX/MEM, e = k-1 en MEM/WB.
 
 
 def _acceso_valido(addr, f3, es_store):
@@ -184,6 +188,7 @@ def ejecutar(prog, max_instr=5000, pasos_sin_fin=40, estricto=False,
     eventos_reg, eventos_mem = [], []    # (ciclo, idx, valor)
     saltos, stalls = {}, set()            # ciclo -> destino ; ciclos de stall
     pc, e, n = 0, 3, 0
+    traza = []
     stop_edge = fault_edge = halt_cycle = None
     estado = 0
 
@@ -195,6 +200,7 @@ def ejecutar(prog, max_instr=5000, pasos_sin_fin=40, estricto=False,
     while n < max_instr:
         w = leer(pc)
         d = decodificar(0xFFFFFFFF if w is None else w)
+        traza.append((pc, e))
         if d["clase"] in ("halt", "ilegal"):
             halt_cycle, stop_edge = e + 1, e - 1
             estado = ST_HALT if d["clase"] == "halt" else ST_FAULT
@@ -266,6 +272,7 @@ def ejecutar(prog, max_instr=5000, pasos_sin_fin=40, estricto=False,
         pc, e, n = sig_pc, e_sig, n + 1
 
     r = Resultado()
+    r.traza = traza
     r.instrucciones = n
     r.termina = halt_cycle is not None
     if r.termina:

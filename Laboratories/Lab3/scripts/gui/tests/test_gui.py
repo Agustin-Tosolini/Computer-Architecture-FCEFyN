@@ -45,7 +45,7 @@ def test_conectar_cargar_y_pasos(qtbot, ventana):
     v = ventana
     conectar_demo(qtbot, v)
     assert v.lbl_conexion.text().startswith("FPGA simulada")
-    assert v.vista_latches.aviso.text()                       # aviso "no simulados"
+    assert not v.vista_latches.aviso.text()       # el modo demo ya simula los latches
     assert v.a_paso.isEnabled() and not v.a_interrumpir.isEnabled()
     cargar(qtbot, v, "demo_forwarding.asm")
     assert v.estado.ciclos == 0 and v.tabla_listado.rowCount() == 6
@@ -168,3 +168,113 @@ def test_cerrar_durante_una_corrida_manda_I(qtbot, tmp_path):
     v.close()
     assert not v.corriendo
     assert "TX 49" in v.panel_log.texto_plano()                  # 'I' = 0x49
+
+
+# ============================================================== vista del pipeline
+def pasos(qtbot, v, n):
+    for _ in range(n):
+        k = v.estado.ciclos + 1
+        v.a_paso.trigger()
+        qtbot.waitUntil(lambda: v.estado.ciclos == k and not v.ocupado, timeout=TIEMPO)
+
+
+def test_pipeline_paso_normal_y_listado(qtbot, ventana):
+    v = ventana
+    conectar_demo(qtbot, v)
+    cargar(qtbot, v, "demo_forwarding.asm")
+    et = v.vista_pipe.etapas
+    assert et["IF"].estado == "util" and all(et[n].estado == "burbuja" for n in
+                                            ("ID", "EX", "MEM", "WB"))
+    pasos(qtbot, v, 4)
+    et = v.vista_pipe.etapas
+    # Despues de 4 ciclos: IF 0x10 (sw), ID 0x0C (sub), EX 0x08 (add), MEM 0x04, WB 0x00.
+    assert [et[n].pc for n in ("IF", "ID", "EX", "MEM", "WB")] == [0x10, 0x0C, 0x08, 0x04, 0x00]
+    assert et["EX"].texto == "add x7, x6, x5" and et["EX"].tipo == "R"
+    assert et["WB"].nota == "escribe x5 = 0xA" and et["MEM"].nota == "sin acceso a memoria"
+    assert {(f.origen, f.operando) for f in v.vista_pipe.forwarding} == \
+        {("EX/MEM", "rs1"), ("MEM/WB", "rs2")}
+    # Listado: las 5 etiquetas y las 5 tonalidades (IF la mas intensa).
+    from app import tema
+    tonos = tema.LISTADO["claro"]
+    t = v.tabla_listado
+    assert t.etiquetas == {0: "WB", 1: "MEM", 2: "EX", 3: "ID", 4: "► PC IF"}
+    for fila, etapa in ((0, "WB"), (1, "MEM"), (2, "EX"), (3, "ID"), (4, "IF")):
+        assert t.item(fila, 3).background().color().name().upper() == tonos[etapa].upper()
+
+
+def test_pipeline_flush_naranja(qtbot, ventana):
+    v = ventana
+    conectar_demo(qtbot, v)
+    cargar(qtbot, v, "demo_flush.asm")
+    pasos(qtbot, v, 4)
+    vp = v.vista_pipe
+    assert vp.flush and vp.etapas["IF"].estado == "descarta" and vp.etapas["ID"].estado == "descarta"
+    from app import tema
+    naranja = tema.LISTADO["claro"]["descarta"].upper()
+    t = v.tabla_listado
+    assert t.item(3, 3).background().color().name().upper() == naranja      # 0x0C (ID)
+    assert t.item(4, 3).background().color().name().upper() == naranja      # 0x10 (IF)
+    pasos(qtbot, v, 1)
+    assert v.vista_pipe.etapas["ID"].origen == "flush"
+    assert 3 not in v.tabla_listado.etiquetas                                 # burbuja: sin fila
+
+
+def test_pipeline_stall(qtbot, ventana):
+    v = ventana
+    conectar_demo(qtbot, v)
+    cargar(qtbot, v, "demo_load_use.asm")
+    pasos(qtbot, v, 4)
+    assert v.vista_pipe.stall
+    pc = v.estado.pc
+    pasos(qtbot, v, 1)
+    assert v.estado.pc == pc and v.vista_pipe.etapas["EX"].origen == "stall"
+
+
+def test_pipeline_signo_de_pregunta(qtbot, ventana):
+    """Programa que la GUI no cargo (se conecta con uno ya corriendo): '?'."""
+    v = ventana
+    conectar_demo(qtbot, v)
+    cargar(qtbot, v, "fibonacci.asm")
+    v.a_correr.trigger()
+    qtbot.waitUntil(lambda: v.estado.detenido and not v.ocupado, timeout=TIEMPO)
+    assert v.vista_pipe.etapas["WB"].estado == "halt"           # deducido simulando
+    v.programa_cargado = None                                   # "no se cargo desde la GUI"
+    v.ctx = __import__("pipeline_view").Contexto()
+    v.vista_pipe = None
+    v.a_volcar.trigger()
+    qtbot.waitUntil(lambda: v.vista_pipe is not None and not v.ocupado, timeout=TIEMPO)
+    wb = v.vista_pipe.etapas["WB"]
+    assert wb.estado == "desconocida" and "GUI" in wb.motivo
+    assert "Vista del pipeline" in v.panel_log.texto_plano()
+
+
+def test_pipeline_halt_y_seguir_instruccion(qtbot, ventana):
+    v = ventana
+    conectar_demo(qtbot, v)
+    cargar(qtbot, v, "demo_forwarding.asm")
+    v.tabs_programa.setCurrentIndex(1)
+    v._seguir_fila(1, 0)                                         # sigue addi (0x04)
+    assert v.seguido == 0x04 and v.vista_pipeline.lienzo.seguido == 0x04
+    pasos(qtbot, v, 3)
+    assert v.seguido_visto
+    pasos(qtbot, v, 4)                                           # sale por WB
+    assert v.seguido is None
+    pasos(qtbot, v, 2)
+    assert v.estado.detenido and v.vista_pipe.detenido
+    assert v.vista_pipe.etapas["WB"].estado == "halt"
+
+
+def test_clic_en_latch_abre_el_detalle(qtbot, ventana):
+    v = ventana
+    v._ver_latch("EX/MEM")
+    assert v.tabs_abajo.currentWidget() is v.vista_latches
+    assert v.vista_latches.arbol.currentItem() is v.vista_latches.ramas["EX/MEM"]
+    assert not v.vista_latches.ramas["IF/ID"].isExpanded()
+
+
+def test_pipeline_se_pliega(qtbot, ventana):
+    v = ventana
+    v.vista_pipeline.boton.setChecked(False)
+    assert not v.vista_pipeline.lienzo.isVisible()
+    v.vista_pipeline.boton.setChecked(True)
+    assert v.vista_pipeline.lienzo.isVisible()

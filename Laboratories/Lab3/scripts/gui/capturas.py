@@ -97,6 +97,28 @@ def main():
     v.ensamblar()
     v.tabs_programa.setCurrentIndex(0)
     guardar(v, "depurador_error_asm.png")
+
+    # 5. Vista del pipeline: paso normal, forwarding, stall, flush y HALT.
+    v.resize(1500, 1000)
+    v.tabs_abajo.setCurrentIndex(1)            # latches (detalle)
+
+    def ejemplo(nombre, ciclos, archivo):
+        v.abrir_archivo(os.path.join(rutas.PROGRAMAS_GUI, nombre))
+        v.cargar()
+        esperar(lambda: not v.ocupado and v.estado.ciclos == 0 and v.programa_cargado)
+        for k in range(1, ciclos + 1):
+            v.a_paso.trigger()
+            esperar(lambda: v.estado.ciclos == k and not v.ocupado)
+            if v.estado.detenido:
+                break
+        v.tabs_programa.setCurrentIndex(1)
+        guardar(v, archivo)
+
+    ejemplo("fibonacci.asm", 6, "pipeline_paso_normal.png")
+    ejemplo("demo_forwarding.asm", 4, "pipeline_forwarding.png")
+    ejemplo("demo_load_use.asm", 4, "pipeline_stall.png")
+    ejemplo("demo_flush.asm", 4, "pipeline_flush.png")
+    ejemplo("demo_forwarding.asm", 99, "pipeline_halt.png")
     v.close()
 
 

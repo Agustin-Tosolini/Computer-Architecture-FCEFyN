@@ -4,18 +4,18 @@ protocolo que la real, byte por byte (src/params.vh, seccion 6).
 
 Sirve para:
   * el "modo demo" del depurador (usar toda la app sin la placa);
-  * los tests del protocolo (tests/test_protocolo.py).
+  * los tests del protocolo y de la vista del pipeline.
 
-Por dentro imita a control_fsmd (la debug_unit) y, para saber que hace el
-procesador, usa el modelo de referencia (scripts/rv32i_model.py): registros,
-memoria de datos, PC y estado despues de cada ciclo.
+Por dentro imita a control_fsmd (la debug_unit) y, para el procesador, usa
+pipeline_sim.py: un simulador ciclo a ciclo del cpu que reproduce los 480 bits
+de los latches igual que el RTL (verificado con Icarus Verilog en
+tests/test_pipeline_sim.py). Asi el volcado simulado trae registros, memoria,
+PC, estado Y latches reales.
 
-Limitaciones (a proposito, documentadas en la interfaz):
-  * Los LATCHES no se simulan: el volcado los manda como burbujas (patron de
-    reset). Solo al terminar por HALT se manda el patron real de parada (el
-    marcador del HALT en MEM/WB), que es conocido.
-  * Un programa sin fin "corre" a VELOCIDAD ciclos por segundo (la placa hace
-    70 millones, a 70 MHz): al llegar la 'I' se calcula el estado en ese ciclo.
+Limitacion: un programa sin fin "corre" a VELOCIDAD ciclos por segundo (la
+placa hace 70 millones, a 70 MHz). 'R' primero simula hasta CICLOS_RAPIDOS
+ciclos de golpe; si no se detuvo, queda corriendo y al llegar la 'I' se
+simula hasta el ciclo que corresponde al tiempo transcurrido.
 
 Mismos metodos que transporte.PuertoSerie:
     escribir(bytes), leer(n, timeout), vaciar_entrada(), cerrar()
@@ -24,11 +24,12 @@ import threading
 import time
 
 import rutas  # noqa: F401  (agrega scripts/ al path)
-from rv32i_model import ejecutar
-from decodificador import armar_volcado, LAT_RESET, N_MEM_WORDS
+from decodificador import armar_volcado, N_MEM_WORDS
+from pipeline_sim import PipelineSim
 from protocolo import ErrorConexion
 
 VELOCIDAD = 2000            # ciclos por segundo de un 'R' sin fin (simulado)
+CICLOS_RAPIDOS = 5000       # 'R' simula esto de golpe antes de quedar "corriendo"
 MAX_CICLOS_SIN_FIN = 200_000
 IMEM_WORDS = 256
 
@@ -42,67 +43,44 @@ class FpgaSimulada:
         self._salida = bytearray()
         self._cv = threading.Condition()
         self._desconectada = False
-        self.imem = [0] * IMEM_WORDS               # HALT al configurar la FPGA
-        self.dmem = [0] * N_MEM_WORDS              # memoria de datos (RAM)
+        # Al configurar la FPGA: programa todo en HALT, memoria de datos en 0.
+        self.cpu = PipelineSim([], [0] * N_MEM_WORDS)
+        self.interrumpido = False
         self._fsm = "IDLE"                         # IDLE, LOAD_LEN, LOAD_WORD, RUN
         self._acum = bytearray()
         self._n_words = 0
         self._palabras = []
         self._t_run = 0.0
-        self._reset_cpu(list(self.dmem))
+        self._c_run = 0
 
-    # -------------------------------------------------- procesador (modelo)
-    def _reset_cpu(self, mem_actual):
-        """Lo que hace i_cpu_reset: PC, registros, latches, halted en 0. La
-        memoria de datos NO se borra: el programa arranca con mem_actual (lo
-        que quedo de antes)."""
-        self.mem_reset = list(mem_actual)
-        self.dmem = list(mem_actual)
-        self.ciclos = 0
-        self.interrumpido = False
-        self._res = None
-        self._horizonte = 0
-        r = ejecutar(self.imem, mem_inicial=self.mem_reset,     # ¿termina?
-                     verificar_estable=False)
-        self.ciclos_halt = r.ciclos if r.termina else None
+    # -------------------------------------------------- procesador
+    @property
+    def imem(self):
+        return self.cpu.imem
 
-    def _resultado(self, k):
-        """Resultado del modelo que cubre al menos k ciclos."""
-        if self.ciclos_halt is not None:
-            if self._res is None:
-                self._res = ejecutar(self.imem, mem_inicial=self.mem_reset)
-            return self._res
-        if self._res is None or self._horizonte < k:
-            self._horizonte = max(k, 2 * self._horizonte, 64)
-            self._res = ejecutar(self.imem, max_instr=self._horizonte + 10,
-                                 pasos_sin_fin=self._horizonte,
-                                 mem_inicial=self.mem_reset, verificar_estable=False)
-        return self._res
+    @property
+    def dmem(self):
+        return self.cpu.dmem
 
-    def _paso_modelo(self, k):
-        """(regs, mem, pc, estado) despues de k ciclos (k = 0: recien reseteado)."""
-        if k == 0:
-            return [0] * 32, list(self.mem_reset), 0, 0
-        r = self._resultado(k)
-        regs, mem, pc, st, _ = r.pasos[min(k, len(r.pasos)) - 1]
-        return regs, mem, pc, st
-
-    def _mem_ahora(self):
-        return self._paso_modelo(self.ciclos)[1]
+    @property
+    def ciclos(self):
+        return self.cpu.ciclos
 
     @property
     def detenido(self):
-        return self.ciclos_halt is not None and self.ciclos >= self.ciclos_halt
+        return bool(self.cpu.halted)
+
+    def _reset_cpu(self):
+        """i_cpu_reset: PC, registros, latches y halted en 0; contador de ciclos
+        y bit de interrumpido en 0. Las memorias (RAM) NO se borran."""
+        self.cpu.reset()
+        self.interrumpido = False
 
     def _volcado(self):
-        regs, mem, pc, st = self._paso_modelo(self.ciclos)
-        self.dmem = list(mem)
-        estado = st | (2 if self.interrumpido else 0)
-        lat = LAT_RESET
-        if st == 0x01:                              # HALT normal: patron conocido
-            lat = int.from_bytes(b"".join(w.to_bytes(4, "little")
-                                          for w in self._resultado(self.ciclos).latches), "little")
-        return armar_volcado(pc, self.ciclos, estado, regs, mem, lat)
+        c = self.cpu
+        estado = (0x05 if c.fault else 0x01 if c.halted else 0) | (2 if self.interrumpido else 0)
+        return armar_volcado(c.pc, c.ciclos, estado, [c.reg(i) for i in range(32)],
+                             c.dmem, c.latches_bits())
 
     # -------------------------------------------------- debug_unit (control_fsmd)
     def _responder(self, datos):
@@ -114,7 +92,7 @@ class FpgaSimulada:
         if self._fsm == "IDLE":
             c = bytes([b])
             if c == b"X":
-                self._reset_cpu(self._mem_ahora())
+                self._reset_cpu()
                 self._responder(b"K")
             elif c == b"L":
                 self._fsm, self._acum = "LOAD_LEN", bytearray()
@@ -122,22 +100,21 @@ class FpgaSimulada:
                 self._responder(self._volcado())
             elif c == b"S":
                 self.interrumpido = False
-                if not self.detenido:
-                    self.ciclos += 1
+                self.cpu.paso()                      # detenido: no hace nada
                 self._responder(self._volcado())
             elif c == b"R":
                 self.interrumpido = False
-                if self.ciclos_halt is not None:
-                    self.ciclos = max(self.ciclos, self.ciclos_halt)
+                if self.cpu.correr(self.cpu.ciclos + CICLOS_RAPIDOS):
                     self._responder(self._volcado())
                 else:
-                    self._fsm, self._t_run, self._c_run = "RUN", time.monotonic(), self.ciclos
+                    self._fsm, self._t_run, self._c_run = "RUN", time.monotonic(), self.cpu.ciclos
             # cualquier otro byte (incluida 'I' fuera de RUN): se descarta
         elif self._fsm == "RUN":
             if b == ord("I"):                        # todo lo demas se ignora
                 avance = int((time.monotonic() - self._t_run) * VELOCIDAD)
-                self.ciclos = min(self._c_run + max(avance, 1), MAX_CICLOS_SIN_FIN)
-                self.interrumpido = True
+                objetivo = min(self._c_run + max(avance, 1), MAX_CICLOS_SIN_FIN)
+                # Si se detiene antes, gana el HALT (como en la placa).
+                self.interrumpido = not self.cpu.correr(objetivo)
                 self._fsm = "IDLE"
                 self._responder(self._volcado())
         elif self._fsm == "LOAD_LEN":
@@ -160,11 +137,10 @@ class FpgaSimulada:
     def _fin_carga(self):
         """WRITE + CLEAR: el programa, HALT en el resto, la 255 siempre HALT;
         las palabras 256+ se descartan. Despues RESET + 'K'."""
-        mem = self._mem_ahora()              # antes de cambiar el programa
         p = self._palabras[:IMEM_WORDS]
-        self.imem = p + [0] * (IMEM_WORDS - len(p))
-        self.imem[IMEM_WORDS - 1] = 0
-        self._reset_cpu(mem)
+        self.cpu.imem[:] = p + [0] * (IMEM_WORDS - len(p))
+        self.cpu.imem[IMEM_WORDS - 1] = 0
+        self._reset_cpu()
         self._responder(b"K")
 
     # -------------------------------------------------- interfaz de transporte

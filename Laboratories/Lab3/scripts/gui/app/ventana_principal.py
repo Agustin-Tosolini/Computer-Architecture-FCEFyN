@@ -30,9 +30,11 @@ from PySide6.QtWidgets import (QComboBox, QFileDialog, QGridLayout, QHBoxLayout,
 import rutas
 from app.editor import EditorCodigo
 from app.panel_log import PanelLog, configurar_archivo
-from app.tablas import FORMATOS, TablaListado, TablaMemoria, TablaRegistros
+from app.tablas import FORMATOS, TablaListado, TablaMemoria, TablaRegistros, leyenda_listado
 from app.tema import estilo_chip
 from app.vista_latches import VistaLatches
+from app.vista_pipeline import VistaPipeline
+from pipeline_view import Contexto, deducir, marcas_listado
 from desensamblador import desensamblar
 from ensamblador import ErrorAsm, a_hex, ensamblar
 from hilo_serie import MODO_PLACA, MODO_SIMULADO, Trabajador
@@ -40,9 +42,6 @@ from transporte import listar_puertos
 
 log = logging.getLogger("depurador")
 
-AVISO_SIMULADO = ("Modo simulado: los latches no se simulan (se muestran como burbujas, "
-                  "salvo al terminar por HALT). Registros, memoria, PC y ciclos salen del "
-                  "modelo de referencia (rv32i_model.py).")
 
 ATAJOS = """<table cellpadding=3>
 <tr><td><b>F10</b></td><td>Paso ('S'): avanza un ciclo de clock y trae el volcado</td></tr>
@@ -88,6 +87,13 @@ class VentanaPrincipal(QMainWindow):
         self.estado = None               # ultimo volcado (decodificador.Estado)
         self.resaltar_cambios = False
         self.ultimo_error = ""
+        # Vista del pipeline
+        self.programa_cargado = None     # palabras mandadas con el ultimo 'L'
+        self.carga_pendiente = None
+        self.ctx = Contexto()            # programa + memoria al reset (para simular)
+        self.vista_pipe = None           # ultima pipeline_view.Vista
+        self.seguido = None              # PC de la instruccion seguida (clic en el listado)
+        self.seguido_visto = False
         self.ruta_log = configurar_archivo()
 
         self._crear_acciones()
@@ -191,9 +197,17 @@ class VentanaPrincipal(QMainWindow):
         le.addWidget(self.editor)
         le.addLayout(pie)
         self.tabla_listado = TablaListado()
+        self.tabla_listado.cellClicked.connect(self._seguir_fila)
+        self.lbl_leyenda = QLabel(leyenda_listado())
+        self.lbl_leyenda.setWordWrap(True)
+        caja_listado = QWidget()
+        ll = QVBoxLayout(caja_listado)
+        ll.setContentsMargins(0, 0, 0, 0)
+        ll.addWidget(self.tabla_listado)
+        ll.addWidget(self.lbl_leyenda)
         self.tabs_programa = QTabWidget()
         self.tabs_programa.addTab(caja_editor, "Editor")
-        self.tabs_programa.addTab(self.tabla_listado, "Listado")
+        self.tabs_programa.addTab(caja_listado, "Listado")
 
         # --- centro: PC, ciclos, estado
         centro = QWidget()
@@ -252,7 +266,16 @@ class VentanaPrincipal(QMainWindow):
         self.split.addWidget(self.tabs_abajo)
         self.split.setSizes([520, 300])
         self.split_arriba = arriba
-        self.setCentralWidget(self.split)
+        # --- franja del pipeline (arriba de todo, a todo el ancho, plegable)
+        self.vista_pipeline = VistaPipeline()
+        self.vista_pipeline.lienzo.latch_elegido.connect(self._ver_latch)
+        central = QWidget()
+        lc = QVBoxLayout(central)
+        lc.setContentsMargins(0, 0, 0, 0)
+        lc.setSpacing(2)
+        lc.addWidget(self.vista_pipeline)
+        lc.addWidget(self.split, 1)
+        self.setCentralWidget(central)
         self.statusBar().showMessage("Listo")
 
     def _crear_menus(self):
@@ -312,6 +335,8 @@ class VentanaPrincipal(QMainWindow):
         fmt = self.ajustes.value("formato_regs", FORMATOS[0])
         if fmt in FORMATOS:
             self.combo_formato.setCurrentText(fmt)
+        visible = self.ajustes.value("pipeline_visible", True)
+        self.vista_pipeline.boton.setChecked(visible not in (False, "false"))
         for nombre, split in (("split", self.split), ("split_arriba", self.split_arriba)):
             estado = self.ajustes.value(nombre)
             if estado is not None:
@@ -323,6 +348,7 @@ class VentanaPrincipal(QMainWindow):
         self.ajustes.setValue("formato_regs", self.combo_formato.currentText())
         self.ajustes.setValue("split", self.split.saveState())
         self.ajustes.setValue("split_arriba", self.split_arriba.saveState())
+        self.ajustes.setValue("pipeline_visible", self.vista_pipeline.boton.isChecked())
 
     # ================================================== conexion
     def actualizar_puertos(self):
@@ -363,7 +389,11 @@ class VentanaPrincipal(QMainWindow):
         if self.modo_conectado == MODO_PLACA:
             self.ajustes.setValue("puerto", self.puerto_conectado)
         self.lbl_conexion.setText(descripcion)
-        self.vista_latches.set_aviso(AVISO_SIMULADO if self.modo_conectado == MODO_SIMULADO else "")
+        self.vista_latches.set_aviso("")
+        # No se sabe que programa tiene la placa hasta que se cargue uno desde aca.
+        self.programa_cargado = None
+        self.ctx = Contexto()
+        self.vista_pipe = None
         log.info(f"Conectado: {descripcion}")
         self.resaltar_cambios = False
         self._actualizar_acciones()
@@ -418,7 +448,7 @@ class VentanaPrincipal(QMainWindow):
         self.lbl_asm.setText(f"OK: {len(listado)} palabras ({4 * len(listado)} bytes).")
         self.tabla_listado.mostrar(listado)
         if self.estado is not None:
-            self.tabla_listado.marcar_pc(self.estado.pc)
+            self._marcar_listado()
         log.info(f"Ensamblado: {len(listado)} palabras")
         self._actualizar_acciones()
         return True
@@ -475,6 +505,7 @@ class VentanaPrincipal(QMainWindow):
             if not self.ensamblar():
                 return
         palabras = [ln.word for ln in self.listado]
+        self.carga_pendiente = palabras
         log.info(f"Cargando {len(palabras)} palabras ('L')…")
         self.pedir_cargar.emit(palabras)
 
@@ -500,6 +531,7 @@ class VentanaPrincipal(QMainWindow):
         for a in avisos:
             log.warning(a)
         if comando == "L":
+            self.programa_cargado = self.carga_pendiente
             log.info("Programa cargado; el procesador quedó reseteado ('K')")
         else:
             log.info("Reset del procesador ('K')")
@@ -517,14 +549,12 @@ class VentanaPrincipal(QMainWindow):
         self.lbl_ciclos.setText(str(estado.ciclos))
         self._set_chip(estado.texto_estado())
         self.lbl_if.setText(self._instr_en(estado.pc))
-        if self.modo_conectado == MODO_SIMULADO and not estado.detenido:
-            self.lbl_id.setText("(no simulado: ver la pestaña Latches)")
-        elif estado.es_burbuja("IF/ID"):
+        if estado.es_burbuja("IF/ID"):
             self.lbl_id.setText("burbuja")
         else:
             self.lbl_id.setText(f"0x{estado.campo('IF/ID', 'pc'):03X}: "
                                 f"{desensamblar(estado.campo('IF/ID', 'instr'))}")
-        self.tabla_listado.marcar_pc(estado.pc)
+        self._actualizar_pipeline(estado)
         nombres = {"D": "Volcado", "S": "Paso", "R": "Corrida"}
         msg = (f"{nombres.get(comando, comando)} ('{comando}'): {estado.texto_estado()}, "
                f"PC = 0x{estado.pc:08X}, ciclos = {estado.ciclos}")
@@ -534,6 +564,63 @@ class VentanaPrincipal(QMainWindow):
         else:
             log.info(msg)
         self.statusBar().showMessage(msg, 8000)
+
+    # ================================================== vista del pipeline
+    def _actualizar_pipeline(self, estado):
+        """Deduce que hay en cada etapa (pipeline_view) y actualiza la franja y
+        el listado. Un volcado con ciclos = 0 es el de un reset: ahi se anota la
+        memoria de datos para poder simular desde el reset."""
+        if estado.ciclos == 0:
+            self.ctx = Contexto(self.programa_cargado, estado.mem)
+        previos = set(self.vista_pipe.avisos) if self.vista_pipe is not None else set()
+        vista = deducir(estado, self.vista_pipe, self.ctx)
+        for a in vista.avisos:
+            if a not in previos:
+                log.warning(f"Vista del pipeline: {a}")
+        self.vista_pipe = vista
+        self.vista_pipeline.mostrar(vista, estado)
+        self._marcar_listado()
+        # Instruccion seguida: se suelta cuando sale por WB.
+        if self.seguido is not None:
+            pcs = {et.pc for et in vista.etapas.values() if et.ocupada}
+            if self.seguido in pcs:
+                self.seguido_visto = True
+            elif self.seguido_visto:
+                log.info(f"La instrucción seguida (0x{self.seguido:03X}) salió del pipeline")
+                self._seguir(None)
+
+    def _listado_es_el_cargado(self):
+        """El listado corresponde al programa que se mando con 'L'?"""
+        if self.listado is None or self.programa_cargado is None:
+            return False
+        return [ln.word for ln in self.listado] == list(self.programa_cargado)
+
+    def _marcar_listado(self):
+        if self.estado is None:
+            return
+        if self.vista_pipe is not None and self._listado_es_el_cargado():
+            self.tabla_listado.marcar_pipeline(self.estado.pc, marcas_listado(self.vista_pipe))
+        else:
+            self.tabla_listado.marcar_pc(self.estado.pc)
+
+    def _seguir_fila(self, fila, _col):
+        if 0 <= fila < len(self.tabla_listado.direcciones):
+            pc = self.tabla_listado.direcciones[fila]
+            self._seguir(None if pc == self.seguido else pc)
+
+    def _seguir(self, pc):
+        self.seguido = pc
+        self.seguido_visto = False
+        if self.vista_pipe is not None and pc is not None:
+            self.seguido_visto = any(et.pc == pc and et.ocupada
+                                     for et in self.vista_pipe.etapas.values())
+        self.vista_pipeline.lienzo.set_seguido(pc)
+        if pc is not None:
+            log.info(f"Siguiendo la instrucción de 0x{pc:03X} en la vista del pipeline")
+
+    def _ver_latch(self, latch):
+        self.tabs_abajo.setCurrentWidget(self.vista_latches)
+        self.vista_latches.enfocar(latch)
 
     def _instr_en(self, pc):
         if self.listado:

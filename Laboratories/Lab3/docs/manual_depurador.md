@@ -75,8 +75,9 @@ ejecutar nada; durante una corrida solo está activo **Interrumpir**.
      FTDI (uno es el JTAG); el depurador marca con ★ el de la UART. Si no
      aparece, conectar la placa y apretar el botón de actualizar.
    - **Simulado**: una FPGA "de mentira" (`fpga_simulada.py`) que habla el
-     mismo protocolo, byte por byte, y calcula el procesador con el modelo de
-     referencia. Sirve para practicar o para presentar si falla el hardware.
+     mismo protocolo, byte por byte, y calcula el procesador con un
+     simulador ciclo a ciclo verificado contra el RTL (latches incluidos).
+     Sirve para practicar o para presentar si falla el hardware.
 2. **Conectar**. El depurador pide un volcado (`D`) y muestra el estado.
 
 El último puerto y el modo se recuerdan para la próxima vez. Si se
@@ -141,8 +142,76 @@ tabla de `src/params.vh` (sección 4b):
 - Un latch con `valid = 0` dice **burbuja**.
 - Al pasar el mouse por un campo, un tooltip explica qué es.
 
-En **modo simulado** los latches no se simulan: se muestran como burbujas,
-salvo al terminar por HALT. El aviso naranja lo recuerda.
+En **modo simulado** los latches también son los reales: la FPGA simulada
+usa un simulador ciclo a ciclo que da los mismos 480 bits que el hardware.
+
+### Vista del pipeline
+
+La franja de arriba (botón **▾ Pipeline** para plegarla) muestra qué
+instrucción hay en cada etapa y qué está pasando:
+
+```
+[ IF ] [IF/ID] [ ID ] [ID/EX] [ EX ] [EX/MEM] [ MEM ] [MEM/WB] [ WB ]
+```
+
+**Cada etapa** muestra el PC, la instrucción, un chip con su tipo (R, I,
+I·load, S, B, U, J, HALT) y una nota con lo que hace ahí ("lee 0x7 de 0x0",
+"escribe x5 = 0xA", "salto TOMADO → 0x14"…). Pasá el mouse para ver la nota
+completa o el motivo de un "?".
+
+| Aspecto | Significa |
+|---|---|
+| ● verde | la instrucción hace trabajo útil en esa etapa |
+| ○ verde claro, borde punteado | pasa sin trabajo útil: MEM sin load/store, WB sin escritura (o rd = x0), un `nop` |
+| ∅ gris con trama | **burbuja**, con su origen: stall, flush, reset o parada |
+| ✕ naranja, tachada | **se descarta** en el próximo flanco (flush de un salto tomado, o error en MEM) |
+| ⏸ gris | IF: esa palabra **no entra** (parada en curso o procesador detenido) |
+| ■ violeta | HALT |
+| ⚠ rojo | error: instrucción ilegal, fetch inválido o acceso inválido a memoria |
+| **?** | no se puede saber con certeza qué instrucción hay: el motivo está en el tooltip y en el log |
+
+**Cada latch** muestra lo importante: IF/ID el `pc`; ID/EX el `rd`, los
+valores de rs1/rs2 (tal como se leyeron en ID, antes del forwarding), el
+inmediato y las señales de control activas (RegWrite, MemRead, MemWrite,
+Branch, Jump); EX/MEM el `result` y el `rd`; MEM/WB el valor a escribir y el
+`rd`. **Clic en un latch** abre su detalle en la pestaña Latches.
+
+**Indicadores** (calculados igual que el hardware):
+
+- **Flecha azul** EX/MEM → EX o MEM/WB → EX: en este ciclo se usa forwarding
+  para rs1 o rs2; la etiqueta dice el registro y el valor adelantado.
+- **Cartel "STALL en el próximo paso"**: hay un load en EX y la instrucción
+  de ID usa su resultado. En el próximo paso el PC se repite y entra una
+  burbuja a EX ("burbuja (stall)").
+- **Cartel "FLUSH en el próximo paso"**: el salto de EX se toma; IF e ID
+  están en naranja porque se van a descartar.
+- **Cartel "Procesador detenido"**: el HALT (o el error) llegó a WB y el resto
+  está vacío.
+
+![Paso normal](informe/img/pipeline_paso_normal.png)
+![Forwarding](informe/img/pipeline_forwarding.png)
+![Stall](informe/img/pipeline_stall.png)
+![Flush](informe/img/pipeline_flush.png)
+![HALT](informe/img/pipeline_halt.png)
+
+**En el listado**, además del `► PC`, cada fila que está en el pipeline lleva
+la etiqueta de su etapa (`IF`, `ID`, `EX`, `MEM`, `WB`) y un tono de azul: el
+más intenso para IF y cada vez más claro hasta WB. Si una instrucción está en
+dos etapas a la vez (por ejemplo, en un `j .`), lleva las dos etiquetas. Lo
+que se va a descartar va en **naranja**. Las burbujas y lo desconocido no
+marcan ninguna fila. Abajo hay una leyenda.
+
+**Seguir una instrucción:** clic en una fila del listado. Esa instrucción
+queda con un borde grueso en la vista del pipeline mientras das pasos, hasta
+que sale por WB (otro clic en la misma fila deja de seguirla).
+
+**¿Cómo sabe qué hay en MEM y WB?** Los latches guardan el PC solo en IF/ID e
+ID/EX. Si el volcado es justo un ciclo después del anterior (con **Paso**), lo
+de MEM es lo que estaba en EX y lo de WB lo que estaba en MEM. Si no (después
+de **Correr** o un **Volcar** suelto), el depurador simula el programa desde el
+reset y lo usa solo si da exactamente los mismos latches que el volcado. Si no
+hay forma de saberlo (por ejemplo, el programa no se cargó desde la GUI),
+muestra "?".
 
 ### Log
 
@@ -189,7 +258,9 @@ Corre todos los tests de Python (unos 35 s):
 | `test_desensamblador.py` | Ida y vuelta (ejemplos y 600 instrucciones al azar) |
 | `test_programas.py` | Los ejemplos: anotaciones contra el modelo y `.hex` al día |
 | `test_captura_rtl.py` | Volcados **reales** del top simulado con Icarus Verilog (`tests/hdl/tb_captura.v`), decodificados campo por campo, incluidos los 480 bits de latches. Se saltea si no está `iverilog` |
-| `test_gui.py` | La interfaz sin pantalla (pytest-qt): conexión, carga, pasos, corrida, interrupción, botones, errores, log |
+| `test_gui.py` | La interfaz sin pantalla (pytest-qt): conexión, carga, pasos, corrida, interrupción, botones, errores, log, y la vista del pipeline (texto de cada etapa, tonos del listado, naranja del flush, "?", seguir una instrucción) |
+| `test_pipeline_sim.py` | El simulador de latches contra el RTL (`tests/hdl/tb_traza.v`), **bit por bit en cada ciclo**, y contra el modelo |
+| `test_pipeline_view.py` | Qué instrucción hay en cada etapa (contra la traza de tiempos del modelo) y los indicadores de forwarding, stall y flush (contra cuentas a mano) |
 
 Las capturas de este manual (en `docs/informe/img/`) se regeneran con:
 

@@ -121,6 +121,7 @@ class TablaListado(_TablaBase):
         super().__init__(0, ["", "Dirección", "Palabra", "Instrucción", "Línea de origen"], parent)
         self.direcciones = []
         self.fila_pc = None
+        self.etiquetas = {}               # fila -> texto de la 1.a columna (pipeline)
         self.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeToContents)
         for c in (1, 2, 3):
             self.horizontalHeader().setSectionResizeMode(c, QHeaderView.ResizeToContents)
@@ -148,3 +149,52 @@ class TablaListado(_TablaBase):
             self.item(self.fila_pc, 0).setText("► PC")
             self._pintar_fila(self.fila_pc, COLOR["pc"])
             self.scrollToItem(self.item(self.fila_pc, 0), QAbstractItemView.EnsureVisible)
+
+    def marcar_pipeline(self, pc, marcas):
+        """Resalta las filas de las instrucciones que estan en el pipeline.
+        marcas: pc -> [(etapa, se_descarta), ...] (pipeline_view.marcas_listado).
+        La fila del PC conserva su "► PC"; cada fila lleva la etiqueta de su(s)
+        etapa(s) y el tono de la mas intensa (IF > ID > EX > MEM > WB). Lo que
+        se va a descartar va en naranja."""
+        from app import tema
+        tonos = tema.LISTADO[tema.modo()]
+        self.etiquetas = {}
+        for f in range(self.rowCount()):
+            self.item(f, 0).setText("")
+            self._pintar_fila(f, None)
+        self.fila_pc = self.direcciones.index(pc) if pc in self.direcciones else None
+        for f, addr in enumerate(self.direcciones):
+            etapas = marcas.get(addr, [])
+            partes = [n for n, _ in etapas]
+            if f == self.fila_pc:
+                partes = ["► PC"] + [n for n in partes]
+            if not partes:
+                continue
+            texto = " ".join(partes)
+            self.item(f, 0).setText(texto)
+            self.etiquetas[f] = texto
+            if etapas:
+                n, descarta = etapas[0]
+                color = tonos["descarta"] if descarta else tonos[n]
+            else:
+                color = tonos["IF"]                   # ► PC sin IF ocupada (parada)
+            self._pintar_fila(f, color)
+            self.item(f, 0).setToolTip(
+                "En el pipeline: " + ", ".join(f"{n}{' (se descarta)' if d else ''}"
+                                               for n, d in etapas) if etapas else
+                "PC actual (no entra al pipeline: parada en curso)")
+        if self.fila_pc is not None:
+            self.scrollToItem(self.item(self.fila_pc, 0), QAbstractItemView.EnsureVisible)
+
+
+def leyenda_listado():
+    """Texto HTML de la leyenda que va debajo del listado."""
+    from app import tema
+    t = tema.LISTADO[tema.modo()]
+    cuadro = lambda c: (f"<span style='background:{c}; border:1px solid #9CA3AF'>"
+                        "&nbsp;&nbsp;&nbsp;&nbsp;</span>")
+    partes = [f"{cuadro(t[n])}&nbsp;{n}" for n in ("IF", "ID", "EX", "MEM", "WB")]
+    partes.append(f"{cuadro(t['descarta'])}&nbsp;se descarta (flush)")
+    return ("En el pipeline:&nbsp; " + " &nbsp; ".join(partes) +
+            "<br><span style='color:#6b7280'>Clic en una fila: seguir esa instrucción en la "
+            "vista del pipeline.</span>")

@@ -84,3 +84,11 @@ class VistaLatches(QWidget):
                 hoja.setForeground(1, QBrush(QColor(color)))
                 hoja.setForeground(0, QBrush(QColor(COLOR["burbuja"] if burbuja else COLOR["texto"])))
                 hoja.setData(1, Qt.UserRole, campo.valor)
+
+    def enfocar(self, latch):
+        """Muestra solo ese latch expandido y lo selecciona (clic en la franja)."""
+        for nombre, rama in self.ramas.items():
+            rama.setExpanded(nombre == latch)
+        rama = self.ramas[latch]
+        self.arbol.setCurrentItem(rama)
+        self.arbol.scrollToItem(rama)
