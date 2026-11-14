@@ -293,6 +293,11 @@ class VentanaPrincipal(QMainWindow):
                     if nombre.endswith(".asm"):
                         ruta = os.path.join(carpeta, nombre)
                         sub.addAction(nombre[:-4], lambda r=ruta: self.abrir_archivo(r))
+        # Demos de la defensa: submenu propio, en orden y con nombre visible.
+        self.menu_defensa = self.menu_ejemplos.addMenu("Defensa")
+        for archivo, visible in rutas.DEMOS_DEFENSA:
+            ruta = os.path.join(rutas.PROGRAMAS_DEFENSA, archivo + ".asm")
+            self.menu_defensa.addAction(visible, lambda r=ruta: self.abrir_archivo(r))
         m = self.menuBar().addMenu("E&jecutar")
         for a in (self.a_ensamblar, None, self.a_cargar, self.a_reset, self.a_paso,
                   self.a_correr, self.a_interrumpir, self.a_volcar):

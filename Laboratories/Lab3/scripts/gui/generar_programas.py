@@ -11,6 +11,7 @@ quedan aparte para no tocar los vectores de testbench/.)
 """
 import glob
 import os
+import re
 import sys
 
 import rutas
@@ -30,15 +31,19 @@ def procesar(ruta):
 
 def main():
     errores = []
-    for ruta in sorted(glob.glob(os.path.join(rutas.PROGRAMAS_GUI, "*.asm"))):
+    rutas_asm = sorted(glob.glob(os.path.join(rutas.PROGRAMAS_GUI, "*.asm")))
+    # Demos de la defensa (carpeta aparte, scripts/programas/defensa/)
+    rutas_asm += [os.path.join(rutas.PROGRAMAS_DEFENSA, n + ".asm") for n, _ in rutas.DEMOS_DEFENSA]
+    for ruta in rutas_asm:
         texto, listado, r, err = procesar(ruta)
         errores += err
         nombre = os.path.splitext(os.path.basename(ruta))[0]
         desc = [ln[1:].strip() for ln in texto.splitlines()
-                if ln.startswith("#") and "ESPERADO" not in ln.upper()][:5]
+                if ln.startswith("#") and not re.match(r"#\s*(ESPERADO|VERIFICADO|PASO)", ln,
+                                                        re.IGNORECASE)][:5]
         cab = [f"{nombre}.hex - generado desde {nombre}.asm (no editar a mano)"] + desc + \
               ["", "Resultado esperado (rv32i_model.py):"] + ["  " + x for x in resumen(r)]
-        with open(os.path.join(rutas.PROGRAMAS_GUI, nombre + ".hex"), "w", encoding="utf-8") as f:
+        with open(os.path.join(os.path.dirname(ruta), nombre + ".hex"), "w", encoding="utf-8") as f:
             f.write(a_hex(listado, "\n".join(cab)))
         print(f"{nombre:22s} {len(listado):3d} palabras  {resumen(r)[0]}")
     for e in errores:

@@ -80,6 +80,7 @@ class Vista:
     fuente: str = ""               # como se dedujeron MEM y WB
     avisos: list = field(default_factory=list)
     crudo: bytes = b""
+    bypass: list = field(default_factory=list)   # registros que ID lee por el bypass WB -> ID
 
 
 # ============================================================== contexto
@@ -317,6 +318,15 @@ def deducir(e, anterior=None, ctx=None):
         et["IF"] = _etapa_con_palabra("IF", pc, palabra, UTIL,
                                       "se repite (stall)" if stall else "busca la instrucción")
     # ---------------- ID
+    # Bypass WB -> ID (reg_file.v): WB escribe el registro que ID esta leyendo.
+    bypass = []
+    if _valid(e, "IF/ID") and _valid(e, "MEM/WB") and c("MEM/WB", "reg_write") and \
+            not c("MEM/WB", "illegal") and c("MEM/WB", "rd") != 0 and not e.detenido:
+        d_id = control_unit(c("IF/ID", "instr"), 1)
+        for s_, usa in ((15, d_id["uses_rs1"]), (20, d_id["uses_rs2"])):
+            r = (c("IF/ID", "instr") >> s_) & 0x1F
+            if usa and r == c("MEM/WB", "rd") and r not in bypass:
+                bypass.append(r)
     if not _valid(e, "IF/ID"):
         origen = origen_nuevo()
         if prev is not None and not origen:
@@ -337,7 +347,9 @@ def deducir(e, anterior=None, ctx=None):
             st, nota = UTIL, "espera 1 ciclo (load-use)"
         else:
             regs = [f"x{(w >> s) & 0x1F}" for s, u in ((15, d["uses_rs1"]), (20, d["uses_rs2"])) if u]
-            st, nota = UTIL, "decodifica" + (", lee " + " y ".join(regs) if regs else "")
+            st, nota = UTIL, "decodifica" + (", lee " + " y ".join(dict.fromkeys(regs)) if regs else "")
+            if bypass:
+                nota += f" ({', '.join(f'x{r}' for r in bypass)} llega desde WB: bypass)"
         et["ID"] = _etapa_con_palabra("ID", c("IF/ID", "pc"), w, st, nota)
     # ---------------- EX
     if not _valid(e, "ID/EX"):
@@ -418,7 +430,7 @@ def deducir(e, anterior=None, ctx=None):
         if et[n].estado == DESCONOCIDA and et[n].motivo:
             avisos.append(f"{n}: {et[n].motivo}")
     return Vista(e.ciclos, et, fwd, stall, flush, error_mem, parada, e.detenido, fuente,
-                 avisos, e.crudo)
+                 avisos, e.crudo, bypass)
 
 
 # ============================================================== listado

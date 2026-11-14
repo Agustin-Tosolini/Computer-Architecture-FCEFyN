@@ -18,6 +18,8 @@ Decisiones de diseño (cpu, debug unit, integración, depurador y respuestas a
 las preguntas de la consigna): [`docs/decisiones_de_diseno.md`](docs/decisiones_de_diseno.md).
 
 **Defensa:** documento de estudio en [`docs/estudio_defensa.md`](docs/estudio_defensa.md).
+Guion de ~3 minutos con números verificados: [`docs/guion_defensa.md`](docs/guion_defensa.md)
+(programas en `scripts/programas/defensa/`, en la GUI: *Ejemplos → Defensa*).
 Diagramas: [sistema completo](docs/informe/img/sistema_completo.png),
 [pipeline del cpu](docs/informe/img/CPU_completo.png), [debug unit](docs/informe/img/B_completo.png) y
 [máquina de estados](docs/informe/img/debug_unit_fsm.png) (los dos primeros se generan con
