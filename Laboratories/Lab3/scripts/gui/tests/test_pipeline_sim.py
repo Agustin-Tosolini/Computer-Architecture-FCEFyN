@@ -112,6 +112,15 @@ def test_igual_al_modelo(nombre, palabras, mem):
         assert sim.halted and sim.ciclos == modelo.ciclos
 
 
+def test_palabra_255_siempre_halt():
+    """Como despues de un 'L': 256 NOPs sin HALT terminan con HALT normal en la
+    palabra 255 (255 instrucciones + 4 = 259 ciclos), no con error en 0x400."""
+    sim = PipelineSim([0x00000013] * 256)
+    assert sim.imem[255] == 0
+    sim.correr(1000)
+    assert (sim.halted, sim.fault, sim.ciclos, sim.pc) == (1, 0, 259, 0x400)
+
+
 def test_pc_de_mem_y_wb():
     """El simulador sigue el PC de las instrucciones en EX/MEM y MEM/WB."""
     sim = PipelineSim(asm("addi x1, x0, 1\naddi x2, x0, 2\naddi x3, x0, 3\nhalt"))

@@ -36,13 +36,13 @@ src/                    fuentes de diseño (Design Sources en Vivado)
                         los latches, protocolo (solo documentación: ningún módulo
                         lo incluye; NO agregarlo a Vivado como fuente)
   ip/
-    clk_wiz_0.xci       Clocking Wizard (MMCM): 100 MHz del pin -> 70 MHz para
+    clk_wiz_0.xci       Clocking Wizard (MMCM): 100 MHz del pin -> 62,5 MHz para
                         todo el diseño, con salida locked (solo Vivado)
   debug_unit/
     top.v               módulo superior: pines de la Basys 3.
                         Parámetro USE_CPU_STUB: 0 = cpu real (placa), 1 = cpu_stub
                         Parámetro USE_CLK_WIZ: 1 = clk_wiz (placa), 0 = clk = i_clk
-                        (simulación). CLK_FREQ = 70 MHz (= salida del clk_wiz)
+                        (simulación). CLK_FREQ = 62,5 MHz (= salida del clk_wiz)
     reset_gen.v         reset global: encendido + botón + locked
     uart.v              wrapper: baud_rate_generator + rx_fsmd + tx_fsmd
     intf.v              wrapper: rx_intf + tx_intf
@@ -94,15 +94,19 @@ docs/
   (incluido `cpu_stub.v`: el `generate` lo nombra aunque no lo use).
   `cpu_if_id_test.v` es opcional. **No** agregar `src/params.vh`.
 - IP: `src/ip/clk_wiz_0.xci` (*Add Sources → Add or create design sources*) y
-  después *Generate Output Products*. Genera los 70 MHz de todo el diseño.
+  después *Generate Output Products*. Genera los 62,5 MHz de todo el diseño
+  (M = 10, D = 1, O = 16).
 - *Simulation Sources*: los `testbench/*.v`. Los testbenches que leen
   vectores buscan `testbench/vectores/` relativo a la carpeta donde corre la
   simulación; en Vivado conviene pasar la ruta absoluta con
   `-testplusarg VEC=/ruta/a/Lab3/testbench/vectores/`.
 - Constraints: `constrains/top.xdc`. Módulo superior de síntesis: **`top`**
   (con `USE_CPU_STUB = 0` y `USE_CLK_WIZ = 1`, los valores por defecto).
-  El `create_clock` del xdc sigue en 10 ns: describe el pin; Vivado deduce
-  solo el clock de 70 MHz del MMCM.
+  El xdc **no** tiene `create_clock` (está comentado): el clock de 10 ns del
+  pin lo declara el propio IP `clk_wiz_0`, y Vivado deriva de él el clock de
+  62,5 MHz. Redeclararlo con `-add` duplica los clocks (TIMING-6 y TIMING-56
+  en `report_methodology`); sin `-add` pisa el del IP (Constraints 18-1055).
+  Solo hay que descomentarlo si se sintetiza con `USE_CLK_WIZ = 0`.
 - Icarus Verilog no simula el IP de Xilinx: todo lo que instancia `top` en
   simulación pasa `USE_CLK_WIZ = 0` y `CLK_FREQ = 100_000_000` (clock de 10 ns).
 
@@ -192,11 +196,12 @@ y el estado como `halted / interrumpido / error`.
 Si aparece "Permission denied": `sudo usermod -aG dialout $USER` y volver a
 iniciar sesión.
 
-## Próximo paso
+## Estado
 
-Probar en la placa con `docs/CHECKLIST_placa.md`. Revisar en Vivado **WNS ≥ 0** a
-70 MHz (`clk_wiz`; a 100 MHz daba WNS = −3,111 ns) con el cpu real y que las dos memorias (programa y datos) salgan como **RAM
-distribuida** (LUTRAM), no como miles de flip-flops.
-Pendientes: WNS final a 70 MHz, panel de LEDs/7 segmentos y las funciones
+Probado en la placa (`docs/CHECKLIST_placa.md`) a **62,5 MHz**: cumple timing
+(WNS = +0,802 ns, WHS = +0,051 ns; a 100 MHz sin `clk_wiz` daba
+WNS = −3,111 ns) y las dos memorias salen como **RAM distribuida** (208 LUT como
+memoria, 0 Block RAM). Detalle en el informe (`docs/informe/`).
+Pendientes: panel de LEDs/7 segmentos y las funciones
 extra del depurador (fase 3: comparación con el modelo, diagrama de ciclos,
 historial, exportar, tema oscuro). La vista del pipeline ya está hecha.

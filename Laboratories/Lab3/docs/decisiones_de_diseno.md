@@ -374,10 +374,10 @@ Estado de lo que quedaba pendiente:
    UART) y `tb_cpu_isa`.
 2. ~~Adaptar Python al mapa real de los latches~~: hecho, con 480 bits (se
    amplió el contrato, decisión 34). `--verificar` solo sirve con el stub.
-3. Sintetizar y probar en placa: inferencia de memorias, recursos, timing y
-   finalización de HALT (`CHECKLIST_placa.md`). **Pendiente.**
-4. ~~Revisar frecuencia y clk_wiz al final, como acordó el equipo~~: hecho, 70 MHz
-   con `clk_wiz_0` (sección 13). Falta confirmar el WNS final en Vivado.
+3. ~~Sintetizar y probar en placa~~: hecho (`CHECKLIST_placa.md`). Las
+   memorias salen como RAM distribuida y cumple timing a 62,5 MHz (sección 13).
+4. ~~Revisar frecuencia y clk_wiz al final, como acordó el equipo~~: hecho, 62,5 MHz
+   con `clk_wiz_0` (sección 13), WNS = +0,802 ns.
 5. Diagnóstico de errores: resuelto en parte con `o_fault` (decisión 33); la
    causa exacta no se distingue. Centralizar las constantes en params.vh sigue
    sin hacerse: hoy documenta el contrato, pero ningún módulo lo incluye.
@@ -470,8 +470,8 @@ en lugar de un cable implícito de 1 bit.
 
 ### Decisiones del apartado B
 
-1. **Baud rate 115200.** Un volcado de 314 bytes [hoy 326] tarda unos 27 ms [hoy 28 ms]; a 9600 baud tardaría 0,33 s. Con 100 MHz el divisor es 54, con un error de +0,47 % (el límite es de alrededor del 2 %). [Hoy, a 70 MHz: divisor 38, error −0,06 %; decisión 51.]
-2. **Redondeo del divisor.** Con truncamiento, algunos clocks dan un error de baud innecesariamente grande. Este cambio importa cuando se cambie la frecuencia con el `clk_wiz`. [A 70 MHz: 37,98 se redondea a 38 (−0,06 %); truncando daría 37 (+2,6 %, fuera del límite).]
+1. **Baud rate 115200.** Un volcado de 314 bytes [hoy 326] tarda unos 27 ms [hoy 28 ms]; a 9600 baud tardaría 0,33 s. Con 100 MHz el divisor es 54, con un error de +0,47 % (el límite es de alrededor del 2 %). [Hoy, a 62,5 MHz: divisor 34, error −0,27 %; decisión 51.]
+2. **Redondeo del divisor.** Con truncamiento, algunos clocks dan un error de baud innecesariamente grande. Este cambio importa cuando se cambie la frecuencia con el `clk_wiz`. [A 62,5 MHz: 33,91 se redondea a 34 (−0,27 %); truncando daría 33 (+2,75 %, fuera del límite).]
 3. **Valores iniciales en `tx_fsmd`.** Antes la línea TX quedaba en 0 hasta el primer reset. Eso es una condición de *break*, y la PC lee basura.
 4. **`reset_gen`.** El sistema arranca en un estado conocido sin tocar el botón. Además ya tiene la entrada `i_locked`, preparada para el `clk_wiz`. [Hoy conectada al `locked` del `clk_wiz_0`: decisión 53.]
 5. **Reset global vs. reset del procesador.** `reset` resetea todo, incluida la UART. `cpu_reset` (comando `'X'`) resetea solo el procesador, así la comunicación no se corta y la `debug_unit` puede responder `'K'`. En el `top` se combinan: `cpu_rst = reset | cpu_reset`.
@@ -489,10 +489,10 @@ en lugar de un cable implícito de 1 bit.
 17. **Interrupción con un byte específico (`'I'`), no con cualquier byte.** Un byte de ruido o un comando mandado por error no corta la corrida. Durante RUN todo byte se lee (`rd`), así el buffer de 1 byte nunca queda ocupado y la `'I'` siempre puede entrar. Fuera de RUN, `'I'` no es comando y se descarta.
 18. **Si `'I'` y `halted` llegan en el mismo ciclo, gana el HALT.** El programa terminó solo, y el volcado lo dice (status 0x01). En cualquier caso la PC recibe **un solo** volcado por cada `'R'`. Una `'I'` que llega tarde se ignora.
 19. **Bit `interrupted` en el byte de estado (bit 1).** Distingue "terminó" (0x01) de "lo corté" (0x02) sin que la PC tenga que adivinar. `'D'` no lo cambia (muestra cómo quedó la última ejecución). `'R'`, `'S'` y `'X'` lo borran.
-20. **`cycles` es de 32 bits.** A 100 MHz da la vuelta a los ~43 s de corrida continua [hoy, a 70 MHz: ~61 s]. Para los programas del TP alcanza de sobra.
-21. **En la `debug_unit` vive una sola palabra a la vez.** No hay buffer del programa: la palabra se arma en el registro `word` y se escribe apenas está completa. La PC manda todo seguido y el buffer de 1 byte alcanza, porque la FSM consume cada byte al ciclo siguiente y el próximo tarda ~8680 ciclos en llegar [hoy, a 70 MHz: ~6080].
+20. **`cycles` es de 32 bits.** A 100 MHz da la vuelta a los ~43 s de corrida continua [hoy, a 62,5 MHz: ~69 s]. Para los programas del TP alcanza de sobra.
+21. **En la `debug_unit` vive una sola palabra a la vez.** No hay buffer del programa: la palabra se arma en el registro `word` y se escribe apenas está completa. La PC manda todo seguido y el buffer de 1 byte alcanza, porque la FSM consume cada byte al ciclo siguiente y el próximo tarda ~8680 ciclos en llegar [hoy, a 62,5 MHz: ~5425].
 22. **Durante `'L'` ningún byte es comando.** La FSM consume siempre exactamente 3 + 4N bytes; un 0x58 dentro de una palabra es un dato. Por eso, aun con N > 256, se consumen todas las palabras: cortar antes haría que el resto se interprete como comandos.
-23. **CLEAR: después de un `'L'` la memoria tiene exactamente el programa y el resto es HALT.** No quedan restos de programas anteriores, y un salto a memoria "vacía" se detiene. Cuesta como mucho 256 ciclos (2,6 µs) [hoy, a 70 MHz: 3,7 µs]. Con N = 0 la memoria queda toda en HALT (sirve como "borrar programa").
+23. **CLEAR: después de un `'L'` la memoria tiene exactamente el programa y el resto es HALT.** No quedan restos de programas anteriores, y un salto a memoria "vacía" se detiene. Cuesta como mucho 256 ciclos (2,6 µs) [hoy, a 62,5 MHz: 4,1 µs]. Con N = 0 la memoria queda toda en HALT (sirve como "borrar programa").
 24. **La palabra 255 siempre es HALT.** Un programa que se pasa del final de la memoria termina. Si alguien manda 256 palabras o más, la que cae en la 255 se reemplaza por HALT y las siguientes se descartan: el error se atribuye al usuario, no rompe el sistema. El script además recorta a 256 y avisa. Esto no detiene un loop infinito (`j .`): para eso está `'I'`.
 25. **Sin timeout en la carga.** Se asume que la PC y la UART funcionan; si una carga se cortara a la mitad, se recupera con el botón de reset.
 26. **`'K'` confirma un reset terminado**, sea por `'X'` o al final de un `'L'` (los dos pasan por RESET → ACK). Sin checksum por ahora.
@@ -611,7 +611,7 @@ Interfaz (hilo principal, app/)                Trabajador (QThread, hilo_serie.p
 41. **La interfaz nunca toca el puerto serie.** Un `Trabajador` en un `QThread` atiende los pedidos de a uno (las señales entre hilos se encolan), así nunca se mezclan dos respuestas y la ventana no se congela. Interrumpir es la excepción: activa un `threading.Event` que `Enlace.correr()` mira cada 0,1 s mientras espera el volcado del `'R'`, y entonces manda la `'I'`. Al cerrar la ventana durante una corrida se manda `'I'` antes de salir.
 42. **Un "transporte" intercambiable.** `Enlace` no sabe si habla con la placa o con la FPGA simulada. La simulada habla el mismo protocolo byte por byte (imita a `control_fsmd`: carga con CLEAR, `'K'`, bytes ignorados durante RUN) y usa el modelo de referencia; así los tests del protocolo y el modo demo prueban el mismo código que se usa con la placa.
 43. **Modo simulado sin latches** *(reemplazada por la decisión 57)*. Al principio el modo demo mandaba los latches como burbujas, porque el modelo de referencia no los calcula. Desde la vista del pipeline, la FPGA simulada usa `pipeline_sim.py` y manda los 480 bits reales.
-44. **Programa sin fin en modo simulado:** "corre" a 2000 ciclos por segundo (la placa hace 70 millones); al llegar la `'I'` se calcula el estado en ese ciclo. Para eso `rv32i_model.ejecutar` recibió dos parámetros opcionales: `mem_inicial` (la RAM conserva lo del programa anterior) y `verificar_estable` (un contador sin fin nunca se estabiliza). Su comportamiento por defecto no cambió.
+44. **Programa sin fin en modo simulado:** "corre" a 2000 ciclos por segundo (la placa hace 62,5 millones); al llegar la `'I'` se calcula el estado en ese ciclo. Para eso `rv32i_model.ejecutar` recibió dos parámetros opcionales: `mem_inicial` (la RAM conserva lo del programa anterior) y `verificar_estable` (un contador sin fin nunca se estabiliza). Su comportamiento por defecto no cambió.
 45. **Constantes duplicadas, pero verificadas.** `decodificador.py`, `campos_latches.py` y `uart_test.py` repiten el formato del volcado (ningún módulo lee params.vh en tiempo de ejecución, igual que el RTL). `tests/test_constantes.py` lee `src/params.vh` y exige que todo coincida.
 46. **Pseudo-instrucciones en el ensamblador compartido** (`mv`, `li`, `beqz`, `bnez`, `call`, `ret`, además de `nop` y `j`). Se agregaron a `scripts/ensamblador.py` (lo usan el modelo, `uart_test.py` y la GUI) en lugar de duplicarlo; `li` ocupa 1 o 2 palabras según el valor, y el listado muestra la expansión. Las instrucciones RISC-V que no están en la consigna (`mul`, `blt`, `auipc`…) dan un error explícito; para probar una instrucción ilegal está `.word`.
 47. **Ejemplos nuevos en `scripts/gui/programas/`**, no en `scripts/programas/`: el generador de vectores de la integración (`rv32i_model.py --generar`) toma esa carpeta y escribiría en `testbench/vectores/`. Cada uno tiene su resultado esperado calculado a mano (`# ESPERADO:`); `generar_programas.py` lo verifica contra el modelo y escribe los `.hex`.
@@ -619,7 +619,7 @@ Interfaz (hilo principal, app/)                Trabajador (QThread, hilo_serie.p
 49. **Errores siempre en la ventana.** Los errores esperables (timeout, cabecera mala, cable desconectado) se convierten en excepciones propias con mensajes en castellano y llegan a la interfaz por señales: log, barra de estado y un cuadro que no bloquea. Un gancho global (`sys.excepthook` y `threading.excepthook`) manda cualquier error inesperado al log (`~/.local/state/tp_riscv/depurador.log`) y a un diálogo. Si se desenchufa la placa estando quieta, un temporizador lo detecta mirando la lista de puertos.
 50. **Propuesta de hardware (no implementada):** guardar el PC también en EX/MEM y MEM/WB dentro del volcado (2 palabras más: 544 bits, 334 bytes) permitiría saber con certeza qué instrucción hay en MEM y WB. Sin eso, la vista del pipeline (fase 3) lo reconstruye con el historial de pasos o con el modelo, y muestra "?" cuando no hay certeza.
 
-## 13. Frecuencia de trabajo: clk_wiz a 70 MHz
+## 13. Frecuencia de trabajo: clk_wiz a 62,5 MHz
 
 ### Por qué hubo que bajar la frecuencia
 
@@ -629,11 +629,12 @@ timing**:
 | Medida | Valor a 100 MHz |
 |---|---|
 | WNS | −3,111 ns |
-| TNS | −919,6 ns (375 endpoints fallando) |
+| TNS | −919,593 ns (375 de 6668 endpoints fallando) |
 | WHS | +0,136 ns (hold OK) |
 | Camino crítico | `u_id_ex/o_rs1_reg[2]` → `u_pc/o_pc_reg[30]` |
-| Niveles de lógica | 21 |
-| Retardo del camino | 13,02 ns (70 % cableado, 30 % lógica) |
+| Niveles de lógica | 21 (8 CARRY4, 2 LUT4, 5 LUT5, 6 LUT6, 1 MUXF7) |
+| Retardo del camino | 13,021 ns (70 % cableado, 30 % lógica) |
+| Skew del camino | −0,117 ns |
 
 El camino crítico es el esperado: forwarding → ALU (comparación) → decisión de
 salto → mux del próximo PC, todo en EX y en un solo ciclo (P&H 4.8: el salto se
@@ -641,54 +642,76 @@ resuelve en EX).
 
 ### Decisiones
 
-51. **70 MHz con el Clocking Wizard (`clk_wiz_0`, MMCM).** La frecuencia máxima
-    estimada es f_max ≈ 1 / (10 ns − WNS) = 1 / 13,11 ns ≈ **76 MHz**. Con
-    70 MHz (período 14,29 ns) quedan ≈ 1,2 ns de margen sobre la estimación, que
-    cubren la incertidumbre que agrega el MMCM (jitter y error de fase) y los
-    cambios de ruteo entre corridas. 75 MHz habría dejado ~0,2 ns: demasiado
-    justo. El divisor de la UART queda en **38**: baud real =
-    70 MHz / (38 · 16) = 115 132, error **−0,06 %** (antes +0,47 %).
+51. **62,5 MHz con el Clocking Wizard (`clk_wiz_0`, MMCM).** La frecuencia
+    máxima estimada es f_max ≈ 1 / (10 ns − WNS) = 1 / 13,11 ns ≈ **76 MHz**.
+    Primero se eligió 70 MHz, pero esa frecuencia necesita divisores
+    fraccionarios (M = 49,875, D = 5, O = 14,25), con más jitter (253,5 ps) y
+    error de fase (293,8 ps). La versión final usa **62,5 MHz**: divisores
+    enteros (M = 10, D = 1, O = 16, VCO a 1000 MHz), jitter 144,481 ps y error
+    de fase 98,575 ps, y un 18 % de margen sobre la estimación. El divisor de la
+    UART queda en **34**: baud real = 62,5 MHz / (34 · 16) ≈ 114 890, error
+    **−0,27 %** (a 100 MHz era +0,47 %).
 52. **Un solo clock: `i_clk` solo entra al `clk_wiz`.** Todo el diseño (uart,
     intf, debug_unit, cpu y reset_gen) usa su salida `clk`, así no hay cruces
-    entre dominios de reloj. El `create_clock` de `top.xdc` sigue en 10 ns:
-    describe el pin de entrada, y Vivado deduce solo el clock generado por el
-    MMCM (`clk_out1_clk_wiz_0`).
+    entre dominios de reloj. **`top.xdc` no declara el clock** (el
+    `create_clock` está comentado): el clock de 10 ns del pin lo declara el
+    propio IP en su XDC, junto con su jitter, y Vivado deriva de él
+    `clk_out1_clk_wiz_0`. Al principio el xdc tenía
+    `create_clock -add -name sys_clk_pin ...`, que agregaba un **segundo** clock
+    primario en el mismo pin: Vivado derivaba dos copias de cada salida del MMCM
+    (`clk_out1_clk_wiz_0` y `clk_out1_clk_wiz_0_1`) y `report_methodology` daba
+    TIMING-6 (critical warning: clocks relacionados sin clock primario común) y
+    TIMING-56 (clocks duplicados en `CLKOUT0` y `CLKFBOUT`). Sin `-add`
+    desaparecen esos avisos pero se pisa la definición del IP
+    (Constraints 18-1055); por eso quedó comentado. Solo hay que descomentarlo
+    si se sintetiza con `USE_CLK_WIZ = 0` (sin MMCM).
 53. **`locked` al `reset_gen`.** Mientras el MMCM no engancha (`locked = 0`), el
     clock de salida no es confiable y todo el sistema queda en reset. El
     `clk_wiz` no tiene entrada de reset (`USE_RESET = false`): arranca solo al
     configurar la FPGA y no hay nada que lo tenga que reiniciar.
-54. **`CLK_FREQ` por defecto = 70 000 000 y comentario bien visible en `top.v`.**
+54. **`CLK_FREQ` por defecto = 62 500 000 y comentario bien visible en `top.v`.**
     Tiene que coincidir siempre con `clk_out1`; si no, la UART calcula mal el
-    divisor. Los testbenches que instancian `top` (`tb_top`, `tb_top_cpu`,
-    `tb_captura`) pasan `CLK_FREQ = 100_000_000` en forma explícita porque su
-    clock es de 10 ns, y no dependen del valor por defecto.
+    divisor (con 70 000 000 sobre un clock de 62,5 MHz el error sería ≈ −11 %
+    y la UART no funcionaría). El mismo valor está en `uart.v`,
+    `baud_rate_generator.v` y `params.vh`. Los testbenches que instancian `top`
+    (`tb_top`, `tb_top_cpu`, `tb_captura`) pasan `CLK_FREQ = 100_000_000` en
+    forma explícita porque su clock es de 10 ns, y no dependen del valor por
+    defecto.
 55. **Parámetro `USE_CLK_WIZ` (1 = placa, 0 = simulación).** Icarus Verilog no
     puede simular el IP de Xilinx. Con `USE_CLK_WIZ = 0` el `generate` hace
     `clk = i_clk` y `locked = 1`. iverilog no elabora la rama no elegida, así que
     no hace falta un modelo de `clk_wiz_0` para simular. `run_all_tests.sh`
     compila el `top` suelto con `-Ptop.USE_CLK_WIZ=0`.
 56. **Lo que cambia con la frecuencia:** un byte por UART sigue tardando ≈ 87 µs
-    (depende del baud, no del clock), pero son ≈ 6080 ciclos en vez de 8680; el
-    contador de ciclos de 32 bits da la vuelta a los ≈ 61 s en vez de 43 s; un
-    `'R'` sin fin avanza ≈ 70 millones de ciclos por segundo.
+    (depende del baud, no del clock), pero son ≈ 5425 ciclos en vez de 8680; el
+    contador de ciclos de 32 bits da la vuelta a los ≈ 69 s en vez de 43 s; un
+    `'R'` sin fin avanza ≈ 62,5 millones de ciclos por segundo.
 
-### Parámetros del MMCM
-
-Valores del `.xci` (`src/ip/clk_wiz_0.xci`); confirmarlos en el resumen del
-Clocking Wizard o con `report_clocks` después de implementar.
+### Resultado final (Vivado, implementación a 62,5 MHz)
 
 | Parámetro | Valor |
 |---|---|
 | Entrada | 100 MHz (`clk_in1`, pin W5) |
-| M (`CLKFBOUT_MULT_F`) | 49,875 `[COMPLETAR: confirmar]` |
-| D (`DIVCLK_DIVIDE`) | 5 `[COMPLETAR: confirmar]` |
-| O (`CLKOUT0_DIVIDE_F`) | 14,25 `[COMPLETAR: confirmar]` |
-| f_VCO = f_in · M / D | 997,5 MHz (rango del VCO en Artix-7 -1: 600 a 1200 MHz `[COMPLETAR: confirmar en DS181]`) |
-| f_out = f_VCO / O | 70,000 MHz |
-| Jitter / error de fase (`clk_out1`) | 253,5 ps / 293,8 ps |
-| WNS a 70 MHz | `[COMPLETAR: WNS final]` |
-| TNS / WHS / THS a 70 MHz | `[COMPLETAR]` |
-| Camino crítico a 70 MHz | `[COMPLETAR: origen, destino, niveles de lógica, retardo]` |
+| M / D / O | 10 / 1 / 16 |
+| f_VCO = f_in · M / D | 1000 MHz |
+| f_out = f_VCO / O | 62,5 MHz (período 16 ns) |
+| Jitter / error de fase (`clk_out1`) | 144,481 ps / 98,575 ps |
+| WNS / TNS | +0,802 ns / 0 ns (0 de 6659 endpoints fallando) |
+| WHS / THS | +0,051 ns / 0 ns |
+| WPWS | +3,000 ns |
+| Camino crítico | `u_ex_mem/o_rd_reg[0]` → `u_id_ex/o_rs1_data_reg[13]` (entrada R: flush de ID/EX) |
+| Niveles de lógica | 17 (4 CARRY4, 1 LUT2, 1 LUT3, 2 LUT5, 8 LUT6, 1 MUXF7) |
+| Retardo del camino | 14,494 ns (74 % cableado, 26 % lógica) |
+| Skew / incertidumbre | −0,099 ns / 0,080 ns |
+
+El camino crítico sigue siendo forwarding → ALU → decisión del salto, ahora
+terminando en el flush de ID/EX.
+
+Recursos (post-implementación): 2449 LUT (11,8 %), de ellas 208 como RAM
+distribuida; 1629 flip-flops (3,9 %); 1148 slices; **0 Block RAM**; 12 IOB;
+2 BUFG; 1 MMCM. El banco de registros es lo más grande (1024 FF y 864 LUT); la
+debug_unit usa 157 LUT y 118 FF. Las dos memorias salen como RAM distribuida
+(instr_mem: 176 LUT como memoria; data_mem: 32).
 
 ## 14. Vista del pipeline en la GUI
 
@@ -713,3 +736,18 @@ plegar), y el listado del programa resaltado con 5 tonalidades. Cómo leerla:
 
 62. **Demos de la defensa aparte** (`scripts/programas/defensa/`, menú *Ejemplos → Defensa*, tests en `scripts/gui/tests/test_demos_defensa.py`). Siete programas chicos, uno por fenómeno, sin tocar los ejemplos anteriores. Cada uno lleva en el encabezado el resultado verificado contra el modelo y el RTL; en `demo_pipeline`, además, la tabla de en qué paso aparece cada fenómeno, que el test exige **exacta**. Guion: [`guion_defensa.md`](guion_defensa.md). Para que el bypass WB → ID se vea en la vista del pipeline (no tiene flecha), la nota de ID lo dice ("x5 llega desde WB: bypass").
 
+
+## 16. Programa que ocupa toda la memoria
+
+63. **El simulador de la GUI también fuerza HALT en la palabra 255.** El
+    programa `scripts/programas/NOPx256.asm` (256 NOPs, sin HALT) mostró una
+    diferencia: el RTL y el modelo terminan con HALT normal en 259 ciclos
+    (255 NOPs + el HALT que la `debug_unit` pone en la palabra 255), pero
+    `PipelineSim` usaba las 256 palabras tal cual, buscaba en 0x400 y terminaba
+    con error en 260 ciclos. La regla ya estaba en `control_fsmd`, en
+    `rv32i_model.ejecutar`, en `tb_traza.v` y en `FpgaSimulada`, pero no en el
+    constructor de `PipelineSim`, que usan los tests y la vista del pipeline (al
+    simular desde el reset). Se agregó ahí, con un test propio
+    (`test_palabra_255_siempre_halt`). Además, el buffer de pasos de
+    `tb_cpu_isa` pasó de 16 384 a 32 768 palabras (hasta 489 ciclos), porque
+    `NOPx256` necesita 259.

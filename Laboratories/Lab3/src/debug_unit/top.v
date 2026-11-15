@@ -13,7 +13,7 @@
 //   i_reset (boton) --> [ reset_gen ] --> reset global
 //
 // Clock (parametro USE_CLK_WIZ):
-//   i_clk (100 MHz, pin W5) --> [ clk_wiz_0 (MMCM) ] --> clk (70 MHz) --> TODO
+//   i_clk (100 MHz, pin W5) --> [ clk_wiz_0 (MMCM) ] --> clk (62.5 MHz) --> TODO
 //                                       locked --> reset_gen.i_locked
 //   - USE_CLK_WIZ = 1 (por defecto, PLACA): i_clk SOLO entra al clk_wiz; uart,
 //     intf, debug_unit, cpu y reset_gen usan su salida clk. Mientras el MMCM no
@@ -41,11 +41,11 @@
 module top #(
     //==========================================================================
     // !!! CLK_FREQ TIENE QUE SER SIEMPRE LA FRECUENCIA REAL DE clk !!!
-    //   Con USE_CLK_WIZ = 1: la salida clk_out1 del clk_wiz_0 (hoy 70 MHz).
+    //   Con USE_CLK_WIZ = 1: la salida clk_out1 del clk_wiz_0 (hoy 62.5 MHz).
     //   Si se cambia el clk_wiz, se cambia esto (y params.vh). Si no coinciden,
     //   la UART calcula mal el divisor y la comunicacion falla.
     //==========================================================================
-    parameter CLK_FREQ       = 70_000_000,  // = clk_out1 del clk_wiz_0
+    parameter CLK_FREQ       = 62_500_000,  // = clk_out1 del clk_wiz_0
     parameter USE_CLK_WIZ    = 1,           // 1 = clk_wiz (placa), 0 = clk = i_clk (simulacion)
     parameter BAUD_RATE      = 115200,
     parameter OVERSAMP       = 16,

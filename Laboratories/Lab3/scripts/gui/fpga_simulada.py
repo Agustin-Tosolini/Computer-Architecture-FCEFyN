@@ -13,7 +13,7 @@ tests/test_pipeline_sim.py). Asi el volcado simulado trae registros, memoria,
 PC, estado Y latches reales.
 
 Limitacion: un programa sin fin "corre" a VELOCIDAD ciclos por segundo (la
-placa hace 70 millones, a 70 MHz). 'R' primero simula hasta CICLOS_RAPIDOS
+placa hace 62,5 millones, a 62,5 MHz). 'R' primero simula hasta CICLOS_RAPIDOS
 ciclos de golpe; si no se detuvo, queda corriendo y al llegar la 'I' se
 simula hasta el ciclo que corresponde al tiempo transcurrido.
 

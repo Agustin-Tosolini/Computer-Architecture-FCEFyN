@@ -165,8 +165,13 @@ def _vacio(campos):
 class PipelineSim:
 
     def __init__(self, palabras=(), mem_inicial=None):
+        # La memoria queda como despues de un 'L': el programa, HALT en el resto
+        # y la palabra 255 SIEMPRE HALT (la debug_unit la fuerza, igual que
+        # rv32i_model y tb_traza). Sin esto, un programa de 256 palabras sin HALT
+        # seguia de largo hasta el fetch en 0x400 y terminaba con error.
         p = list(palabras)[:IMEM_WORDS]
         self.imem = [w & M32 for w in p] + [0] * (IMEM_WORDS - len(p))
+        self.imem[IMEM_WORDS - 1] = 0
         self.dmem = list(mem_inicial) if mem_inicial is not None else [0] * DMEM_WORDS
         self.regs = [0] * 32
         self.reset()
