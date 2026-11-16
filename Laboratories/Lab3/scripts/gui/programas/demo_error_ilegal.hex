@@ -1,0 +1,13 @@
+# demo_error_ilegal.hex - generado desde demo_error_ilegal.asm (no editar a mano)
+# Error: instruccion no soportada. MUL no esta en la consigna (el ensamblador
+# la rechaza), asi que se escribe con .word. El cpu se detiene con estado 0x05
+# (detenido + error): lo anterior termina, lo posterior no se ejecuta.
+#
+# Resultado esperado (rv32i_model.py):
+#   estado = 0x05 (detenido por ERROR), ciclos = 5, PC = 0x00000008
+#   registros distintos de 0: x10 = 0x00000001
+#   memoria que escribe el programa: ninguna (el resto conserva lo que habia: la memoria no se borra)
+00100513    # 0x000: li   a0, 1   -> addi a0, x0, 1
+02000033    # 0x004: .word 0x02000033
+00200513    # 0x008: li   a0, 2   -> addi a0, x0, 2
+00000000    # 0x00C: halt

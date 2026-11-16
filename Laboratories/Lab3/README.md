@@ -6,10 +6,24 @@ Debug Unit; protocolo completo: `'L'`, `'X'`, `'D'`, `'S'`, `'R'` e `'I'`.**
 `top` = `reset_gen` + `uart` + `intf` + `debug_unit` (`control_fsmd` + `dump_mux`) + `cpu`.
 
 Todas las pruebas dan `PASS` en simulación (`bash scripts/run_all_tests.sh`).
-Falta validar en Vivado (timing y recursos) y en la placa: `CHECKLIST_placa.md`.
+Falta validar en Vivado (timing y recursos) y en la placa: [`docs/CHECKLIST_placa.md`](docs/CHECKLIST_placa.md).
 
-Decisiones de diseño (cpu, debug unit, integración y respuestas a las
-preguntas de la consigna): [`docs/decisiones_de_diseno.md`](docs/decisiones_de_diseno.md).
+**Depurador gráfico (parte C):** `bash scripts/gui/lanzar_depurador.sh`, o
+"Depurador TP RISC-V" en el menú. Funciona con la placa o en modo simulado.
+Instalación y uso: [`docs/manual_depurador.md`](docs/manual_depurador.md). Incluye una **vista del pipeline**: qué instrucción hay en cada etapa, forwarding, stall y flush ([cómo leerla](docs/manual_depurador.md#vista-del-pipeline)).
+
+![Depurador](docs/informe/img/depurador_corrida.png)
+
+Decisiones de diseño (cpu, debug unit, integración, depurador y respuestas a
+las preguntas de la consigna): [`docs/decisiones_de_diseno.md`](docs/decisiones_de_diseno.md).
+
+**Defensa:** documento de estudio en [`docs/estudio_defensa.md`](docs/estudio_defensa.md).
+Guion de ~3 minutos con números verificados: [`docs/guion_defensa.md`](docs/guion_defensa.md)
+(programas en `scripts/programas/defensa/`, en la GUI: *Ejemplos → Defensa*).
+Diagramas: [sistema completo](docs/informe/img/sistema_completo.png),
+[pipeline del cpu](docs/informe/img/CPU_completo.png), [debug unit](docs/informe/img/B_completo.png) y
+[máquina de estados](docs/informe/img/debug_unit_fsm.png) (los dos primeros se generan con
+`docs/informe/img/fuentes/diagramas.py`).
 Contrato entre cpu y debug_unit, y formato del volcado: [`src/params.vh`](src/params.vh).
 
 ---
@@ -21,9 +35,14 @@ src/                    fuentes de diseño (Design Sources en Vivado)
   params.vh             CONTRATO: anchos, interfaz cpu <-> debug_unit, campos de
                         los latches, protocolo (solo documentación: ningún módulo
                         lo incluye; NO agregarlo a Vivado como fuente)
+  ip/
+    clk_wiz_0.xci       Clocking Wizard (MMCM): 100 MHz del pin -> 62,5 MHz para
+                        todo el diseño, con salida locked (solo Vivado)
   debug_unit/
     top.v               módulo superior: pines de la Basys 3.
                         Parámetro USE_CPU_STUB: 0 = cpu real (placa), 1 = cpu_stub
+                        Parámetro USE_CLK_WIZ: 1 = clk_wiz (placa), 0 = clk = i_clk
+                        (simulación). CLK_FREQ = 62,5 MHz (= salida del clk_wiz)
     reset_gen.v         reset global: encendido + botón + locked
     uart.v              wrapper: baud_rate_generator + rx_fsmd + tx_fsmd
     intf.v              wrapper: rx_intf + tx_intf
@@ -49,6 +68,10 @@ constrains/
   top.xdc               pines de la Basys 3 (clock, botón, UART, 8 LEDs)
 
 scripts/
+  gui/                  DEPURADOR GRAFICO (parte C): depurador.py, protocolo.py,
+                        decodificador.py, desensamblador.py, fpga_simulada.py,
+                        hilo_serie.py, app/ (ventana), programas/ (demos),
+                        tests/ (pytest), lanzar_depurador.sh, instalar_lanzador.sh
   uart_test.py          prueba desde la PC (pyserial): echo, x, l, d, s, r, step, terminal
   ensamblador.py        ensamblador mínimo RV32I: .asm -> .hex
   rv32i_model.py        modelo de referencia: valores esperados y vectores de prueba
@@ -70,12 +93,22 @@ docs/
 - *Design Sources*: todos los `src/debug_unit/*.v` y `src/cpu/**/*.v`
   (incluido `cpu_stub.v`: el `generate` lo nombra aunque no lo use).
   `cpu_if_id_test.v` es opcional. **No** agregar `src/params.vh`.
+- IP: `src/ip/clk_wiz_0.xci` (*Add Sources → Add or create design sources*) y
+  después *Generate Output Products*. Genera los 62,5 MHz de todo el diseño
+  (M = 10, D = 1, O = 16).
 - *Simulation Sources*: los `testbench/*.v`. Los testbenches que leen
   vectores buscan `testbench/vectores/` relativo a la carpeta donde corre la
   simulación; en Vivado conviene pasar la ruta absoluta con
   `-testplusarg VEC=/ruta/a/Lab3/testbench/vectores/`.
 - Constraints: `constrains/top.xdc`. Módulo superior de síntesis: **`top`**
-  (con `USE_CPU_STUB = 0`, el valor por defecto).
+  (con `USE_CPU_STUB = 0` y `USE_CLK_WIZ = 1`, los valores por defecto).
+  El xdc **no** tiene `create_clock` (está comentado): el clock de 10 ns del
+  pin lo declara el propio IP `clk_wiz_0`, y Vivado deriva de él el clock de
+  62,5 MHz. Redeclararlo con `-add` duplica los clocks (TIMING-6 y TIMING-56
+  en `report_methodology`); sin `-add` pisa el del IP (Constraints 18-1055).
+  Solo hay que descomentarlo si se sintetiza con `USE_CLK_WIZ = 0`.
+- Icarus Verilog no simula el IP de Xilinx: todo lo que instancia `top` en
+  simulación pasa `USE_CLK_WIZ = 0` y `CLK_FREQ = 100_000_000` (clock de 10 ns).
 
 ## Simular
 
@@ -85,6 +118,7 @@ docs/
 bash scripts/run_all_tests.sh            # ~6 min (tb_top y tb_top_cpu son lentos)
 bash scripts/run_all_tests.sh --rapido   # ~1 min
 python3 scripts/mutaciones.py            # pruebas de mutación, ~8 min
+bash scripts/gui/correr_tests.sh         # tests de Python del depurador, ~35 s
 ```
 
 **Uno por uno**, desde `Laboratories/Lab3`:
@@ -145,7 +179,7 @@ lee (o escribe a medias) una palabra que no inicializó.
 
 ## Probar en la placa (Linux)
 
-Ver **`CHECKLIST_placa.md`** (valores esperados con el cpu real).
+Ver **[`docs/CHECKLIST_placa.md`](docs/CHECKLIST_placa.md)** (valores esperados con el cpu real).
 
 ```
 python3 scripts/uart_test.py --list
@@ -162,10 +196,12 @@ y el estado como `halted / interrumpido / error`.
 Si aparece "Permission denied": `sudo usermod -aG dialout $USER` y volver a
 iniciar sesión.
 
-## Próximo paso
+## Estado
 
-Probar en la placa con `CHECKLIST_placa.md`. Revisar en Vivado **WNS ≥ 0** con
-el cpu real y que las dos memorias (programa y datos) salgan como **RAM
-distribuida** (LUTRAM), no como miles de flip-flops.
-Pendientes: `clk_wiz` y frecuencia, panel de LEDs/7 segmentos y la interfaz
-final (parte C).
+Probado en la placa (`docs/CHECKLIST_placa.md`) a **62,5 MHz**: cumple timing
+(WNS = +0,802 ns, WHS = +0,051 ns; a 100 MHz sin `clk_wiz` daba
+WNS = −3,111 ns) y las dos memorias salen como **RAM distribuida** (208 LUT como
+memoria, 0 Block RAM). Detalle en el informe (`docs/informe/`).
+Pendientes: panel de LEDs/7 segmentos y las funciones
+extra del depurador (fase 3: comparación con el modelo, diagrama de ciclos,
+historial, exportar, tema oscuro). La vista del pipeline ya está hecha.

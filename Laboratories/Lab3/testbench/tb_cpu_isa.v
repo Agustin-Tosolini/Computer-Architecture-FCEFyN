@@ -289,7 +289,7 @@ module tb_cpu_isa;
 
     //------------------------------------------------ Parte B: vectores
     reg [31:0]    vexp [0:95];          // cabecera y estado final
-    reg [31:0]    vpasos [0:16383];     // 67 palabras por ciclo
+    reg [31:0]    vpasos [0:32767];     // 67 palabras por ciclo: hasta 489 ciclos
     reg [31:0]    mem_ini [0:31];       // memoria antes de correr el programa
     reg [31:0]    mask;
     reg [31:0]    vidx [0:0];

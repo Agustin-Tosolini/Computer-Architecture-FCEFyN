@@ -58,9 +58,11 @@ compilar() {   # compilar <salida.vvp> <args...>; falla si hay CUALQUIER mensaje
     return 0
 }
 
-echo "== RTL: top con el cpu real y con el stub (-Wall -g2005)"
-if compilar "$out/top.vvp" -s top "${RTL_B[@]}" "${RTL_CPU[@]}" &&
-   compilar "$out/top_stub.vvp" -s top -Ptop.USE_CPU_STUB=1 "${RTL_B[@]}" "${RTL_CPU[@]}"; then
+# USE_CLK_WIZ=0: iverilog no tiene el IP clk_wiz_0 de Xilinx (rama no elegida
+# del generate, no se elabora).
+echo "== RTL: top con el cpu real y con el stub (-Wall -g2005, USE_CLK_WIZ=0)"
+if compilar "$out/top.vvp" -s top -Ptop.USE_CLK_WIZ=0 "${RTL_B[@]}" "${RTL_CPU[@]}" &&
+   compilar "$out/top_stub.vvp" -s top -Ptop.USE_CLK_WIZ=0 -Ptop.USE_CPU_STUB=1 "${RTL_B[@]}" "${RTL_CPU[@]}"; then
     anotar "RTL -Wall -g2005" 0 "sin warnings (cpu, debug_unit, top x2)"
 else
     anotar "RTL -Wall -g2005" 1 "warnings o errores"

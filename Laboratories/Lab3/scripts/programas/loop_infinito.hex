@@ -8,4 +8,4 @@
 #   memoria que escribe el programa: mem[2] = 0x00000003 (el resto conserva lo que habia: la memoria no se borra)
 00300093    # 0x000: addi x1, x0, 3
 00102423    # 0x004: sw   x1, 8(x0)
-0000006F    # 0x008: fin:    j    fin
+0000006F    # 0x008: fin:    j    fin   -> jal x0, fin

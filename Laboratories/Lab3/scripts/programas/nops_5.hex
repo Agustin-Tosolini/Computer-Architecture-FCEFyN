@@ -7,9 +7,9 @@
 #   estado = 0x01 (HALT), ciclos = 9, PC = 0x00000018
 #   registros distintos de 0: ninguno
 #   memoria que escribe el programa: ninguna (el resto conserva lo que habia: la memoria no se borra)
-00000013    # 0x000: nop
-00000013    # 0x004: nop
-00000013    # 0x008: nop
-00000013    # 0x00C: nop
-00000013    # 0x010: nop
+00000013    # 0x000: nop   -> addi x0, x0, 0
+00000013    # 0x004: nop   -> addi x0, x0, 0
+00000013    # 0x008: nop   -> addi x0, x0, 0
+00000013    # 0x00C: nop   -> addi x0, x0, 0
+00000013    # 0x010: nop   -> addi x0, x0, 0
 00000000    # 0x014: halt

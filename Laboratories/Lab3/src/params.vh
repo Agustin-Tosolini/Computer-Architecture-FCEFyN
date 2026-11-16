@@ -214,7 +214,11 @@
 // 5. Comunicación UART
 //------------------------------------------------------------------------------
 
-`define CLK_FREQ        100_000_000   // Debe coincidir con el clock REAL (clk_wiz)
+// CLK_FREQ es la frecuencia de clk, la salida clk_out1 del clk_wiz_0 (MMCM),
+// NO la del pin i_clk (100 MHz). Tiene que coincidir SIEMPRE con el clk_wiz y
+// con el default de CLK_FREQ en top.v, o la UART calcula mal el divisor.
+//   62.5 MHz, 115200 baud, x16 -> divisor 34 (baud real 114890, error -0,27 %)
+`define CLK_FREQ        62_500_000    // = clk_out1 del clk_wiz_0
 `define BAUD_RATE       115200
 
 //------------------------------------------------------------------------------

@@ -1,0 +1,13 @@
+# demo_sin_halt.hex - generado desde demo_sin_halt.asm (no editar a mano)
+# demo_sin_halt — "Programa sin HALT"
+#
+# QUE DEMUESTRA: la pregunta de la consigna "¿que pasa si no hay instruccion de
+# parada?". No hay halt en el programa, pero termina igual: el comando 'L'
+# escribe HALT (0x00000000) en todas las palabras que no usa el programa
+#
+# Resultado esperado (rv32i_model.py):
+#   estado = 0x01 (HALT), ciclos = 6, PC = 0x0000000C
+#   registros distintos de 0: x1 = 0x00000001, x2 = 0x00000002
+#   memoria que escribe el programa: ninguna (el resto conserva lo que habia: la memoria no se borra)
+00100093    # 0x000: addi x1, x0, 1
+00200113    # 0x004: addi x2, x0, 2

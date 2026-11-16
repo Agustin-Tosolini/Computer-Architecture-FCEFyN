@@ -1,0 +1,17 @@
+# demo_subrutina.hex - generado desde demo_subrutina.asm (no editar a mano)
+# demo_subrutina — "Subrutina con jal / jalr" (reserva)
+#
+# QUE DEMUESTRA: jal guarda la direccion de retorno (PC + 4) en ra y salta;
+# jalr vuelve a esa direccion. Los dos se resuelven en EX: cada uno cuesta
+# 2 ciclos de flush.
+#
+# Resultado esperado (rv32i_model.py):
+#   estado = 0x01 (HALT), ciclos = 13, PC = 0x00000010
+#   registros distintos de 0: x1 = 0x00000008, x10 = 0x0000000C
+#   memoria que escribe el programa: mem[0] = 0x0000000C (el resto conserva lo que habia: la memoria no se borra)
+00600513    # 0x000: addi a0, x0, 6
+00C000EF    # 0x004: jal  ra, doble
+00A02023    # 0x008: sw   a0, 0(x0)
+00000000    # 0x00C: halt
+00A50533    # 0x010: doble:  add  a0, a0, a0
+00008067    # 0x014: jalr x0, 0(ra)
