@@ -1,19 +1,13 @@
-# Decisiones de diseño — Trabajo Final (CPU + Debug Unit)
+# Decisiones de diseño — CPU y depurador
 
-Actualizado: **10 de noviembre de 2026** (paso 4: integración del cpu real).
+Este documento describe el diseño actual y los motivos de sus decisiones.
+Las secciones 1 a 7 explican la CPU y su interfaz; las siguientes cubren la
+comunicación, las herramientas, las pruebas y la implementación en FPGA.
 
-Este documento explica el diseño actual y sus motivos. Tiene tres partes:
-
-- **Secciones 1 a 8 — CPU** (apartado A): `src/cpu/`.
-- **Sección 9 — Debug Unit y comunicación** (apartado B): `src/debug_unit/`,
-  con su historial y las decisiones 1 a 27 (antes en `CAMBIOS.md`).
-- **Secciones 10 y 11 — Integración** (paso 4): el top usa el cpu real;
-  decisiones 28 en adelante y respuestas a las preguntas de la consigna.
-
-El contrato entre cpu y debug_unit está en `src/params.vh` (solo
-documentación: ningún módulo lo incluye). La CPU completa está implementada en
-`src/cpu/cpu.v` y conectada al top de placa (`src/debug_unit/top.v`). Falta
-validarla en Vivado (timing y recursos) y en la FPGA (`CHECKLIST_placa.md`).
+La CPU está en `src/cpu/cpu.v` y el top de placa en `src/debug_unit/top.v`.
+`src/params.vh` documenta el contrato: los módulos RTL no lo incluyen.
+Los resultados de implementación y placa están documentados en la sección 12
+y en [CHECKLIST_placa.md](CHECKLIST_placa.md).
 
 Referencia: [instrucciones con ejemplos](instrucciones_cpu.md).
 Diagrama: [CPU completa](informe/img/CPU_completo.png).
@@ -64,7 +58,7 @@ es nuestra referencia principal: toda la memoria de datos debe entrar en su volc
 | Recurso | Tamaño | Direccionamiento y acceso |
 |---|---|---|
 | Programa | 256 palabras de 32 bits: 1 KiB | CPU usa PC en bytes; memoria recibe `PC[9:2]`. Lectura combinacional, escritura por flanco. |
-| Datos | 32 palabras de 32 bits: 128 bytes | CPU usa bytes 0…127; índice de palabra `addr[6:2]`. Lectura combinacional, escritura por bytes en el flanco. RAM: **el reset de CPU no la borra** (decisión 32). |
+| Datos | 32 palabras de 32 bits: 128 bytes | CPU usa bytes 0…127; índice de palabra `addr[6:2]`. Lectura combinacional, escritura por bytes en el flanco. RAM: **el reset de CPU no la borra**. |
 | Banco de registros | 32 registros de 32 bits | Índices de 5 bits: x0…x31. Dos lecturas combinacionales y una escritura por flanco. |
 
 **PC tiene 32 bits y cuenta bytes.** El avance normal es PC+4 porque cada
@@ -72,8 +66,8 @@ instrucción ocupa cuatro bytes. `pc_reg` solo almacena el próximo valor;
 `cpu.v` calcula PC+4, selecciona saltos y comprueba rango y alineación.
 
 Ambas memorias solicitan RAM distribuida con `(* ram_style = "distributed" *)`
-para mantener las lecturas combinacionales. Su inferencia y uso de recursos
-se comprobarán en Vivado. Al configurar la FPGA, programa inicia en HALT y
+para mantener las lecturas combinacionales. La implementación documentada en Vivado confirma RAM distribuida
+para ambas memorias (sección 12). Al configurar la FPGA, programa inicia en HALT y
 datos en cero. Esas inicializaciones no se repiten con el reset de CPU.
 
 ### Banco de registros y x0
@@ -81,8 +75,7 @@ datos en cero. Esas inicializaciones no se repiten con el reset de CPU.
 - Las instrucciones leen x0 como cero y sus escrituras se descartan.
 - El reset síncrono limpia los 32 registros, incluso durante pausa.
 - Debug lee directamente el arreglo, sin bypass, pero **x0 se fuerza a 0**
-  (contrato; decisión 30). Antes de la integración se mostraba `regs[0]`, que
-  en simulación es desconocido hasta el primer reset.
+  (contrato).
 - El bypass WB → ID entrega el dato nuevo si WB escribe el registro que ID
   necesita. Usa la misma habilitación que la escritura:
   `i_enable && i_we && !i_reset && rd != 0`.
@@ -107,6 +100,22 @@ instrucciones válidas de EX/MEM; la escritura requiere además avance y ausenci
 de reset. La respuesta de la CPU a errores se explica en la sección 6.
 
 ## 3. Decodificación, cálculo y escritura
+
+### IF: búsqueda de la instrucción
+
+IF usa el PC para leer la memoria de instrucciones. Como el PC indica una
+dirección en bytes y cada instrucción ocupa cuatro bytes, `instr_mem` recibe
+`PC[9:2]` como índice de palabra. La lectura es combinacional.
+
+En un avance normal, el flanco ascendente guarda la instrucción y su PC en
+IF/ID, y actualiza el PC a PC+4. Por ejemplo, con PC=8 se lee la palabra 2;
+IF/ID conserva esa instrucción junto con el valor 8, mientras el PC pasa a 12.
+
+`cpu.v` controla las excepciones a ese avance: un stall retiene PC e IF/ID;
+un salto tomado en EX redirige el PC y descarta las instrucciones buscadas
+por el camino incorrecto. También comprueba que la dirección esté alineada
+a cuatro bytes y dentro de la memoria de programa. Una búsqueda inválida
+se trata como se explica en la sección 6.
 
 ### ID: control e inmediato
 
@@ -193,7 +202,7 @@ Los datos y sus controles siempre avanzan juntos; valid=0 representa una burbuja
 | `ex_mem` | Resultado EX, dato STORE, rd, funct3; reg_write, mem_read/write, result_src, halt, illegal, valid. | 79 (96) |
 | `mem_wb` | Resultado EX, dato leído de memoria, rd; reg_write, result_src, halt, illegal (también 1 si el error fue un acceso a memoria), valid. | 74 (96) |
 
-En el volcado cada latch ocupa palabras enteras de 32 bits (decisión 34): la
+En el volcado cada latch ocupa palabras enteras de 32 bits: la
 tabla de campos con sus bits está en `src/params.vh`, sección 4b.
 
 ID/EX no conserva la instrucción completa: conserva su información decodificada.
@@ -286,15 +295,14 @@ Cada programa debe inicializar los datos que necesite.
 Al aceptar HALT en ID se detiene la búsqueda y se descartan las instrucciones
 posteriores; las anteriores terminan. `halting` indica ese drenaje.
 Cuando el marcador **llega** a WB (entra a MEM/WB) se activa `o_halted`:
-`o_halted = wb_valid && wb_halt` (decisión 28). En ese flanco la instrucción
+`o_halted = wb_valid && wb_halt`. En ese flanco la instrucción
 anterior al HALT ya escribió su resultado, y IF/ID, ID/EX y EX/MEM están vacíos;
 MEM/WB conserva el marcador. Con 5 NOPs + HALT, `o_halted` vale 1 después de
 exactamente **9 ciclos** habilitados, como pide el contrato. Como `o_halted`
 anula el avance, MEM/WB queda congelado y la CPU permanece detenida hasta
 reset. IF/ID vacío contiene NOP, no HALT.
 
-El PC mostrado es el de búsqueda: al detenerse por HALT queda en **HALT+4**
-(decisión 29). Un salto tomado
+El PC mostrado es el de búsqueda: al detenerse por HALT queda en **HALT+4**. Un salto tomado
 en EX tiene prioridad sobre un HALT más joven en ID y lo descarta.
 Sin HALT, el programa puede seguir indefinidamente si salta en un bucle; si
 termina alcanzando una búsqueda fuera de memoria, se aplica la parada por error.
@@ -308,11 +316,12 @@ termina alcanzando una búsqueda fuera de memoria, se aplica la parada por error
 - Acceso inválido en MEM: no escribe RAM ni rd, descarta instrucciones más
   jóvenes y permite completar la instrucción anterior en WB. Envía un marcador
   de parada hacia WB (con `illegal = 1`) y tiene prioridad sobre un salto más
-  joven en EX. El PC queda en la dirección del acceso + 12 (ya se habían
-  buscado tres instrucciones más).
+  joven en EX. El PC conserva el valor de búsqueda que tenía al detectarse el error;
+  no representa la dirección de datos inválida ni identifica por sí solo la
+  instrucción que falló.
 
-Las tres paradas por error activan **`o_fault`** junto con `o_halted`
-(decisión 33): `o_fault = o_halted && wb_illegal`. La debug_unit lo informa en
+Las tres paradas por error activan **`o_fault`** junto con `o_halted`:
+`o_fault = o_halted && wb_illegal`. La debug_unit lo informa en
 el bit 2 del byte de estado: un HALT normal da 0x01 y un error 0x05. La causa
 exacta (cuál de los tres errores) no se distingue. Esto no es un sistema de
 excepciones RISC-V.
@@ -323,7 +332,7 @@ excepciones RISC-V.
 prueba INIT_NOPS. Debug lee combinacionalmente registros, datos, PC y pipeline.
 El índice de memoria de debug sigue teniendo ocho bits por compatibilidad:
 0…31 devuelven palabras y los demás índices devuelven cero. La memoria de
-datos tiene 32 palabras también en el contrato (decisión 31).
+datos tiene 32 palabras también en el contrato.
 
 | Grupo | Señales |
 |---|---|
@@ -334,8 +343,7 @@ datos tiene 32 palabras también en el contrato (decisión 31).
 | Estado | o_pc[31:0], o_halted, o_fault, o_latches[479:0]. |
 
 El volcado es de **326 bytes**: cabecera (1), PC (4), ciclos (4), estado (1),
-registros (128), pipeline (60) y datos (128). Hasta la integración era de 314
-bytes con 48 de pipeline (decisión 34).
+registros (128), pipeline (60) y datos (128).
 
 `o_latches = {IF/ID, ID/EX, EX/MEM, MEM/WB}`, cada uno en palabras enteras:
 
@@ -353,401 +361,245 @@ se juntan en una palabra de control rellena con ceros. La tabla completa
 `scripts/uart_test.py` la usa para mostrar cada campo con su nombre. No se
 trunca información ni se crean registros adicionales para el volcado.
 
-## 8. Pruebas auxiliares y trabajo pendiente
+## 8. Debug Unit y comunicación
 
-`cpu_if_id_test` se conserva para estudiar IF/ID por separado. Expone PC,
-instrucción, operandos, inmediato y controles. No ejecuta operaciones, saltos
-ni HALT, y no escribe el banco. Cada avance captura el PC anterior y suma 4.
-Carga solo durante pausa y sin reset; reset conserva el programa. Ante PC
-inválido congela PC, indica `o_if_addr_error` y entrega NOP con valid=0.
-Ese comportamiento de prueba no reemplaza el de `cpu.v`.
+La `debug_unit` se divide en `control_fsmd` y `dump_mux`. El primero administra
+comandos, carga, ejecución y contador de ciclos; el segundo selecciona cada
+byte del volcado y las direcciones de lectura de debug. `debug_unit.v` es el
+wrapper que los conecta.
 
-`cpu_stub` ya no va en la placa: el top lo instancia solo con
-`USE_CPU_STUB = 1`, que usa `tb_top` para probar el protocolo (decisión 35).
-Sus registros y latches son artificiales y su puerto de datos lee programa
-para comprobar la carga. La CPU real devuelve memoria de datos por ese puerto.
+### Protocolo UART
 
-Estado de lo que quedaba pendiente:
+Se usa UART a **115200 baud, 8N1**, con protocolo pedido → respuesta.
+La PC espera la respuesta antes de enviar otro comando, excepto `'I'` durante
+una corrida. El buffer de recepción tiene un byte; la FSM consume los datos
+mucho más rápido de lo que llegan por UART.
 
-1. ~~Reemplazar cpu_stub por cpu en el top~~: hecho; verificado en simulación
-   con `tb_top_cpu` (carga, ejecución, pausa, interrupción, reset y volcado por
-   UART) y `tb_cpu_isa`.
-2. ~~Adaptar Python al mapa real de los latches~~: hecho, con 480 bits (se
-   amplió el contrato, decisión 34). `--verificar` solo sirve con el stub.
-3. ~~Sintetizar y probar en placa~~: hecho (`CHECKLIST_placa.md`). Las
-   memorias salen como RAM distribuida y cumple timing a 62,5 MHz (sección 13).
-4. ~~Revisar frecuencia y clk_wiz al final, como acordó el equipo~~: hecho, 62,5 MHz
-   con `clk_wiz_0` (sección 13), WNS = +0,802 ns.
-5. Diagnóstico de errores: resuelto en parte con `o_fault` (decisión 33); la
-   causa exacta no se distingue. Centralizar las constantes en params.vh sigue
-   sin hacerse: hoy documenta el contrato, pero ningún módulo lo incluye.
-
-Los archivos del proyecto final se agregarán manualmente en Vivado.
-
-## 9. Debug Unit y comunicación (apartado B)
-
-Esta sección reúne el historial y las decisiones del apartado B (antes en
-`CAMBIOS.md`). Las rutas son las del repo: `src/debug_unit/` (antes `rtl/`),
-`testbench/` (antes `sim/`), `scripts/` (antes `sw/`), `src/params.vh` (antes
-`docs/params.vh`) y `docs/informe/img/` (antes `docs/diagramas/`). Donde un número
-cambió con la integración (314 → 326 bytes, etc.) se aclara entre corchetes.
-
-### Historial
-
-**Paso 1 — UART del TP2 adaptada + eco**
-
-| Archivo | Origen | Cambios |
-|---|---|---|
-| `baud_rate_generator.v` | TP2 | Se agregó el `timescale` que faltaba. Baud por defecto 115200. **El divisor ahora se redondea** en lugar de truncarse |
-| `rx_fsmd.v` | TP2 | Ninguno en la lógica |
-| `tx_fsmd.v` | TP2 | **Valores iniciales** en los registros: la línea TX arranca en 1 sin apretar reset |
-| `uart.v` | TP2 | Baud por defecto 115200 |
-| `rx_intf.v`, `tx_intf.v`, `intf.v` | TP2 | Solo comentarios |
-| `reset_gen.v` | Nuevo | Reset global: power-on, botón sincronizado y `locked` del clock |
-| `echo_ctrl.v` | Nuevo, basado en `ALU_ctrl` | Controlador temporal de eco. **Reemplazado en el paso 3** (ya no está en el repo) |
-| `top.v`, `constrains/top.xdc`, `tb_top.v` | Nuevos | `top` con eco y testbench con una segunda `uart` que hace de PC |
-
-Además, todos los archivos llevan `` `default_nettype none `` al principio y
-`` `default_nettype wire `` al final. Así, una señal sin declarar es un error
-en lugar de un cable implícito de 1 bit.
-
-**Paso 2 — `cpu_stub`**
-
-| Archivo | Contenido |
+| Comando | Acción y respuesta |
 |---|---|
-| `cpu_stub.v` | Procesador falso con exactamente los puertos del contrato (`params.vh`, sección 4) |
-| `tb_cpu_stub.v` | Maneja el contrato a mano, como lo hará la `debug_unit` |
+| `'X'` | Resetea la CPU y el contador de ciclos; responde `'K'`. No reinicia la UART. |
+| `'L'` | Recibe longitud y programa, completa la memoria según la sección 6, resetea la CPU y responde `'K'`. No inicia la ejecución. |
+| `'D'` | Devuelve el volcado del estado actual. |
+| `'S'` | Habilita un ciclo de CPU y devuelve el volcado posterior. Si ya estaba halted, responde sin avanzar ni sumar ciclos. |
+| `'R'` | Ejecuta hasta HALT, error o interrupción; devuelve un volcado. |
+| `'I'` | Interrumpe RUN. Fuera de RUN se descarta. |
 
-**Paso 3 — `debug_unit`, comando `'X'`**
+Durante RUN se consumen todos los bytes, pero solo `'I'` interrumpe. Si HALT e
+interrupción coinciden, gana HALT y se envía una sola respuesta. Interrumpir
+pausa el pipeline sin vaciarlo; se puede continuar con `'R'` o `'S'`.
 
-| Archivo | Contenido |
+El byte de estado contiene `halted` en bit 0, `interrupted` en bit 1 y `fault`
+en bit 2. `control_fsmd` lo arma. El indicador de interrupción se limpia al
+resetear y al comenzar `'R'` o `'S'`; `'D'` no lo modifica.
+
+### Carga del programa
+
+Después de `'L'` llegan dos bytes de longitud y N palabras de cuatro bytes,
+en little-endian: **3 + 4N bytes** contando el comando. Durante la carga ningún
+byte se interpreta como comando, aunque coincida con su código ASCII.
+
+La FSM arma una palabra a la vez y la escribe, sin almacenar una copia completa
+del programa. Consume también las palabras que exceden la capacidad, para no
+confundirlas con comandos. La regla de relleno y HALT final está en la sección 6.
+
+No hay checksum ni timeout de carga en el hardware. Una carga cortada a mitad
+se recupera con el botón de reset. `'K'` confirma que terminó el reset posterior
+a la carga, no una verificación de integridad del programa.
+
+### Control y volcado
+
+- En STEP, `cpu_enable = 1` depende solo del estado (Moore). En RUN,
+  `cpu_enable = !halted` depende también de una entrada (Mealy).
+- `cpu_reset` depende del estado RESET. Las señales de transferencia dependen
+  además de `rx_empty` y `tx_full`.
+- El volcado se arma byte por byte, sin un buffer de 326 bytes. La CPU permanece
+  pausada mientras se transmite, por lo que todo corresponde al mismo estado.
+- El contador de ciclos tiene 32 bits y cuenta avances habilitados, no tiempo
+  de espera ni transmisión. A 62,5 MHz se desborda aproximadamente a los 69 s
+  de ejecución continua.
+- Un volcado tarda aproximadamente 28 ms a 115200 baud. Un byte tarda unos
+  87 µs, aproximadamente 5425 ciclos del reloj de 62,5 MHz.
+
+`reset_gen` combina encendido, botón sincronizado y estado del reloj. TX inicia
+en 1 para mantener la línea UART en reposo desde la configuración.
+
+## 9. Ensamblador y verificación
+
+`scripts/ensamblador.py` soporta las instrucciones de la CPU, HALT, etiquetas,
+comentarios y las pseudoinstrucciones `nop`, `j`, `mv`, `li`, `beqz`, `bnez`,
+`call` y `ret`. Estas se expanden a instrucciones reales; `li` puede ocupar
+una o dos palabras. `.word` permite introducir una palabra cruda, útil para
+probar instrucciones ilegales. Se aceptan las directivas `.text`, `.globl` y
+`.option` ignorándolas. Las instrucciones no soportadas producen error.
+
+El formato `.hex` contiene una palabra hexadecimal de 32 bits por línea.
+`uart_test.py` permite cargar `.asm` o `.hex`, ejecutar y consultar volcados.
+Su opción `--verificar` de carga solo sirve con `cpu_stub`: el puerto de debug
+de la CPU real expone datos, no la memoria de programa.
+
+Las pruebas combinan fuentes distintas para evitar depender de una sola:
+
+| Herramienta | Propósito |
 |---|---|
-| `debug_unit.v` | **Wrapper** sin lógica propia (mismo criterio que `uart.v` e `intf.v`). Sus puertos son los definitivos: el `top` no cambia al agregar comandos |
-| `control_fsmd.v` | FSM + registros: IDLE → RESET (1 ciclo con `o_cpu_reset`) → ACK (`'K'`). Ya incluye los registros `cycles` y `dump_idx` y arma el byte `status` |
-| `dump_mux.v` | Combinacional y **completo**: dado `i_dump_idx` (0…313 [hoy 0…325]) devuelve `o_dump_byte` y pone las direcciones de lectura de debug |
-| `top.v` | `echo_ctrl` reemplazado por `debug_unit` + `cpu_stub`. Reset del cpu: `cpu_rst = reset \| cpu_reset` |
-| `tb_top.v` | Reescrito para probar `'X'` |
-| `tb_dump_mux.v` | Arma el volcado esperado con código propio y lo compara byte por byte |
-| `scripts/uart_test.py` | Prueba desde la PC con `pyserial` |
+| `scripts/rv32i_model.py` | Modelo independiente de ejecución y tiempos; contrasta las anotaciones manuales `# ESPERADO:` y genera vectores. |
+| `testbench/tb_cpu_isa.v` | Compara la CPU con el contrato y los vectores, ciclo a ciclo. |
+| `testbench/tb_top_cpu.v` | Prueba carga, ejecución, pausa, reset y volcados mediante UART con la CPU real. |
+| `scripts/run_all_tests.sh` | Ejecuta el conjunto de pruebas RTL. |
+| `scripts/mutaciones.py` | Introduce fallos deliberados para comprobar que los tests los detecten. |
+| `scripts/gui/tests/hdl/tb_captura.v` | Captura volcados del RTL para verificar la decodificación de la GUI. |
+| `scripts/gui/tests/hdl/tb_traza.v` | Genera trazas para contrastar el simulador de pipeline con el RTL. |
 
-**Paso 3b — comando `'D'` (volcado)**
+El modelo permite verificar qué palabras modifica cada programa y conservar
+las demás. Los programas deben inicializar los datos que necesitan; el reset
+no borra la RAM. Esto es una elección de implementación, no una imposibilidad
+de construir un mecanismo que la recorra escribiendo ceros.
 
-| Archivo | Cambio |
+Los ejemplos de GUI están en `scripts/gui/programas/`. Las demos de defensa
+están en `scripts/programas/defensa/`, con pruebas en `test_demos_defensa.py`
+y un [guion de defensa](guion_defensa.md). Separar estas carpetas evita que el
+generador de vectores de integración procese programas que no le corresponden.
+
+El caso `scripts/programas/NOPx256.asm` comprueba el límite de memoria:
+al cargarlo quedan 255 NOPs y HALT en la palabra 255; termina normalmente en
+259 ciclos. El cargador, el modelo y `PipelineSim` aplican esa misma regla.
+
+### Módulos auxiliares
+
+`cpu_if_id_test` permite estudiar IF/ID por separado. Expone PC, instrucción,
+operandos, inmediato y controles, pero no ejecuta operaciones, saltos ni HALT,
+y no escribe registros. Ante un PC inválido entrega NOP con valid=0 y señala
+`o_if_addr_error`; ese comportamiento no sustituye al de la CPU completa.
+
+`cpu_stub` es un procesador artificial para probar el protocolo. El top lo
+selecciona solo con `USE_CPU_STUB = 1`; la placa usa la CPU real por defecto.
+Sus registros y latches son artificiales, y su puerto de datos lee programa
+para verificar la carga. `tb_top` usa este stub; `tb_top_cpu` usa la CPU real.
+
+## 10. Depurador gráfico
+
+La aplicación está en `scripts/gui/` y usa **PySide6 (Qt 6)** para tablas,
+editor, señales y trabajo en segundo plano. Su entorno virtual está en
+`scripts/gui/.venv`, ignorado en git. En Mint, el plugin `xcb` necesita
+`libxcb-cursor0`. Manual: [manual_depurador.md](manual_depurador.md).
+
+| Componente | Responsabilidad |
 |---|---|
-| `control_fsmd.v` | Estado **DUMP**. En IDLE, `'D'` pone `dump_idx = 0` y pasa a DUMP. En DUMP: `o_w_data = i_dump_byte` (Moore) y `o_wr = !i_tx_full` (Mealy). Con cada byte entregado, `dump_idx` avanza; después del último vuelve a IDLE |
-| `tb_top.v` | Tres volcados verificados byte por byte contra un modelo propio del `cpu_stub`: recién reseteado, con PC/memoria/halted forzados, y después de `'X'`. Además verifica los LEDs durante el volcado y que `cpu_enable` no se active nunca |
-| `scripts/uart_test.py` | Modo `d`: manda `'D'`, recibe el volcado, verifica la cabecera y muestra PC, ciclos, estado, registros, latches y memoria |
+| `app/` | Ventana, editor, tablas, latches, log y tema. |
+| `hilo_serie.py` | Trabajador en un `QThread`; centraliza los pedidos al enlace. |
+| `protocolo.py` | Comandos, respuestas, timeouts e interrupción. |
+| `transporte.py` | Transporte por puerto serie con pyserial. |
+| `fpga_simulada.py` | Transporte simulado con el mismo protocolo, basado en `PipelineSim`. |
+| `decodificador.py`, `campos_latches.py` | Interpretan los 326 bytes como campos con nombre. |
+| `desensamblador.py` | Convierte palabras de instrucción en texto. |
 
-**Paso 3c — comando `'S'` (paso)**
+La interfaz no accede directamente al puerto serie. Los pedidos se procesan
+de a uno en el trabajador, para evitar respuestas mezcladas y bloqueos de la
+ventana. Interrumpir activa un `threading.Event` que el enlace consulta mientras
+espera la respuesta de RUN; al cerrar durante una corrida también se envía `'I'`.
 
-| Archivo | Cambio |
-|---|---|
-| `control_fsmd.v` | Estado **STEP**. En IDLE, `'S'` → STEP. STEP dura 1 ciclo con `o_cpu_enable = 1` (Moore) y pasa siempre a DUMP con `dump_idx = 0`: el volcado muestra el estado **después** del paso |
-| `cpu_stub.v` | Parámetro `INIT_NOPS` (por defecto 0): cantidad de NOPs con que arranca la memoria. Solo para pruebas |
-| `top.v` | Parámetro `STUB_INIT_NOPS = 8`, pasado al `cpu_stub`: en la placa el PC avanzaba con `'S'` aunque todavía no existiera `'L'` |
-| `tb_top.v` | Corre a **1 Mbaud solo en simulación** (parámetro del testbench). Ocho `'S'` hasta el HALT, verificando el volcado completo y exactamente 1 ciclo de `cpu_enable` por paso; después `'X'` y `'D'` |
-| `scripts/uart_test.py` | Modos `s` (un paso + volcado) y `step` (interactivo: muestra solo lo que cambió entre pasos) |
+El transporte intercambiable permite usar el mismo protocolo con placa o en
+modo demo. La simulación reproduce registros, memoria, PC y los 480 bits del
+pipeline. Para corridas largas usa una velocidad simulada de 2000 ciclos por
+segundo tras una tanda inicial, con un límite de simulación; no reproduce la
+velocidad física de la FPGA.
 
-**Paso 3d — comandos `'R'` (correr) e `'I'` (interrumpir)**
+Los errores se muestran en la ventana y el log. Los fallos inesperados también
+se registran en `~/.local/state/tp_riscv/depurador.log`. Un temporizador detecta
+la desconexión del puerto cuando la aplicación está en reposo.
 
-| Archivo | Cambio |
-|---|---|
-| `control_fsmd.v` | Estado **RUN**. En IDLE, `'R'` → RUN. En RUN, `o_cpu_enable = !i_halted` (**Mealy**) y `o_rd = !i_rx_empty` (todo byte se consume). Sale a DUMP con `dump_idx = 0` cuando `i_halted = 1` o cuando llega `'I'` (0x49). Nuevo registro **`interrupted`**: 1 si la corrida se cortó con `'I'`; vuelve a 0 con el reset global, con `'X'` y al empezar `'R'` o `'S'`. `o_status = {6'd0, interrupted, halted}` [hoy `{5'd0, fault, interrupted, halted}`, decisión 33] |
-| `tb_top.v` | Pruebas 12 a 22: `'R'` hasta el HALT (mismo volcado que S7, exactamente 7 ciclos de enable), `'R'` ya detenido (0 ciclos), `'I'` fuera de RUN, programa sin HALT cortado con `'I'` (status 0x02, PC = 4 × ciclos, ciclos = ciclos de enable), otros bytes durante RUN ignorados, `'I'` en medio de un volcado, continuar con otro `'R'`, `'S'`/`'X'`/`'R'` borran el bit, y empate HALT/`'I'` (gana el HALT) |
-| `scripts/uart_test.py` | Modo `r`: manda `'R'` y espera el volcado; Enter manda `'I'`. Ctrl+C también manda `'I'` para no dejar la placa en RUN. El decodificador muestra el bit `interrumpido` |
-| `docs/informe/img/debug_unit_fsm` | RUN con `cpu_enable = !halted`, flecha `'I'` → DUMP, lazo "otro byte" en RUN y borrado del bit en `'R'`, `'S'` y RESET |
+Las constantes del protocolo están duplicadas entre Python y `params.vh`,
+pero `tests/test_constantes.py` verifica su coincidencia. No se lee `params.vh`
+durante la ejecución de la aplicación.
 
-**Paso 3e — comando `'L'` (cargar programa)**
+## 11. Vista del pipeline
 
-| Archivo | Cambio |
-|---|---|
-| `control_fsmd.v` | Estados **LOAD_LEN**, **LOAD_WORD**, **WRITE** y el nuevo **CLEAR** (one-hot de 10 bits, código 9). Registros `n_words`, `idx`, `word` y `byte_cnt`. La palabra se arma con un desplazamiento a derecha (`word = {byte, word[31:8]}`: little-endian). WRITE escribe 1 ciclo con `imem_we`; CLEAR pone HALT en las palabras N..255; la 255 siempre es HALT; las palabras 256+ se consumen sin escribirse. Termina en RESET → ACK (`'K'`) |
-| `tb_top.v` | Pruebas 22 a 29: carga de 3 palabras (memoria completa verificada, 1 reset, 0 enable, 256 escrituras), bytes de datos iguales a comandos, 5 NOPs + `'R'`, N = 0, N = 256 (palabra 255 forzada), N = 300 (sin vuelta a la palabra 0) y `imem_we` solo durante `'L'` |
-| `scripts/uart_test.py` | Modo `l archivo.hex` (una palabra hex por línea, `#` = comentario): recorta a 256 palabras y avisa; espera `'K'`. `--verificar` compara con un `'D'` (solo con el stub) |
-| `scripts/programas/` | Nuevo: `ejemplo_3.hex` y `nops_5.hex` |
-| `src/params.vh` | Comportamiento de `'L'` y significado de `'K'` |
-| `docs/informe/img/debug_unit_fsm` | Estado CLEAR, flecha N = 0 y `idx` en lugar de `addr` |
+La GUI muestra cinco etapas, cuatro registros intermedios y el programa
+resaltado. `pipeline_sim.py` simula ciclo a ciclo; `pipeline_view.py` deduce
+las instrucciones e indicadores; `app/vista_pipeline.py` dibuja la vista.
 
-### Decisiones del apartado B
+Los tests comparan el simulador con el RTL en cada ciclo: los 480 bits de
+latches, PC, halted, fault, registros y memoria. Incluyen dependencias, saltos,
+errores de acceso, memoria precargada y HALT descartado por un salto.
 
-1. **Baud rate 115200.** Un volcado de 314 bytes [hoy 326] tarda unos 27 ms [hoy 28 ms]; a 9600 baud tardaría 0,33 s. Con 100 MHz el divisor es 54, con un error de +0,47 % (el límite es de alrededor del 2 %). [Hoy, a 62,5 MHz: divisor 34, error −0,27 %; decisión 51.]
-2. **Redondeo del divisor.** Con truncamiento, algunos clocks dan un error de baud innecesariamente grande. Este cambio importa cuando se cambie la frecuencia con el `clk_wiz`. [A 62,5 MHz: 33,91 se redondea a 34 (−0,27 %); truncando daría 33 (+2,75 %, fuera del límite).]
-3. **Valores iniciales en `tx_fsmd`.** Antes la línea TX quedaba en 0 hasta el primer reset. Eso es una condición de *break*, y la PC lee basura.
-4. **`reset_gen`.** El sistema arranca en un estado conocido sin tocar el botón. Además ya tiene la entrada `i_locked`, preparada para el `clk_wiz`. [Hoy conectada al `locked` del `clk_wiz_0`: decisión 53.]
-5. **Reset global vs. reset del procesador.** `reset` resetea todo, incluida la UART. `cpu_reset` (comando `'X'`) resetea solo el procesador, así la comunicación no se corta y la `debug_unit` puede responder `'K'`. En el `top` se combinan: `cpu_rst = reset | cpu_reset`.
-6. **`cpu_stub` con la misma latencia de HALT que el pipeline real.** El PC se congela al ver el HALT y `o_halted` sube 3 ciclos habilitados después. Así la `debug_unit` no queda dependiendo de que `halted` llegue al instante. [Con la integración el cpu real se ajustó a esa misma cuenta: decisión 28.]
-7. **Truco del stub: el puerto de debug de la memoria de datos lee la memoria de programa.** El contrato no permite leer la memoria de programa, y sin este truco no habría forma de verificar `'L'` hasta tener el `cpu` real. [Sigue valiendo para `tb_top`; con el cpu real `--verificar` no sirve.]
-8. **`debug_unit` dividida en `control_fsmd` (secuencial) + `dump_mux` (combinacional).** Son dos cosas de naturaleza distinta, cada una se prueba por separado, y el código coincide con el diagrama.
-9. **Protocolo pedido → respuesta.** El buffer de recepción es de un byte, así que la PC no manda un comando nuevo hasta recibir la respuesta del anterior. Los bytes que no son comando se consumen y se descartan sin respuesta.
-10. **Salidas Moore para el control del cpu, Mealy para el handshake.** `cpu_reset` y `cpu_enable` dependen solo del estado y duran exactamente lo que dura el estado: por ejemplo, STEP dura 1 ciclo. `rd` y `wr` dependen de `rx_empty` y `tx_full` en el mismo ciclo, igual que en `ALU_ctrl`.
-11. **`status` lo arma `control_fsmd`**, y no el `dump_mux` leyendo `halted` directo. Así, si se agregan banderas al byte de estado, se toca un solo módulo. [Así se agregó el bit de error: decisión 33.]
-12. **El volcado se arma "al vuelo".** No hay un buffer de 314 bytes [hoy 326]: el `dump_mux` calcula cada byte en el momento en que se lo pide. Esto ahorra memoria, y como el procesador está congelado (`cpu_enable = 0`) durante el volcado, todos los bytes corresponden al mismo instante.
-13. **`'S'` siempre responde con el volcado**, aunque el procesador esté detenido (en ese caso, sin cambios y sin sumar ciclos). Es la forma de ver cómo terminan las últimas instrucciones antes del HALT.
-14. **`cpu_stub` con NOPs iniciales (`INIT_NOPS`)**: permitió probar `'S'` en la placa antes de tener `'L'`. Por defecto vale 0, así que `tb_cpu_stub` no cambia. [Con la integración el stub ya no va en la placa: `STUB_INIT_NOPS` solo se usa con `USE_CPU_STUB = 1`, en `tb_top`.]
-15. **Testbench a 1 Mbaud.** Solo el testbench pasa `BAUD_RATE = 1_000_000`; el valor por defecto de todos los módulos sigue siendo 115200, validado en la placa. Los dos extremos de la simulación usan los mismos parámetros, así que la lógica probada es la misma, y cada volcado tarda ~3 ms simulados en lugar de 28 ms. [`tb_top_cpu` usa el mismo criterio.]
-16. **`cpu_enable` en RUN es Mealy (`= !halted`).** Con una salida Moore, el ciclo en que `halted` sube el enable seguiría en 1, y el procesador tendría que ignorarlo. Con Mealy, la `debug_unit` no depende de ese comportamiento del cpu. El contador de ciclos queda exacto: un `'R'` hasta el HALT suma los mismos ciclos que los `'S'` equivalentes.
-17. **Interrupción con un byte específico (`'I'`), no con cualquier byte.** Un byte de ruido o un comando mandado por error no corta la corrida. Durante RUN todo byte se lee (`rd`), así el buffer de 1 byte nunca queda ocupado y la `'I'` siempre puede entrar. Fuera de RUN, `'I'` no es comando y se descarta.
-18. **Si `'I'` y `halted` llegan en el mismo ciclo, gana el HALT.** El programa terminó solo, y el volcado lo dice (status 0x01). En cualquier caso la PC recibe **un solo** volcado por cada `'R'`. Una `'I'` que llega tarde se ignora.
-19. **Bit `interrupted` en el byte de estado (bit 1).** Distingue "terminó" (0x01) de "lo corté" (0x02) sin que la PC tenga que adivinar. `'D'` no lo cambia (muestra cómo quedó la última ejecución). `'R'`, `'S'` y `'X'` lo borran.
-20. **`cycles` es de 32 bits.** A 100 MHz da la vuelta a los ~43 s de corrida continua [hoy, a 62,5 MHz: ~69 s]. Para los programas del TP alcanza de sobra.
-21. **En la `debug_unit` vive una sola palabra a la vez.** No hay buffer del programa: la palabra se arma en el registro `word` y se escribe apenas está completa. La PC manda todo seguido y el buffer de 1 byte alcanza, porque la FSM consume cada byte al ciclo siguiente y el próximo tarda ~8680 ciclos en llegar [hoy, a 62,5 MHz: ~5425].
-22. **Durante `'L'` ningún byte es comando.** La FSM consume siempre exactamente 3 + 4N bytes; un 0x58 dentro de una palabra es un dato. Por eso, aun con N > 256, se consumen todas las palabras: cortar antes haría que el resto se interprete como comandos.
-23. **CLEAR: después de un `'L'` la memoria tiene exactamente el programa y el resto es HALT.** No quedan restos de programas anteriores, y un salto a memoria "vacía" se detiene. Cuesta como mucho 256 ciclos (2,6 µs) [hoy, a 62,5 MHz: 4,1 µs]. Con N = 0 la memoria queda toda en HALT (sirve como "borrar programa").
-24. **La palabra 255 siempre es HALT.** Un programa que se pasa del final de la memoria termina. Si alguien manda 256 palabras o más, la que cae en la 255 se reemplaza por HALT y las siguientes se descartan: el error se atribuye al usuario, no rompe el sistema. El script además recorta a 256 y avisa. Esto no detiene un loop infinito (`j .`): para eso está `'I'`.
-25. **Sin timeout en la carga.** Se asume que la PC y la UART funcionan; si una carga se cortara a la mitad, se recupera con el botón de reset.
-26. **`'K'` confirma un reset terminado**, sea por `'X'` o al final de un `'L'` (los dos pasan por RESET → ACK). Sin checksum por ahora.
-27. **Formato de programa: texto, una palabra hex de 32 bits por línea.** Es lo que lee `$readmemh` y lo que exporta RARS (*Dump Memory → Hexadecimal Text*); también es lo que genera el ensamblador (`scripts/ensamblador.py`, decisión 36).
+### Identificación de instrucciones
 
-### Convención de nombres
+IF/ID e ID/EX contienen PC; EX/MEM y MEM/WB no lo conservan. Por eso:
 
-- **Puertos:** prefijo `i_` / `o_`.
-- **Cables (`wire`):** sin prefijo. Ejemplo: `o_dump_idx` (control_fsmd) → cable `dump_idx` (debug_unit) → `i_dump_idx` (dump_mux).
-- **Wrappers:** cada puerto se llama igual que el puerto interno al que se conecta.
+- Con volcados consecutivos, la vista sigue el avance: MEM recibe lo que
+  estaba en EX, y WB lo que estaba en MEM, comprobando los bits `valid`.
+- Sin esa continuidad, intenta reconstruir desde reset mediante simulación.
+  Solo utiliza el resultado si coinciden el PC y los 480 bits del volcado,
+  y si la instrucción corresponde a los controles del latch.
+- Si falta información o hay discrepancias, muestra `?` y explica el motivo.
+  No presenta una deducción incierta como si fuera un dato leído de la placa.
 
-### Nombres que cambiaron respecto del diseño de referencia del apartado B
+Los indicadores de forwarding, stall y flush reproducen las condiciones del
+hardware, incluidas sus prioridades y los errores de memoria. El bypass WB → ID
+se informa en la nota de ID. Los estados tienen texto e iconos además de color.
 
-(`02_modulos.md` del apartado B, que no está en este repo.)
+## 12. Reloj e implementación en FPGA
 
-- La "FSM de control" pasó a ser el módulo **`control_fsmd`**. La `debug_unit` es ahora un wrapper.
-- Puertos de `dump_mux`: **`i_dump_idx`** y **`o_dump_byte`**.
-
-## 10. Integración del cpu real (paso 4)
-
-### Qué se hizo
-
-| Archivo | Cambio |
-|---|---|
-| `src/debug_unit/top.v` | Parámetro **`USE_CPU_STUB`** (0 por defecto = cpu real en la placa) y un `generate` que instancia `cpu` o `cpu_stub` como `u_cpu`. Cables de 480 bits para los latches y `fault` |
-| `src/cpu/cpu.v` | `o_halted = wb_valid && wb_halt` (9 ciclos), salida nueva `o_fault`, el fallo de memoria marca `illegal` en MEM/WB, latches de 480 bits alineados a palabras |
-| `src/cpu/id/reg_file.v` | x0 forzado a 0 en el puerto de debug |
-| `src/debug_unit/control_fsmd.v` | Entrada `i_fault`; `o_status = {5'd0, i_fault, interrupted, i_halted}`; `DUMP_LAST = 325` |
-| `src/debug_unit/dump_mux.v` | Latches de 480 bits, `OFF_MEM = 198`, `DUMP_LEN = 326` |
-| `src/debug_unit/debug_unit.v` | Puertos `i_latches[479:0]` e `i_fault` |
-| `src/debug_unit/cpu_stub.v` | 15 palabras de latches, `o_fault = 0` |
-| `src/params.vh` | Contrato: memoria de datos de 32 palabras (RAM, el reset no la borra), `o_fault`, PC = HALT + 4, x0, latencia del HALT, tabla de campos (4b), volcado de 326 bytes, bit 2 del estado |
-| `scripts/ensamblador.py` | Nuevo: ensamblador mínimo (para reutilizar en la parte C) |
-| `scripts/rv32i_model.py` | Nuevo: modelo de referencia; genera los `.hex` y los vectores de prueba |
-| `scripts/programas/*.asm` | Nuevos: programas de ejemplo con el resultado esperado anotado (`# ESPERADO:`); los `.hex` se generan |
-| `scripts/uart_test.py` | Volcado de 326 bytes, campos de los latches con nombre, estado con error, `l` acepta `.asm`, `--autoprueba` |
-| `testbench/tb_cpu_isa.v` | Nuevo: cpu solo contra el contrato y contra el modelo, ciclo a ciclo |
-| `testbench/tb_top_cpu.v` | Nuevo: top con el cpu real, por UART, contra el modelo |
-| `testbench/vectores/` | Generado por `rv32i_model.py --generar` |
-| `scripts/run_all_tests.sh`, `scripts/mutaciones.py` | Nuevos: todas las pruebas; pruebas de mutación |
-| `tb_top.v`, `tb_dump_mux.v`, `tb_cpu_stub.v`, `tb_cpu.v` | Tamaños nuevos, `USE_CPU_STUB = 1` en `tb_top`, patrón final del HALT y `o_fault` en `tb_cpu` |
-
-### Decisiones de la integración
-
-28. **`o_halted` cuando el HALT llega a WB: 9 ciclos.** El cpu original esperaba a que el marcador *saliera* de WB (10 ciclos con 5 NOPs + HALT); el contrato y el stub cuentan 9. Se corrigió el cpu, no el contrato: `assign o_halted = wb_valid && wb_halt`. En ese flanco la última instrucción real ya escribió, y las etapas anteriores están vacías; MEM/WB conserva el marcador (`valid = halt = 1`), que es lo que muestra el volcado. Además se ahorra un flip-flop: como `o_halted` anula `step`, MEM/WB queda congelado y la salida se mantiene sola.
-29. **PC al detenerse = dirección del HALT + 4.** El HALT se reconoce en ID, cuando IF ya buscó la instrucción siguiente. Mostrar la dirección del HALT obligaría a guardar otro valor solo para el volcado. Con el stub el PC quedaba en la dirección del HALT: los valores esperados de la placa cambiaron (`CHECKLIST_placa.md`).
-30. **x0 por el puerto de debug vale siempre 0.** Lo pide el contrato. Antes el debug mostraba `regs[0]`, que en simulación es desconocido hasta el primer reset (en la placa el reset de encendido lo pone en 0).
-31. **Memoria de datos de 32 palabras: se cambió el contrato, no el cpu.** El contrato decía 256 palabras, pero el volcado solo muestra 32, y la consigna pide enviar "la memoria de datos usada". Con 32 palabras toda la memoria es visible; un acceso fuera de ella detiene el cpu con error en lugar de escribir donde nadie lo ve. Además cuesta menos hardware y ya coincidía con el cpu y sus pruebas.
-32. **El reset de CPU NO borra la memoria de datos: es RAM.** Se evaluó borrarla con `'X'` y `'L'` (igual que los registros) para que un mismo programa diera siempre el mismo resultado, y se descartó: la memoria de datos tiene que ser una RAM (distribuida, como la de programa), y una RAM no se borra con un reset. Si fuera un banco de flip-flops con reset, lo que muestra la debug_unit dejaría de corresponder teóricamente a una memoria. Consecuencias: la memoria conserva lo que dejó el programa anterior (y lo muestra el volcado); arranca en 0 solo al configurar la FPGA; **cada programa tiene que inicializar los datos que usa**. `rv32i_model.py --generar` lo verifica en los programas de ejemplo: si uno lee una palabra (o escribe solo una parte) sin haberla escrito antes con `sw`, da error. Los tests leen la memoria antes de correr y esperan que las palabras que el programa no escribe queden intactas.
-33. **Salida `o_fault` y bit 2 del estado.** Antes un error terminaba con `o_halted = 1`, sin distinguirse de un HALT normal. Ahora `o_fault = 1` (junto con `o_halted`) cuando la parada fue por instrucción ilegal, fetch fuera de rango o desalineado, o acceso inválido a memoria; queda en 1 hasta el reset. `control_fsmd` lo pone en el bit 2 del estado: HALT = 0x01, error = 0x05, interrumpido = 0x02. Para un error de memoria, MEM/WB guarda `illegal = 1`, así `o_fault = o_halted && wb_illegal` cubre los tres casos sin registros nuevos. El stub siempre da 0.
-34. **Latches de 480 bits (15 palabras), cada uno en palabras enteras.** 381 bits reales entraban en 384, pero los campos de 32 bits quedaban cortados entre palabras y el volcado era ilegible en hexadecimal. Con relleno, cada PC, dato o resultado ocupa una palabra propia y los controles se juntan en una palabra de control. El volcado pasa de 314 a 326 bytes (~1 ms más a 115200). La tabla de campos está en `params.vh` (4b) y en `uart_test.py`; `uart_test.py --autoprueba` verifica que sean iguales y `tb_cpu_isa` (A11) que el RTL las respete.
-35. **`USE_CPU_STUB` con `generate`.** Es la forma más simple de que la placa use el cpu real y `tb_top` siga probando el protocolo con el stub, sin duplicar el top. Solo se sintetiza la rama elegida. Costo: en `tb_top` las rutas jerárquicas al stub pasan a ser `dut.g_stub.u_cpu.*`.
-36. **Ensamblador propio** (`scripts/ensamblador.py`). Cubre las instrucciones de la consigna, `halt`, etiquetas, comentarios con `#` y solo dos pseudo-instrucciones (`nop`, `j`). Tiene además la directiva `.word` (para poder escribir una instrucción ilegal en las pruebas) e ignora `.text`, `.globl` y `.option`, para aceptar archivos del ensamblador de GNU. Se verifica contra codificaciones conocidas y contra el `.hex` de `programa_if_id.S`, generado con GNU as: las 39 palabras coinciden.
-37. **Valores esperados de un modelo independiente** (`scripts/rv32i_model.py`). El modelo decodifica y ejecuta por su cuenta (sin usar el RTL) y calcula los tiempos del pipeline a partir de las reglas del diseño: ciclos = instrucciones + 4 + stalls + 2 por salto tomado; en qué ciclo escribe cada instrucción; PC después de cada ciclo; qué palabras de memoria escribe el programa (las demás conservan su valor, decisión 32). Además verifica las anotaciones `# ESPERADO:` escritas a mano en cada `.asm`. Así se cruzan tres fuentes: la cuenta a mano, el modelo y el RTL.
-38. **Pruebas de mutación** (`scripts/mutaciones.py`). Se rompe el diseño a propósito, por ejemplo sin forwarding, sin stall, sin flush, enable ignorado, HALT tarde o signo mal extendido, y se verifica que algún test falle. Si una mutación sobrevive, falta un test.
-
-## 11. Preguntas de la consigna
-
-**Al reprogramar (comando `'L'`):**
-
-| Pregunta | Respuesta | Por qué |
-|---|---|---|
-| ¿Es necesario vaciar la memoria (de datos)? | **No**: es RAM y el reset no la borra; conserva lo que dejó el programa anterior (se ve en el volcado). | Tiene que seguir siendo una RAM (decisión 32). Basta con que **cada programa inicialice los datos que usa**: así el resultado no depende de lo que había. El modelo lo verifica en los programas de ejemplo. |
-| ¿Y los registros? | **Sí**: el reset de CPU que hace `'L'` (y `'X'`) los pone en 0. | El banco de registros es parte del estado del procesador (como el PC), no una memoria: el programa nuevo arranca con x1…x31 en 0 y no depende de valores del anterior. |
-| ¿Se necesita vaciar el pipeline? | **Sí**: el reset deja los cuatro latches como burbujas (`valid = 0`, IF/ID con NOP) y el PC en 0. | Si no, instrucciones del programa viejo que estaban en IF/ID…MEM/WB terminarían de ejecutarse (escribirían registros o memoria) después de cargar el nuevo. |
-| ¿Y la memoria de programa? | **No con el reset; sí con la carga**: el CLEAR de `'L'` escribe HALT en todas las palabras que el programa nuevo no usa (y la 255 siempre es HALT). | El reset no la borra para poder volver a correr el mismo programa con `'X'` (decisión 23). El CLEAR evita restos del programa anterior. |
-
-**¿Qué sucede si en la memoria no hay una instrucción de parada?**
-
-No puede pasar del todo: después de un `'L'` las palabras no usadas son HALT y
-la 255 siempre es HALT (decisiones 23 y 24). Un programa que "se cae" del final
-termina en el primer HALT de relleno. Lo que sí puede pasar:
-
-- Un **loop sin fin** (por ejemplo `j .`): `'R'` corre para siempre; `'I'`
-  lo corta y el volcado trae estado 0x02 (`scripts/programas/loop_infinito.asm`).
-- Un salto **fuera de la memoria** de programa (≥ 1024) o a una dirección
-  desalineada: el fetch entrega una instrucción ilegal y el cpu se detiene por
-  error (estado 0x05).
-
-En los dos modos (`'R'` y `'S'`) el pipeline queda vacío al terminar: cuando
-`o_halted` sube, todas las instrucciones anteriores al HALT ya escribieron y
-solo queda el marcador del HALT en MEM/WB.
-
-## 12. Depurador gráfico (parte C)
-
-Aplicación de escritorio para usar el sistema sin consola. Manual:
-[`manual_depurador.md`](manual_depurador.md). Todo el código está en
-`scripts/gui/`, separado de las herramientas anteriores (`uart_test.py` no
-cambió).
-
-### Arquitectura
-
-```
-Interfaz (hilo principal, app/)                Trabajador (QThread, hilo_serie.py)
-  ventana_principal.py  ── señales (pedidos) ─►  Enlace (protocolo.py)
-  editor, tablas,       ◄─ señales (volcado,      │  usa un "transporte":
-  latches, log              errores, bytes) ──    ├─ PuertoSerie (transporte.py, pyserial)
-                                                  └─ FpgaSimulada (fpga_simulada.py,
-                                                       usa rv32i_model.py)
-  decodificador.py: 326 bytes -> Estado (campos con nombre, campos_latches.py)
-  desensamblador.py: palabra -> texto (ida y vuelta con ensamblador.py)
-```
-
-| Módulo | Función |
-|---|---|
-| `protocolo.py` | Constantes y la clase `Enlace`: cargar, reset, paso, correr (con interrupción) y volcar, con timeouts y errores claros |
-| `decodificador.py` / `campos_latches.py` | Volcado → `Estado` (dataclass); tabla de params.vh 4b con una descripción por campo (los tooltips) |
-| `transporte.py` / `fpga_simulada.py` | Los dos "cables", con la misma interfaz (`escribir`, `leer`, `vaciar_entrada`, `cerrar`) |
-| `hilo_serie.py` | El único lugar que habla con la FPGA, en otro hilo |
-| `app/` | Ventana, editor con resaltado, tablas, árbol de latches, log, tema |
-
-### Decisiones
-
-39. **PySide6 (Qt 6).** Tablas, árboles, editor con resaltado, iconos del tema, `QSettings` e hilos con señales, todo en una biblioteca con licencia LGPL que se instala con pip. Tkinter se ve anticuado y no tiene tablas ni resaltado; PyQt6 es igual a PySide6 pero GPL. En Mint hace falta `libxcb-cursor0` para el plugin `xcb`.
-40. **Entorno virtual nuevo en `scripts/gui/.venv`, ignorado en git.** PySide6 pesa cientos de MB. El `.venv` viejo de `scripts/` (versionado, creado en otra carpeta) se dejó como estaba.
-41. **La interfaz nunca toca el puerto serie.** Un `Trabajador` en un `QThread` atiende los pedidos de a uno (las señales entre hilos se encolan), así nunca se mezclan dos respuestas y la ventana no se congela. Interrumpir es la excepción: activa un `threading.Event` que `Enlace.correr()` mira cada 0,1 s mientras espera el volcado del `'R'`, y entonces manda la `'I'`. Al cerrar la ventana durante una corrida se manda `'I'` antes de salir.
-42. **Un "transporte" intercambiable.** `Enlace` no sabe si habla con la placa o con la FPGA simulada. La simulada habla el mismo protocolo byte por byte (imita a `control_fsmd`: carga con CLEAR, `'K'`, bytes ignorados durante RUN) y usa el modelo de referencia; así los tests del protocolo y el modo demo prueban el mismo código que se usa con la placa.
-43. **Modo simulado sin latches** *(reemplazada por la decisión 57)*. Al principio el modo demo mandaba los latches como burbujas, porque el modelo de referencia no los calcula. Desde la vista del pipeline, la FPGA simulada usa `pipeline_sim.py` y manda los 480 bits reales.
-44. **Programa sin fin en modo simulado:** "corre" a 2000 ciclos por segundo (la placa hace 62,5 millones); al llegar la `'I'` se calcula el estado en ese ciclo. Para eso `rv32i_model.ejecutar` recibió dos parámetros opcionales: `mem_inicial` (la RAM conserva lo del programa anterior) y `verificar_estable` (un contador sin fin nunca se estabiliza). Su comportamiento por defecto no cambió.
-45. **Constantes duplicadas, pero verificadas.** `decodificador.py`, `campos_latches.py` y `uart_test.py` repiten el formato del volcado (ningún módulo lee params.vh en tiempo de ejecución, igual que el RTL). `tests/test_constantes.py` lee `src/params.vh` y exige que todo coincida.
-46. **Pseudo-instrucciones en el ensamblador compartido** (`mv`, `li`, `beqz`, `bnez`, `call`, `ret`, además de `nop` y `j`). Se agregaron a `scripts/ensamblador.py` (lo usan el modelo, `uart_test.py` y la GUI) en lugar de duplicarlo; `li` ocupa 1 o 2 palabras según el valor, y el listado muestra la expansión. Las instrucciones RISC-V que no están en la consigna (`mul`, `blt`, `auipc`…) dan un error explícito; para probar una instrucción ilegal está `.word`.
-47. **Ejemplos nuevos en `scripts/gui/programas/`**, no en `scripts/programas/`: el generador de vectores de la integración (`rv32i_model.py --generar`) toma esa carpeta y escribiría en `testbench/vectores/`. Cada uno tiene su resultado esperado calculado a mano (`# ESPERADO:`); `generar_programas.py` lo verifica contra el modelo y escribe los `.hex`.
-48. **Volcados reales en los tests sin tocar `testbench/`.** `scripts/gui/tests/hdl/tb_captura.v` es un testbench propio que corre el top con el cpu real, guarda los bytes del volcado y los valores internos del diseño; `test_captura_rtl.py` exige que el decodificador los interprete igual, campo por campo (los 480 bits de latches incluidos).
-49. **Errores siempre en la ventana.** Los errores esperables (timeout, cabecera mala, cable desconectado) se convierten en excepciones propias con mensajes en castellano y llegan a la interfaz por señales: log, barra de estado y un cuadro que no bloquea. Un gancho global (`sys.excepthook` y `threading.excepthook`) manda cualquier error inesperado al log (`~/.local/state/tp_riscv/depurador.log`) y a un diálogo. Si se desenchufa la placa estando quieta, un temporizador lo detecta mirando la lista de puertos.
-50. **Propuesta de hardware (no implementada):** guardar el PC también en EX/MEM y MEM/WB dentro del volcado (2 palabras más: 544 bits, 334 bytes) permitiría saber con certeza qué instrucción hay en MEM y WB. Sin eso, la vista del pipeline (fase 3) lo reconstruye con el historial de pasos o con el modelo, y muestra "?" cuando no hay certeza.
-
-## 13. Frecuencia de trabajo: clk_wiz a 62,5 MHz
-
-### Por qué hubo que bajar la frecuencia
-
-A 100 MHz (sin `clk_wiz`, `i_clk` directo) la implementación **no cumple
-timing**:
-
-| Medida | Valor a 100 MHz |
-|---|---|
-| WNS | −3,111 ns |
-| TNS | −919,593 ns (375 de 6668 endpoints fallando) |
-| WHS | +0,136 ns (hold OK) |
-| Camino crítico | `u_id_ex/o_rs1_reg[2]` → `u_pc/o_pc_reg[30]` |
-| Niveles de lógica | 21 (8 CARRY4, 2 LUT4, 5 LUT5, 6 LUT6, 1 MUXF7) |
-| Retardo del camino | 13,021 ns (70 % cableado, 30 % lógica) |
-| Skew del camino | −0,117 ns |
-
-El camino crítico es el esperado: forwarding → ALU (comparación) → decisión de
-salto → mux del próximo PC, todo en EX y en un solo ciclo (P&H 4.8: el salto se
-resuelve en EX).
-
-### Decisiones
-
-51. **62,5 MHz con el Clocking Wizard (`clk_wiz_0`, MMCM).** La frecuencia
-    máxima estimada es f_max ≈ 1 / (10 ns − WNS) = 1 / 13,11 ns ≈ **76 MHz**.
-    Primero se eligió 70 MHz, pero esa frecuencia necesita divisores
-    fraccionarios (M = 49,875, D = 5, O = 14,25), con más jitter (253,5 ps) y
-    error de fase (293,8 ps). La versión final usa **62,5 MHz**: divisores
-    enteros (M = 10, D = 1, O = 16, VCO a 1000 MHz), jitter 144,481 ps y error
-    de fase 98,575 ps, y un 18 % de margen sobre la estimación. El divisor de la
-    UART queda en **34**: baud real = 62,5 MHz / (34 · 16) ≈ 114 890, error
-    **−0,27 %** (a 100 MHz era +0,47 %).
-52. **Un solo clock: `i_clk` solo entra al `clk_wiz`.** Todo el diseño (uart,
-    intf, debug_unit, cpu y reset_gen) usa su salida `clk`, así no hay cruces
-    entre dominios de reloj. **`top.xdc` no declara el clock** (el
-    `create_clock` está comentado): el clock de 10 ns del pin lo declara el
-    propio IP en su XDC, junto con su jitter, y Vivado deriva de él
-    `clk_out1_clk_wiz_0`. Al principio el xdc tenía
-    `create_clock -add -name sys_clk_pin ...`, que agregaba un **segundo** clock
-    primario en el mismo pin: Vivado derivaba dos copias de cada salida del MMCM
-    (`clk_out1_clk_wiz_0` y `clk_out1_clk_wiz_0_1`) y `report_methodology` daba
-    TIMING-6 (critical warning: clocks relacionados sin clock primario común) y
-    TIMING-56 (clocks duplicados en `CLKOUT0` y `CLKFBOUT`). Sin `-add`
-    desaparecen esos avisos pero se pisa la definición del IP
-    (Constraints 18-1055); por eso quedó comentado. Solo hay que descomentarlo
-    si se sintetiza con `USE_CLK_WIZ = 0` (sin MMCM).
-53. **`locked` al `reset_gen`.** Mientras el MMCM no engancha (`locked = 0`), el
-    clock de salida no es confiable y todo el sistema queda en reset. El
-    `clk_wiz` no tiene entrada de reset (`USE_RESET = false`): arranca solo al
-    configurar la FPGA y no hay nada que lo tenga que reiniciar.
-54. **`CLK_FREQ` por defecto = 62 500 000 y comentario bien visible en `top.v`.**
-    Tiene que coincidir siempre con `clk_out1`; si no, la UART calcula mal el
-    divisor (con 70 000 000 sobre un clock de 62,5 MHz el error sería ≈ −11 %
-    y la UART no funcionaría). El mismo valor está en `uart.v`,
-    `baud_rate_generator.v` y `params.vh`. Los testbenches que instancian `top`
-    (`tb_top`, `tb_top_cpu`, `tb_captura`) pasan `CLK_FREQ = 100_000_000` en
-    forma explícita porque su clock es de 10 ns, y no dependen del valor por
-    defecto.
-55. **Parámetro `USE_CLK_WIZ` (1 = placa, 0 = simulación).** Icarus Verilog no
-    puede simular el IP de Xilinx. Con `USE_CLK_WIZ = 0` el `generate` hace
-    `clk = i_clk` y `locked = 1`. iverilog no elabora la rama no elegida, así que
-    no hace falta un modelo de `clk_wiz_0` para simular. `run_all_tests.sh`
-    compila el `top` suelto con `-Ptop.USE_CLK_WIZ=0`.
-56. **Lo que cambia con la frecuencia:** un byte por UART sigue tardando ≈ 87 µs
-    (depende del baud, no del clock), pero son ≈ 5425 ciclos en vez de 8680; el
-    contador de ciclos de 32 bits da la vuelta a los ≈ 69 s en vez de 43 s; un
-    `'R'` sin fin avanza ≈ 62,5 millones de ciclos por segundo.
-
-### Resultado final (Vivado, implementación a 62,5 MHz)
+Todo el diseño funciona con **un reloj de 62,5 MHz**, generado desde la entrada
+de 100 MHz por `clk_wiz_0` (MMCM). Se eligió esa frecuencia para cumplir timing
+con margen y divisores enteros. El camino crítico combina forwarding, ALU y
+decisión de salto; en la implementación documentada termina en el flush de ID/EX.
 
 | Parámetro | Valor |
 |---|---|
-| Entrada | 100 MHz (`clk_in1`, pin W5) |
-| M / D / O | 10 / 1 / 16 |
-| f_VCO = f_in · M / D | 1000 MHz |
-| f_out = f_VCO / O | 62,5 MHz (período 16 ns) |
-| Jitter / error de fase (`clk_out1`) | 144,481 ps / 98,575 ps |
-| WNS / TNS | +0,802 ns / 0 ns (0 de 6659 endpoints fallando) |
+| Entrada | 100 MHz, pin W5 |
+| Multiplicador / divisores M, D, O | 10 / 1 / 16 |
+| Frecuencia VCO | 1000 MHz |
+| Salida | 62,5 MHz, período de 16 ns |
+| Jitter / error de fase | 144,481 ps / 98,575 ps |
+| Divisor UART, sobremuestreo ×16 | 34 |
+| Baud real / error | Aproximadamente 114890 / −0,27 % |
+
+`i_clk` entra únicamente al Clocking Wizard. CPU, UART, debug y reset usan su
+salida, evitando cruces entre dominios. Mientras `locked = 0`, `reset_gen`
+mantiene el sistema en reset. El MMCM arranca al configurar la FPGA y no tiene
+entrada de reset habilitada.
+
+El IP declara el clock de entrada en su XDC. El `create_clock` de `top.xdc`
+permanece comentado para no duplicarlo; solo corresponde habilitarlo al
+sintetizar sin el MMCM. `CLK_FREQ` debe coincidir con el reloj real, porque
+se usa para calcular el divisor UART.
+
+Para Icarus Verilog se usa `USE_CLK_WIZ = 0`: el top conecta directamente
+`i_clk` y fija `locked = 1`, sin elaborar el IP de Xilinx. Los testbenches con
+reloj de 10 ns pasan explícitamente `CLK_FREQ = 100_000_000`. Algunos usan
+1 Mbaud para acelerar la simulación; la placa usa 115200.
+
+### Resultados documentados de implementación
+
+Estos valores corresponden a la implementación registrada en el proyecto;
+no se recalculan al editar este documento.
+
+| Medida | Resultado |
+|---|---|
+| WNS / TNS | +0,802 ns / 0 ns |
 | WHS / THS | +0,051 ns / 0 ns |
 | WPWS | +3,000 ns |
-| Camino crítico | `u_ex_mem/o_rd_reg[0]` → `u_id_ex/o_rs1_data_reg[13]` (entrada R: flush de ID/EX) |
-| Niveles de lógica | 17 (4 CARRY4, 1 LUT2, 1 LUT3, 2 LUT5, 8 LUT6, 1 MUXF7) |
-| Retardo del camino | 14,494 ns (74 % cableado, 26 % lógica) |
-| Skew / incertidumbre | −0,099 ns / 0,080 ns |
+| Camino crítico | `u_ex_mem/o_rd_reg[0]` → `u_id_ex/o_rs1_data_reg[13]` |
+| Retardo / niveles de lógica | 14,494 ns / 17 |
+| LUT | 2449 (11,8 %), 208 usadas como RAM distribuida |
+| Flip-flops | 1629 (3,9 %) |
+| Slices / Block RAM | 1148 / 0 |
+| IOB / BUFG / MMCM | 12 / 2 / 1 |
 
-El camino crítico sigue siendo forwarding → ALU → decisión del salto, ahora
-terminando en el flush de ID/EX.
+La memoria de programa usa 176 LUT como memoria y la de datos 32.
+El banco de registros usa 1024 flip-flops y 864 LUT; la debug_unit, 157 LUT y
+118 flip-flops. La validación en placa se registra en
+[CHECKLIST_placa.md](CHECKLIST_placa.md).
 
-Recursos (post-implementación): 2449 LUT (11,8 %), de ellas 208 como RAM
-distribuida; 1629 flip-flops (3,9 %); 1148 slices; **0 Block RAM**; 12 IOB;
-2 BUFG; 1 MMCM. El banco de registros es lo más grande (1024 FF y 864 LUT); la
-debug_unit usa 157 LUT y 118 FF. Las dos memorias salen como RAM distribuida
-(instr_mem: 176 LUT como memoria; data_mem: 32).
+## 13. Convenciones y límites actuales
 
-## 14. Vista del pipeline en la GUI
-
-Una franja con las 5 etapas y los 4 latches, siempre visible (se puede
-plegar), y el listado del programa resaltado con 5 tonalidades. Cómo leerla:
-[`manual_depurador.md`](manual_depurador.md), sección "Vista del pipeline".
-
-| Archivo | Qué hace |
-|---|---|
-| `scripts/gui/pipeline_sim.py` | Simulador ciclo a ciclo del cpu (copia señal por señal de `cpu.v`): los 480 bits de los latches, registros, memoria, PC, halted y fault |
-| `scripts/gui/pipeline_view.py` | Funciones puras (sin Qt): qué instrucción hay en cada etapa, su estado, y los indicadores de forwarding, stall y flush |
-| `scripts/gui/app/vista_pipeline.py` | Dibuja la franja (QPainter): etapas, latches, carteles, flechas, tooltips |
-| `scripts/gui/tests/hdl/tb_traza.v`, `tests/test_pipeline_sim.py`, `tests/test_pipeline_view.py` | Simulador contra el RTL bit por bit; deducción e indicadores contra el modelo |
-
-57. **Simulador de latches (`pipeline_sim.py`) verificado bit por bit contra el RTL.** Sin él, la vista no tenía datos en el modo demo (los latches eran burbujas). Copia la lógica de `cpu.v` y sus módulos señal por señal. `tests/hdl/tb_traza.v` corre el cpu real con Icarus Verilog y los tests exigen que, **en cada ciclo**, los 480 bits, el PC, halted, fault, los 32 registros y las 32 palabras de memoria sean iguales, en los 18 programas de ejemplo y en 7 casos extra (fetch fuera de rango, `jalr` desalineado, `lh` impar, `sw` fuera de rango, memoria precargada, HALT en el camino de un salto y programa vacío). Romper el stall en el simulador hace fallar esos tests.
-58. **Qué instrucción hay en MEM y WB, sin cambiar el hardware.** Los latches guardan el PC solo en IF/ID e ID/EX. Con dos volcados **consecutivos** (ciclos + 1) es exacto: EX/MEM y MEM/WB avanzan en todo flanco habilitado (el stall y el flush solo tocan IF/ID e ID/EX), así que MEM ahora = EX antes y WB ahora = MEM antes. La única excepción (un error de memoria convierte la instrucción de EX en burbuja) se cubre mirando el bit `valid`. Sin volcados consecutivos (después de `'R'`, `'I'` o un `'D'` suelto) se simula desde el reset y se usa **solo** si los 480 bits y el PC simulados son iguales a los del volcado. Además, la instrucción deducida tiene que coincidir con los campos del latch (`rd`, `reg_write`, `mem_read`, `mem_write`, `halt`). La alternativa de agregar el PC a EX/MEM y MEM/WB en el volcado (decisión 50) sigue siendo solo una propuesta.
-59. **Nunca un dato inventado: "?" con motivo.** Si no hay certeza, la etapa se muestra como "?" con el motivo en un tooltip y en el log: programa no cargado desde la GUI, memoria al reset desconocida, simulación distinta del volcado, más de 200 000 ciclos para simular, o volcados incoherentes. IF, ID y EX nunca son "?" (salen directo del volcado); a lo sumo se desconoce el texto de la instrucción.
-60. **Indicadores con la misma lógica que el hardware.** El forwarding copia `forwarding_unit.v` (incluye los `valid`, `rd ≠ 0`, la prioridad de EX/MEM, que un load en EX/MEM no se adelanta y `!illegal` en WB); el stall copia `hazard_unit.v` (el salto tiene prioridad); el flush usa los operandos ya adelantados y cede ante un error de memoria. Los tests comparan contra **cuentas a mano** (explicadas en el test) y contra la traza de tiempos del modelo, que es independiente del simulador.
-61. **Color y algo más.** Cada estado tiene icono y texto además del color (●, ○, ∅ con trama, ✕ tachado, ⏸, ■, ⚠, "?"), para que se lea en tema claro u oscuro y con daltonismo. El listado usa 5 tonos del mismo azul (IF el más intenso) y naranja para lo que se descarta; por eso la fila del PC quedó un poco más oscura que antes, pero sigue con su `► PC`.
-
-## 15. Programas de la defensa
-
-62. **Demos de la defensa aparte** (`scripts/programas/defensa/`, menú *Ejemplos → Defensa*, tests en `scripts/gui/tests/test_demos_defensa.py`). Siete programas chicos, uno por fenómeno, sin tocar los ejemplos anteriores. Cada uno lleva en el encabezado el resultado verificado contra el modelo y el RTL; en `demo_pipeline`, además, la tabla de en qué paso aparece cada fenómeno, que el test exige **exacta**. Guion: [`guion_defensa.md`](guion_defensa.md). Para que el bypass WB → ID se vea en la vista del pipeline (no tiene flecha), la nota de ID lo dice ("x5 llega desde WB: bypass").
-
-
-## 16. Programa que ocupa toda la memoria
-
-63. **El simulador de la GUI también fuerza HALT en la palabra 255.** El
-    programa `scripts/programas/NOPx256.asm` (256 NOPs, sin HALT) mostró una
-    diferencia: el RTL y el modelo terminan con HALT normal en 259 ciclos
-    (255 NOPs + el HALT que la `debug_unit` pone en la palabra 255), pero
-    `PipelineSim` usaba las 256 palabras tal cual, buscaba en 0x400 y terminaba
-    con error en 260 ciclos. La regla ya estaba en `control_fsmd`, en
-    `rv32i_model.ejecutar`, en `tb_traza.v` y en `FpgaSimulada`, pero no en el
-    constructor de `PipelineSim`, que usan los tests y la vista del pipeline (al
-    simular desde el reset). Se agregó ahí, con un test propio
-    (`test_palabra_255_siempre_halt`). Además, el buffer de pasos de
-    `tb_cpu_isa` pasó de 16 384 a 32 768 palabras (hasta 489 ciclos), porque
-    `NOPx256` necesita 259.
+- Puertos con prefijos `i_` y `o_`; cables internos sin esos prefijos. Los
+  wrappers mantienen los nombres de los puertos que conectan.
+- Los módulos delimitan su código con `` `default_nettype none `` y
+  `` `default_nettype wire `` para detectar señales sin declarar.
+- Los errores detienen la CPU sin traps. `o_fault` informa que hubo un error,
+  pero no diferencia su causa concreta.
+- `params.vh` documenta el contrato; centralizar allí las constantes del RTL
+  sigue pendiente.
+- Un programa puede correr indefinidamente en un bucle aunque exista HALT al
+  final de la memoria. El comando `'I'` permite pausarlo.
