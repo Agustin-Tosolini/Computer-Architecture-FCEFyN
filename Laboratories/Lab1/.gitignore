@@ -38,3 +38,4 @@
 
 # Mantener los fuentes y PDFs
 !*.tex
+!/output/*.pdf

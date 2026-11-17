@@ -456,7 +456,7 @@ de construir un mecanismo que la recorra escribiendo ceros.
 
 Los ejemplos de GUI están en `scripts/gui/programas/`. Las demos de defensa
 están en `scripts/programas/defensa/`, con pruebas en `test_demos_defensa.py`
-y un [guion de defensa](guion_defensa.md). Separar estas carpetas evita que el
+y un [guion de defensa](estudio_defensa.md#4-guion-de-presentación-3-a-5-minutos). Separar estas carpetas evita que el
 generador de vectores de integración procese programas que no le corresponden.
 
 El caso `scripts/programas/NOPx256.asm` comprueba el límite de memoria:

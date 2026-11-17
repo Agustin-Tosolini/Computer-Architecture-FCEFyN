@@ -1,5 +1,20 @@
-# Generado por Python (scripts/*.py)
-__pycache__/
+# Salida de la compilación del informe: solo se versiona el PDF
+/docs/informe/output/*
+!/docs/informe/output/*.pdf
 
-# Entorno virtual del depurador grafico (parte C)
-scripts/gui/.venv/
+# Archivos auxiliares generados por LaTeX (por si se compila fuera de output/)
+*.aux
+*.bbl
+*.bcf
+*.blg
+*.fdb_latexmk
+*.fls
+*.out
+*.run.xml
+*.synctex.gz
+*.toc
+*.lof
+*.lot
+
+# Python (__pycache__, .venv y .pytest_cache) e Icarus (*.vvp, *.vcd) se
+# ignoran desde el .gitignore de la raíz.
