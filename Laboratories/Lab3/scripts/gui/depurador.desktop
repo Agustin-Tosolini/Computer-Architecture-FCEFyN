@@ -1,0 +1,11 @@
+[Desktop Entry]
+# Plantilla: instalar_lanzador.sh reemplaza @CARPETA@ por la ruta real y la
+# copia a ~/.local/share/applications/ (menu de Mint, sin terminal).
+Type=Application
+Name=Depurador TP RISC-V
+Comment=Depurador grafico del procesador RISC-V (Basys 3, UART)
+Exec=bash "@CARPETA@/lanzar_depurador.sh"
+Icon=@CARPETA@/app/iconos/depurador.svg
+Terminal=false
+Categories=Development;Electronics;
+StartupWMClass=depurador.py

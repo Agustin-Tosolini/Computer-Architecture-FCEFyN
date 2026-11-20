@@ -50,3 +50,18 @@ vivado_pid*.str
 .DS_Store
 Thumbs.db
 .vscode/
+# ==========================
+# Python
+# ==========================
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+
+# ==========================
+# Icarus Verilog: simulaciones compiladas y ondas
+# ==========================
+*.vvp
+*.vcd
+*.fst
