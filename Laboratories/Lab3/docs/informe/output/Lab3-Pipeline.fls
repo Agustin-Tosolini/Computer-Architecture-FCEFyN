@@ -3,7 +3,7 @@ INPUT /etc/texmf/web2c/texmf.cnf
 INPUT /usr/share/texmf/web2c/texmf.cnf
 INPUT /usr/share/texlive/texmf-dist/web2c/texmf.cnf
 INPUT /var/lib/texmf/web2c/pdftex/pdflatex.fmt
-INPUT Lab3-Pipeline.tex
+INPUT /home/gus/Materias/Arqui/proyectos-vivado/Computer_Architecture_FCEFyN/Laboratories/Lab3/docs/informe/Lab3-Pipeline.tex
 OUTPUT output/Lab3-Pipeline.log
 INPUT /usr/share/texlive/texmf-dist/tex/latex/base/article.cls
 INPUT /usr/share/texlive/texmf-dist/tex/latex/base/article.cls
@@ -470,10 +470,10 @@ INPUT ./img/B_completo.png
 INPUT ./img/B_completo.png
 INPUT ./img/B_completo.png
 INPUT ./img/B_completo.png
-INPUT ./img/debug_unit_fsm.png
-INPUT ./img/debug_unit_fsm.png
-INPUT ./img/debug_unit_fsm.png
-INPUT ./img/debug_unit_fsm.png
+INPUT ./img/debug_unit_fsm_v2.png
+INPUT ./img/debug_unit_fsm_v2.png
+INPUT ./img/debug_unit_fsm_v2.png
+INPUT ./img/debug_unit_fsm_v2.png
 INPUT /usr/share/texlive/texmf-dist/fonts/vf/adobe/palatino/pplr7t.vf
 INPUT ./img/depurador_corrida.png
 INPUT ./img/depurador_corrida.png

@@ -1,0 +1,175 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="2940" height="2640" viewBox="0 0 2940 2640" font-family="Liberation Sans, Arial, Helvetica, sans-serif">
+<rect width="2940" height="2640" fill="#FFFFFF"/>
+<rect x="1180.0" y="120.0" width="480" height="180" rx="40" fill="#FBF1DC" stroke="#A9792A" stroke-width="3"/>
+<rect x="1189.0" y="129.0" width="462" height="162" rx="31" fill="none" stroke="#A9792A" stroke-width="1.5"/>
+<rect x="1368.0" y="138.0" width="104" height="28" rx="14" fill="#A9792A"/>
+<text x="1420" y="159.0" font-size="19" font-weight="bold" letter-spacing="2" text-anchor="middle" fill="#FFFFFF">MEALY</text>
+<text x="1420" y="212.0" font-size="40" font-weight="bold" text-anchor="middle" fill="#6E4C10">IDLE</text>
+<text x="1420" y="256.0" font-size="24" font-style="italic" text-anchor="middle" fill="#6B6862">(sin salidas Moore)</text>
+<rect x="480.0" y="550.0" width="440" height="180" rx="40" fill="#FBF1DC" stroke="#A9792A" stroke-width="3"/>
+<rect x="489.0" y="559.0" width="422" height="162" rx="31" fill="none" stroke="#A9792A" stroke-width="1.5"/>
+<rect x="648.0" y="568.0" width="104" height="28" rx="14" fill="#A9792A"/>
+<text x="700" y="589.0" font-size="19" font-weight="bold" letter-spacing="2" text-anchor="middle" fill="#FFFFFF">MEALY</text>
+<text x="700" y="642.0" font-size="40" font-weight="bold" text-anchor="middle" fill="#6E4C10">LOAD_LEN</text>
+<text x="700" y="686.0" font-size="24" font-style="italic" text-anchor="middle" fill="#6B6862">(sin salidas Moore)</text>
+<rect x="480.0" y="990.0" width="440" height="180" rx="40" fill="#FBF1DC" stroke="#A9792A" stroke-width="3"/>
+<rect x="489.0" y="999.0" width="422" height="162" rx="31" fill="none" stroke="#A9792A" stroke-width="1.5"/>
+<rect x="648.0" y="1008.0" width="104" height="28" rx="14" fill="#A9792A"/>
+<text x="700" y="1029.0" font-size="19" font-weight="bold" letter-spacing="2" text-anchor="middle" fill="#FFFFFF">MEALY</text>
+<text x="700" y="1082.0" font-size="40" font-weight="bold" text-anchor="middle" fill="#6E4C10">LOAD_WORD</text>
+<text x="700" y="1126.0" font-size="24" font-style="italic" text-anchor="middle" fill="#6B6862">(sin salidas Moore)</text>
+<rect x="440.0" y="1393.0" width="520" height="214" rx="6" fill="#E8EFF9" stroke="#3D5F8F" stroke-width="4"/>
+<rect x="648.0" y="1411.0" width="104" height="28" rx="14" fill="#3D5F8F"/>
+<text x="700" y="1432.0" font-size="19" font-weight="bold" letter-spacing="2" text-anchor="middle" fill="#FFFFFF">MOORE</text>
+<text x="700" y="1485.0" font-size="40" font-weight="bold" text-anchor="middle" fill="#23426E">WRITE</text>
+<text x="700" y="1527.0" font-size="26" font-weight="bold" text-anchor="middle" fill="#1F5FAF">→ imem_we = (idx &lt; 256)</text>
+<text x="700" y="1560.0" font-size="26" font-weight="bold" text-anchor="middle" fill="#1F5FAF">→ imem_data = word</text>
+<text x="700" y="1593.0" font-size="26" font-weight="bold" text-anchor="middle" fill="#1F5FAF">(HALT si idx = 255)</text>
+<rect x="450.0" y="1830.0" width="500" height="180" rx="6" fill="#E8EFF9" stroke="#3D5F8F" stroke-width="4"/>
+<rect x="648.0" y="1848.0" width="104" height="28" rx="14" fill="#3D5F8F"/>
+<text x="700" y="1869.0" font-size="19" font-weight="bold" letter-spacing="2" text-anchor="middle" fill="#FFFFFF">MOORE</text>
+<text x="700" y="1922.0" font-size="40" font-weight="bold" text-anchor="middle" fill="#23426E">CLEAR</text>
+<text x="700" y="1964.0" font-size="26" font-weight="bold" text-anchor="middle" fill="#1F5FAF">→ imem_we = 1, imem_data = HALT</text>
+<rect x="1200.0" y="1410.0" width="440" height="180" rx="6" fill="#E8EFF9" stroke="#3D5F8F" stroke-width="4"/>
+<rect x="1368.0" y="1428.0" width="104" height="28" rx="14" fill="#3D5F8F"/>
+<text x="1420" y="1449.0" font-size="19" font-weight="bold" letter-spacing="2" text-anchor="middle" fill="#FFFFFF">MOORE</text>
+<text x="1420" y="1502.0" font-size="40" font-weight="bold" text-anchor="middle" fill="#23426E">RESET</text>
+<text x="1420" y="1544.0" font-size="26" font-weight="bold" text-anchor="middle" fill="#1F5FAF">→ cpu_reset = 1</text>
+<rect x="1200.0" y="1830.0" width="440" height="180" rx="40" fill="#FBF1DC" stroke="#A9792A" stroke-width="3"/>
+<rect x="1209.0" y="1839.0" width="422" height="162" rx="31" fill="none" stroke="#A9792A" stroke-width="1.5"/>
+<rect x="1368.0" y="1848.0" width="104" height="28" rx="14" fill="#A9792A"/>
+<text x="1420" y="1869.0" font-size="19" font-weight="bold" letter-spacing="2" text-anchor="middle" fill="#FFFFFF">MEALY</text>
+<text x="1420" y="1922.0" font-size="40" font-weight="bold" text-anchor="middle" fill="#6E4C10">ACK</text>
+<text x="1420" y="1964.0" font-size="26" font-weight="bold" text-anchor="middle" fill="#1F5FAF">→ w_data = 'K'</text>
+<rect x="1760.0" y="550.0" width="480" height="180" rx="40" fill="#FBF1DC" stroke="#A9792A" stroke-width="3"/>
+<rect x="1769.0" y="559.0" width="462" height="162" rx="31" fill="none" stroke="#A9792A" stroke-width="1.5"/>
+<rect x="1948.0" y="568.0" width="104" height="28" rx="14" fill="#A9792A"/>
+<text x="2000" y="589.0" font-size="19" font-weight="bold" letter-spacing="2" text-anchor="middle" fill="#FFFFFF">MEALY</text>
+<text x="2000" y="642.0" font-size="40" font-weight="bold" text-anchor="middle" fill="#6E4C10">RUN</text>
+<text x="2000" y="686.0" font-size="24" font-style="italic" text-anchor="middle" fill="#6B6862">(sin salidas Moore)</text>
+<rect x="2350.0" y="550.0" width="420" height="180" rx="6" fill="#E8EFF9" stroke="#3D5F8F" stroke-width="4"/>
+<rect x="2508.0" y="568.0" width="104" height="28" rx="14" fill="#3D5F8F"/>
+<text x="2560" y="589.0" font-size="19" font-weight="bold" letter-spacing="2" text-anchor="middle" fill="#FFFFFF">MOORE</text>
+<text x="2560" y="642.0" font-size="40" font-weight="bold" text-anchor="middle" fill="#23426E">STEP</text>
+<text x="2560" y="684.0" font-size="26" font-weight="bold" text-anchor="middle" fill="#1F5FAF">→ cpu_enable = 1</text>
+<rect x="1940.0" y="990.0" width="480" height="180" rx="40" fill="#FBF1DC" stroke="#A9792A" stroke-width="3"/>
+<rect x="1949.0" y="999.0" width="462" height="162" rx="31" fill="none" stroke="#A9792A" stroke-width="1.5"/>
+<rect x="2128.0" y="1008.0" width="104" height="28" rx="14" fill="#A9792A"/>
+<text x="2180" y="1029.0" font-size="19" font-weight="bold" letter-spacing="2" text-anchor="middle" fill="#FFFFFF">MEALY</text>
+<text x="2180" y="1082.0" font-size="40" font-weight="bold" text-anchor="middle" fill="#6E4C10">DUMP</text>
+<text x="2180" y="1124.0" font-size="26" font-weight="bold" text-anchor="middle" fill="#1F5FAF">→ w_data = dump_mux[dump_idx]</text>
+<circle cx="1420" cy="44" r="18" fill="#111"/>
+<polyline points="1420.0,64.0 1420.0,102.0" fill="none" stroke="#8A8985" stroke-width="4" stroke-linejoin="round"/>
+<polygon points="1408.0,96.0 1420.0,118.0 1432.0,96.0" fill="#8A8985"/>
+<text x="1448" y="52" font-size="24" fill="#2E2D2A">reset global</text>
+<path d="M 1250 120 C 1220 10, 1390 10, 1360 120" fill="none" stroke="#8A8985" stroke-width="4"/>
+<polygon points="1354.2,95.6 1360.0,120.0 1377.4,101.9" fill="#8A8985"/>
+<text x="1200" y="70" font-size="28" text-anchor="end"><tspan fill="#2E2D2A">otro byte (incluida 'I')</tspan><tspan fill="#B5530C" font-weight="bold">  → rd</tspan></text>
+<polyline points="1180.0,240.0 700.0,240.0 700.0,532.0" fill="none" stroke="#8A8985" stroke-width="4" stroke-linejoin="round"/>
+<polygon points="688.0,526.0 700.0,548.0 712.0,526.0" fill="#8A8985"/>
+<text x="716" y="390" font-size="28" text-anchor="start"><tspan fill="#2E2D2A">'L'</tspan><tspan fill="#B5530C" font-weight="bold">  → rd</tspan></text>
+<text x="716" y="424" font-size="28" text-anchor="start"><tspan fill="#6B6862" font-family="DejaVu Sans Mono, Liberation Mono, monospace" font-size="23">[byte_cnt ← 0]</tspan></text>
+<polyline points="1420.0,300.0 1420.0,1392.0" fill="none" stroke="#8A8985" stroke-width="4" stroke-linejoin="round"/>
+<polygon points="1408.0,1386.0 1420.0,1408.0 1432.0,1386.0" fill="#8A8985"/>
+<text x="1404" y="1250" font-size="28" text-anchor="end"><tspan fill="#2E2D2A">'X'</tspan><tspan fill="#B5530C" font-weight="bold">  → rd</tspan></text>
+<polyline points="1660.0,240.0 2000.0,240.0 2000.0,532.0" fill="none" stroke="#8A8985" stroke-width="4" stroke-linejoin="round"/>
+<polygon points="1988.0,526.0 2000.0,548.0 2012.0,526.0" fill="#8A8985"/>
+<text x="1984" y="380" font-size="28" text-anchor="end"><tspan fill="#2E2D2A">'R'</tspan><tspan fill="#B5530C" font-weight="bold">  → rd</tspan></text>
+<text x="1984" y="414" font-size="28" text-anchor="end"><tspan fill="#6B6862" font-family="DejaVu Sans Mono, Liberation Mono, monospace" font-size="23">[interrupted ← 0]</tspan></text>
+<polyline points="1660.0,180.0 2560.0,180.0 2560.0,532.0" fill="none" stroke="#8A8985" stroke-width="4" stroke-linejoin="round"/>
+<polygon points="2548.0,526.0 2560.0,548.0 2572.0,526.0" fill="#8A8985"/>
+<text x="2576" y="380" font-size="28" text-anchor="start"><tspan fill="#2E2D2A">'S'</tspan><tspan fill="#B5530C" font-weight="bold">  → rd</tspan></text>
+<text x="2576" y="414" font-size="28" text-anchor="start"><tspan fill="#6B6862" font-family="DejaVu Sans Mono, Liberation Mono, monospace" font-size="23">[interrupted ← 0]</tspan></text>
+<polyline points="1580.0,300.0 1580.0,1100.0 1922.0,1100.0" fill="none" stroke="#8A8985" stroke-width="4" stroke-linejoin="round"/>
+<polygon points="1916.0,1112.0 1938.0,1100.0 1916.0,1088.0" fill="#8A8985"/>
+<text x="1596" y="960" font-size="28" text-anchor="start"><tspan fill="#2E2D2A">'D'</tspan><tspan fill="#B5530C" font-weight="bold">  → rd</tspan></text>
+<text x="1596" y="994" font-size="28" text-anchor="start"><tspan fill="#6B6862" font-family="DejaVu Sans Mono, Liberation Mono, monospace" font-size="23">[dump_idx ← 0]</tspan></text>
+<path d="M 920.0 600 C 1090.0 550, 1090.0 730, 922.0 680" fill="none" stroke="#8A8985" stroke-width="4"/>
+<polygon points="946.5,674.8 922.0,680.0 939.7,697.8" fill="#8A8985"/>
+<text x="1070.0" y="634" font-size="28" text-anchor="start"><tspan fill="#2E2D2A">1.er byte</tspan><tspan fill="#B5530C" font-weight="bold">  → rd</tspan></text>
+<text x="1070.0" y="668" font-size="28" text-anchor="start"><tspan fill="#6B6862" font-family="DejaVu Sans Mono, Liberation Mono, monospace" font-size="23">[N[7:0] ← byte]</tspan></text>
+<polyline points="700.0,730.0 700.0,972.0" fill="none" stroke="#8A8985" stroke-width="4" stroke-linejoin="round"/>
+<polygon points="688.0,966.0 700.0,988.0 712.0,966.0" fill="#8A8985"/>
+<text x="716" y="820" font-size="28" text-anchor="start"><tspan fill="#2E2D2A">2.º byte y N ≠ 0</tspan><tspan fill="#B5530C" font-weight="bold">  → rd</tspan></text>
+<text x="716" y="854" font-size="28" text-anchor="start"><tspan fill="#6B6862" font-family="DejaVu Sans Mono, Liberation Mono, monospace" font-size="23">[N[15:8] ← byte, idx ← 0]</tspan></text>
+<polyline points="480.0,660.0 80.0,660.0 80.0,1940.0 432.0,1940.0" fill="none" stroke="#8A8985" stroke-width="4" stroke-linejoin="round"/>
+<polygon points="426.0,1952.0 448.0,1940.0 426.0,1928.0" fill="#8A8985"/>
+<text x="96" y="740" font-size="28" text-anchor="start"><tspan fill="#2E2D2A">2.º byte y</tspan></text>
+<text x="96" y="774" font-size="28" text-anchor="start"><tspan fill="#2E2D2A">N = 0</tspan><tspan fill="#B5530C" font-weight="bold">  → rd</tspan></text>
+<text x="96" y="808" font-size="28" text-anchor="start"><tspan fill="#6B6862" font-family="DejaVu Sans Mono, Liberation Mono, monospace" font-size="23">[idx ← 0]</tspan></text>
+<path d="M 920.0 1040 C 1090.0 990, 1090.0 1170, 922.0 1120" fill="none" stroke="#8A8985" stroke-width="4"/>
+<polygon points="946.5,1114.8 922.0,1120.0 939.7,1137.8" fill="#8A8985"/>
+<text x="1060.0" y="1074" font-size="28" text-anchor="start"><tspan fill="#2E2D2A">byte 1, 2 o 3</tspan><tspan fill="#B5530C" font-weight="bold">  → rd</tspan></text>
+<text x="1060.0" y="1108" font-size="28" text-anchor="start"><tspan fill="#6B6862" font-family="DejaVu Sans Mono, Liberation Mono, monospace" font-size="21">[word ← {byte, word[31:8]}]</tspan></text>
+<polyline points="700.0,1170.0 700.0,1375.0" fill="none" stroke="#8A8985" stroke-width="4" stroke-linejoin="round"/>
+<polygon points="688.0,1369.0 700.0,1391.0 712.0,1369.0" fill="#8A8985"/>
+<text x="716" y="1250" font-size="28" text-anchor="start"><tspan fill="#2E2D2A">4.º byte</tspan><tspan fill="#B5530C" font-weight="bold">  → rd</tspan></text>
+<text x="716" y="1284" font-size="28" text-anchor="start"><tspan fill="#6B6862" font-family="DejaVu Sans Mono, Liberation Mono, monospace" font-size="23">[word ← {byte, word[31:8]}]</tspan></text>
+<polyline points="440.0,1500.0 300.0,1500.0 300.0,1100.0 462.0,1100.0" fill="none" stroke="#8A8985" stroke-width="4" stroke-linejoin="round"/>
+<polygon points="456.0,1112.0 478.0,1100.0 456.0,1088.0" fill="#8A8985"/>
+<text x="284" y="1270" font-size="28" text-anchor="end"><tspan fill="#2E2D2A">faltan</tspan></text>
+<text x="284" y="1304" font-size="28" text-anchor="end"><tspan fill="#2E2D2A">palabras</tspan></text>
+<text x="284" y="1338" font-size="28" text-anchor="end"><tspan fill="#6B6862" font-family="DejaVu Sans Mono, Liberation Mono, monospace" font-size="23">[idx++]</tspan></text>
+<polyline points="700.0,1607.0 700.0,1812.0" fill="none" stroke="#8A8985" stroke-width="4" stroke-linejoin="round"/>
+<polygon points="688.0,1806.0 700.0,1828.0 712.0,1806.0" fill="#8A8985"/>
+<text x="716" y="1700" font-size="28" text-anchor="start"><tspan fill="#2E2D2A">última y N &lt; 256</tspan></text>
+<text x="716" y="1734" font-size="28" text-anchor="start"><tspan fill="#6B6862" font-family="DejaVu Sans Mono, Liberation Mono, monospace" font-size="23">[idx++]</tspan></text>
+<polyline points="960.0,1470.0 1182.0,1470.0" fill="none" stroke="#8A8985" stroke-width="4" stroke-linejoin="round"/>
+<polygon points="1176.0,1482.0 1198.0,1470.0 1176.0,1458.0" fill="#8A8985"/>
+<text x="1080.0" y="1454" font-size="28" text-anchor="middle"><tspan fill="#2E2D2A">última y N ≥ 256</tspan></text>
+<path d="M 660 2010.0 C 590 2160.0, 810 2160.0, 740 2012.0" fill="none" stroke="#8A8985" stroke-width="4"/>
+<polygon points="760.3,2026.8 740.0,2012.0 738.6,2037.0" fill="#8A8985"/>
+<text x="700" y="2180.0" font-size="28" text-anchor="middle"><tspan fill="#2E2D2A">idx &lt; 255  </tspan><tspan fill="#6B6862" font-family="DejaVu Sans Mono, Liberation Mono, monospace" font-size="23">[idx++]</tspan></text>
+<polyline points="950.0,1900.0 1090.0,1900.0 1090.0,1550.0 1182.0,1550.0" fill="none" stroke="#8A8985" stroke-width="4" stroke-linejoin="round"/>
+<polygon points="1176.0,1562.0 1198.0,1550.0 1176.0,1538.0" fill="#8A8985"/>
+<text x="1074" y="1760" font-size="28" text-anchor="end"><tspan fill="#2E2D2A">idx = 255</tspan></text>
+<polyline points="1420.0,1590.0 1420.0,1812.0" fill="none" stroke="#8A8985" stroke-width="4" stroke-linejoin="round"/>
+<polygon points="1408.0,1806.0 1420.0,1828.0 1432.0,1806.0" fill="#8A8985"/>
+<text x="1436" y="1700" font-size="28" text-anchor="start"><tspan fill="#2E2D2A">siempre (1 ciclo)</tspan></text>
+<text x="1436" y="1734" font-size="28" text-anchor="start"><tspan fill="#6B6862" font-family="DejaVu Sans Mono, Liberation Mono, monospace" font-size="23">[cycles ← 0, interrupted ← 0]</tspan></text>
+<polyline points="1640.0,1920.0 2870.0,1920.0 2870.0,1120.0" fill="none" stroke="#8A8985" stroke-width="4" stroke-linejoin="round"/>
+<text x="1670.0" y="1904" font-size="28" text-anchor="start"><tspan fill="#2E2D2A">!tx_full</tspan><tspan fill="#B5530C" font-weight="bold">  → wr</tspan></text>
+<path d="M 2140 550.0 C 2140 440.0, 2350.0 620, 2242.0 620" fill="none" stroke="#8A8985" stroke-width="4"/>
+<polygon points="2264.0,608.0 2242.0,620.0 2264.0,632.0" fill="#8A8985"/>
+<text x="2070" y="390.0" font-size="28" text-anchor="start"><tspan fill="#2E2D2A">!halted y no llega 'I'</tspan></text>
+<text x="2070" y="424.0" font-size="28" text-anchor="start"><tspan fill="#B5530C" font-weight="bold">  → cpu_enable</tspan></text>
+<text x="2070" y="458.0" font-size="28" text-anchor="start"><tspan fill="#B5530C" font-weight="bold">  → rd si llegó otro byte</tspan></text>
+<polyline points="1960.0,730.0 1960.0,972.0" fill="none" stroke="#8A8985" stroke-width="4" stroke-linejoin="round"/>
+<polygon points="1948.0,966.0 1960.0,988.0 1972.0,966.0" fill="#8A8985"/>
+<text x="1944" y="790" font-size="28" text-anchor="end"><tspan fill="#2E2D2A">!halted y 'I'</tspan></text>
+<text x="1944" y="824" font-size="28" text-anchor="end"><tspan fill="#B5530C" font-weight="bold">  → cpu_enable, rd</tspan></text>
+<text x="1944" y="858" font-size="28" text-anchor="end"><tspan fill="#6B6862" font-family="DejaVu Sans Mono, Liberation Mono, monospace" font-size="23">[interrupted ← 1]</tspan></text>
+<text x="1944" y="892" font-size="28" text-anchor="end"><tspan fill="#6B6862" font-family="DejaVu Sans Mono, Liberation Mono, monospace" font-size="23">[dump_idx ← 0]</tspan></text>
+<polyline points="2120.0,730.0 2120.0,972.0" fill="none" stroke="#8A8985" stroke-width="4" stroke-linejoin="round"/>
+<polygon points="2108.0,966.0 2120.0,988.0 2132.0,966.0" fill="#8A8985"/>
+<text x="2136" y="830" font-size="28" text-anchor="start"><tspan fill="#2E2D2A">halted</tspan></text>
+<text x="2136" y="864" font-size="28" text-anchor="start"><tspan fill="#6B6862" font-family="DejaVu Sans Mono, Liberation Mono, monospace" font-size="23">[dump_idx ← 0]</tspan></text>
+<polyline points="2560.0,730.0 2560.0,1060.0 2438.0,1060.0" fill="none" stroke="#8A8985" stroke-width="4" stroke-linejoin="round"/>
+<polygon points="2444.0,1048.0 2422.0,1060.0 2444.0,1072.0" fill="#8A8985"/>
+<text x="2576" y="830" font-size="28" text-anchor="start"><tspan fill="#2E2D2A">siempre (1 ciclo)</tspan></text>
+<text x="2576" y="864" font-size="28" text-anchor="start"><tspan fill="#6B6862" font-family="DejaVu Sans Mono, Liberation Mono, monospace" font-size="23">[dump_idx ← 0]</tspan></text>
+<path d="M 2140 1170.0 C 2070 1320.0, 2290 1320.0, 2220 1172.0" fill="none" stroke="#8A8985" stroke-width="4"/>
+<polygon points="2240.3,1186.8 2220.0,1172.0 2218.6,1197.0" fill="#8A8985"/>
+<text x="2180" y="1340.0" font-size="28" text-anchor="middle"><tspan fill="#2E2D2A">!tx_full y quedan bytes</tspan><tspan fill="#B5530C" font-weight="bold">  → wr</tspan></text>
+<text x="2180" y="1374.0" font-size="28" text-anchor="middle"><tspan fill="#6B6862" font-family="DejaVu Sans Mono, Liberation Mono, monospace" font-size="23">[dump_idx++]</tspan></text>
+<polyline points="2420.0,1120.0 2870.0,1120.0 2870.0,24.0 1610.0,24.0 1610.0,102.0" fill="none" stroke="#8A8985" stroke-width="4" stroke-linejoin="round"/>
+<polygon points="1598.0,96.0 1610.0,118.0 1622.0,96.0" fill="#8A8985"/>
+<text x="2854" y="1170" font-size="28" text-anchor="end"><tspan fill="#2E2D2A">!tx_full y último byte</tspan><tspan fill="#B5530C" font-weight="bold">  → wr</tspan></text>
+<text x="2854" y="1204" font-size="28" text-anchor="end"><tspan fill="#6B6862" font-family="DejaVu Sans Mono, Liberation Mono, monospace" font-size="23">[dump_idx ← 0]</tspan></text>
+<line x1="60" y1="2230" x2="2880" y2="2230" stroke="#DDDAD3" stroke-width="2"/>
+<text x="60" y="2280" font-size="32" font-weight="bold" fill="#2E2D2A">Cómo leer el diagrama</text>
+<rect x="60" y="2310" width="150" height="64" rx="4" fill="#E8EFF9" stroke="#3D5F8F" stroke-width="4"/>
+<text x="135" y="2352" font-size="22" font-weight="bold" letter-spacing="2" text-anchor="middle" fill="#23426E">MOORE</text>
+<text x="235" y="2338" font-size="28" text-anchor="start"><tspan fill="#2E2D2A">Todas sus salidas dependen solo del estado.</tspan></text>
+<text x="235" y="2372" font-size="28" text-anchor="start"><tspan fill="#2E2D2A">Se escriben ADENTRO:  </tspan><tspan fill="#1F5FAF" font-weight="bold">→ cpu_reset = 1</tspan></text>
+<rect x="1480" y="2310" width="150" height="64" rx="22" fill="#FBF1DC" stroke="#A9792A" stroke-width="3"/>
+<rect x="1487" y="2317" width="136" height="50" rx="16" fill="none" stroke="#A9792A" stroke-width="1.5"/>
+<text x="1555" y="2352" font-size="22" font-weight="bold" letter-spacing="2" text-anchor="middle" fill="#6E4C10">MEALY</text>
+<text x="1655" y="2338" font-size="28" text-anchor="start"><tspan fill="#2E2D2A">Alguna salida depende también de las entradas.</tspan></text>
+<text x="1655" y="2372" font-size="28" text-anchor="start"><tspan fill="#2E2D2A">Se escribe SOBRE LA FLECHA:  </tspan><tspan fill="#2E2D2A">condición</tspan><tspan fill="#B5530C" font-weight="bold">  → rd</tspan></text>
+<text x="60" y="2450" font-size="28" text-anchor="start"><tspan fill="#2E2D2A">Flecha:  </tspan><tspan fill="#2E2D2A">condición que provoca el cambio</tspan><tspan fill="#B5530C" font-weight="bold">  → salidas Mealy (valen 1 solo en ese ciclo)</tspan><tspan fill="#2E2D2A">    </tspan><tspan fill="#6B6862" font-family="DejaVu Sans Mono, Liberation Mono, monospace" font-size="23">[registros que se cargan en el flanco]</tspan></text>
+<text x="60" y="2484" font-size="28" text-anchor="start"><tspan fill="#2E2D2A">• 'L', 'X', 'S'… = llegó un byte (!rx_empty) y vale ese carácter.   rd = leer el byte de rx_intf.   wr = escribir w_data en tx_intf.</tspan></text>
+<text x="60" y="2518" font-size="28" text-anchor="start"><tspan fill="#2E2D2A">• Si no se cumple ninguna condición, la FSM se queda: las salidas Mealy valen 0 (no lee ni escribe) y las Moore se mantienen. Las salidas no escritas valen 0.</tspan></text>
+<text x="60" y="2552" font-size="28" text-anchor="start"><tspan fill="#2E2D2A">• Siempre: imem_addr = idx[7:0];  cycles++ en cada ciclo con cpu_enable y !halted.   En RUN, si 'I' y halted llegan juntos, gana halted.</tspan></text>
+<text x="60" y="2586" font-size="28" text-anchor="start"><tspan fill="#2E2D2A">• Carga: la palabra 255 siempre es HALT; con N &gt; 256 las palabras 256+ se leen pero no se escriben (imem_we = 0). CLEAR pone HALT en N..255.</tspan></text>
+</svg>
