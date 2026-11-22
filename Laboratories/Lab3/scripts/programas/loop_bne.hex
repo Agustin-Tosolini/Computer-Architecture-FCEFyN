@@ -1,0 +1,22 @@
+# loop_bne.hex - generado por ensamblador.py desde loop_bne.asm (no editar a mano)
+# Loop con bne: suma 10 + 9 + ... + 1 = 55, la guarda con sw y la relee.
+# Despues: load-use hacia un addi y hacia un beq (1 stall cada uno).
+# Ciclos: 37 instrucciones + 2 stalls + 2 x 10 saltos tomados + 4 = 63.
+#
+# Resultado esperado con el cpu real (rv32i_model.py):
+#   estado = 0x01 (HALT), ciclos = 63, PC = 0x00000030
+#   registros distintos de 0: x2 = 0x00000037, x3 = 0x00000037, x4 = 0x00000038,
+#       x5 = 0x00000037
+#   memoria que escribe el programa: mem[0] = 0x00000037 (el resto conserva lo que habia: la memoria no se borra)
+00A00093    # 0x000: addi x1, x0, 10
+00000113    # 0x004: addi x2, x0, 0
+00110133    # 0x008: loop:   add  x2, x2, x1
+FFF08093    # 0x00C: addi x1, x1, -1
+FE009CE3    # 0x010: bne  x1, x0, loop
+00202023    # 0x014: sw   x2, 0(x0)
+00002183    # 0x018: lw   x3, 0(x0)
+00118213    # 0x01C: addi x4, x3, 1
+00002283    # 0x020: lw   x5, 0(x0)
+00228463    # 0x024: beq  x5, x2, ok
+00100313    # 0x028: addi x6, x0, 1
+00000000    # 0x02C: ok:     halt

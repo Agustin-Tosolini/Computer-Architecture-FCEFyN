@@ -1,0 +1,12 @@
+# demo_loop_infinito.hex - generado desde demo_loop_infinito.asm (no editar a mano)
+# Loop sin fin: cuenta para siempre (no hay HALT que se alcance).
+# 'R' (Correr) no termina nunca: hay que cortarlo con Interrumpir ('I', Esc);
+# el volcado trae estado 0x02. t0 muestra cuantas vueltas dio.
+#
+# Resultado esperado (rv32i_model.py):
+#   no termina (loop sin fin): cortar con 'I' -> estado = 0x02
+#   registros distintos de 0: x5 = 0x00000009
+#   memoria que escribe el programa: ninguna (el resto conserva lo que habia: la memoria no se borra)
+00000293    # 0x000: li   t0, 0   -> addi t0, x0, 0
+00128293    # 0x004: bucle:  addi t0, t0, 1
+FFDFF06F    # 0x008: j    bucle   -> jal x0, bucle

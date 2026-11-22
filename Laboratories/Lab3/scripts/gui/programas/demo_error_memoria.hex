@@ -1,0 +1,12 @@
+# demo_error_memoria.hex - generado desde demo_error_memoria.asm (no editar a mano)
+# Error: acceso fuera de la memoria de datos (128 bytes: direcciones 0..127).
+#
+# Resultado esperado (rv32i_model.py):
+#   estado = 0x05 (detenido por ERROR), ciclos = 6, PC = 0x00000014
+#   registros distintos de 0: x5 = 0x00000040
+#   memoria que escribe el programa: mem[31] = 0x00000040 (el resto conserva lo que habia: la memoria no se borra)
+04000293    # 0x000: li   t0, 64   -> addi t0, x0, 64
+06502E23    # 0x004: sw   t0, 124(x0)
+08002303    # 0x008: lw   t1, 128(x0)
+00100393    # 0x00C: li   t2, 1   -> addi t2, x0, 1
+00000000    # 0x010: halt

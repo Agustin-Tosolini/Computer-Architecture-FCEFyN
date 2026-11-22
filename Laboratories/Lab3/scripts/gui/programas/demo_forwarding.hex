@@ -1,0 +1,15 @@
+# demo_forwarding.hex - generado desde demo_forwarding.asm (no editar a mano)
+# Forwarding: cada instruccion usa el resultado de la anterior SIN esperar.
+# Mirar paso a paso los latches: el dato llega a EX desde EX/MEM o MEM/WB.
+# Sin forwarding habria que esperar 2 ciclos entre cada par; aca: 5 + 4 = 9 ciclos.
+#
+# Resultado esperado (rv32i_model.py):
+#   estado = 0x01 (HALT), ciclos = 9, PC = 0x00000018
+#   registros distintos de 0: x5 = 0x0000000A, x6 = 0x0000000F, x7 = 0x00000019, x28 = 0x0000000A
+#   memoria que escribe el programa: mem[0] = 0x0000000A (el resto conserva lo que habia: la memoria no se borra)
+00A00293    # 0x000: li   t0, 10   -> addi t0, x0, 10
+00528313    # 0x004: addi t1, t0, 5
+005303B3    # 0x008: add  t2, t1, t0
+40638E33    # 0x00C: sub  t3, t2, t1
+01C02023    # 0x010: sw   t3, 0(x0)
+00000000    # 0x014: halt

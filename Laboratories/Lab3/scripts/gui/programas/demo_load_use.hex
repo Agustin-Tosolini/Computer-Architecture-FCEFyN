@@ -1,0 +1,17 @@
+# demo_load_use.hex - generado desde demo_load_use.asm (no editar a mano)
+# Load-use: una instruccion que usa el registro que cargo el lw INMEDIATAMENTE
+# anterior espera 1 ciclo (stall): en el paso a paso el PC se repite una vez.
+# Ciclos: 7 instrucciones + 1 stall + 4 = 12.
+#
+# Resultado esperado (rv32i_model.py):
+#   estado = 0x01 (HALT), ciclos = 12, PC = 0x00000020
+#   registros distintos de 0: x5 = 0x00000007, x6 = 0x00000007, x7 = 0x0000000E, x28 = 0x00000007, x29 = 0x0000000E
+#   memoria que escribe el programa: mem[0] = 0x00000007 (el resto conserva lo que habia: la memoria no se borra)
+00700293    # 0x000: li   t0, 7   -> addi t0, x0, 7
+00502023    # 0x004: sw   t0, 0(x0)
+00002303    # 0x008: lw   t1, 0(x0)
+006303B3    # 0x00C: add  t2, t1, t1
+00002E03    # 0x010: lw   t3, 0(x0)
+00000013    # 0x014: nop   -> addi x0, x0, 0
+01CE0EB3    # 0x018: add  t4, t3, t3
+00000000    # 0x01C: halt

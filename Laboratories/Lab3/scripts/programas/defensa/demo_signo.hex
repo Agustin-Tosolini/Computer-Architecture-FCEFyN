@@ -1,0 +1,20 @@
+# demo_signo.hex - generado desde demo_signo.asm (no editar a mano)
+# demo_signo — "Con signo y sin signo" (reserva)
+#
+# QUE DEMUESTRA: lb extiende el signo y lbu completa con ceros; srai copia el
+# bit de signo y srli mete ceros. Respuesta a "¿que diferencia hay entre ...?".
+# CAMBIO respecto de la propuesta: se agrego "sw x0, 0(x0)" antes del sb,
+#
+# Resultado esperado (rv32i_model.py):
+#   estado = 0x01 (HALT), ciclos = 12, PC = 0x00000024
+#   registros distintos de 0: x1 = 0xFFFFFFFF, x2 = 0xFFFFFFFF, x3 = 0x000000FF, x4 = 0xFFFFFFF0, x5 = 0xFFFFFFFC, x6 = 0x3FFFFFFC
+#   memoria que escribe el programa: mem[0] = 0x000000FF (el resto conserva lo que habia: la memoria no se borra)
+FFF00093    # 0x000: addi x1, x0, -1
+00002023    # 0x004: sw   x0, 0(x0)
+00100023    # 0x008: sb   x1, 0(x0)
+00000103    # 0x00C: lb   x2, 0(x0)
+00004183    # 0x010: lbu  x3, 0(x0)
+FF000213    # 0x014: addi x4, x0, -16
+40225293    # 0x018: srai x5, x4, 2
+00225313    # 0x01C: srli x6, x4, 2
+00000000    # 0x020: halt
